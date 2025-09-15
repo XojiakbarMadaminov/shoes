@@ -3,11 +3,13 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
@@ -21,6 +23,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'current_store_id'
     ];
 
     /**
@@ -45,4 +48,21 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+
+    public function stores()
+    {
+        return $this->belongsToMany(Store::class, 'store_user','user_id','store_id')->withPivot('role')->withTimestamps();
+    }
+
+    public function currentStore()
+    {
+        return $this->belongsTo(Store::class, 'current_store_id');
+    }
+
+
 }

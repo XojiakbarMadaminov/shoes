@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Asia/Tashkent',
 
     /*
     |--------------------------------------------------------------------------
@@ -78,7 +78,9 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => 'uz',
+
+    'store_name' => 'Tractor',
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
