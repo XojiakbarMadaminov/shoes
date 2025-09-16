@@ -31,6 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->globalSearch(false)
             ->colors([
                 'primary' => Color::hex('#484ab5'), // Color::hex('#b5972d') // Color::Amber,
             ])
