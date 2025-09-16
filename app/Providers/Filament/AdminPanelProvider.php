@@ -58,13 +58,18 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->maxContentWidth('screen-2xl')
             ->topNavigation()
             ->brandName('Tractor')
             ->resourceCreatePageRedirect('index')
             ->resourceEditPageRedirect('index')
             ->userMenuItems([
+                Action::make('currentStore')
+                    ->label(fn () => auth()->user()?->currentStore?->name ?? 'magazin tanlanmagan')
+                    ->color(Color::hex('#484ab5'))
+                    ->disabled(),
                 Action::make('switchStore')
-                    ->label('Store tanlash')
+                    ->label('Magazin tanlash')
                     ->icon('heroicon-o-arrow-path')
                     ->schema([
                         Select::make('store_id')
@@ -75,13 +80,15 @@ class AdminPanelProvider extends PanelProvider
                     ->action(function (array $data) {
                         $user = auth()->user();
                         if ($user && $user->stores->contains($data['store_id'])) {
-                            $user->update(['current_store_id' => $data['store_id']]);
 
+                            $user->update(['current_store_id' => $data['store_id']]);
                             Notification::make()
                                 ->title('Store yangilandi')
                                 ->body('Hozirgi store: ' . $user->currentStore?->name)
                                 ->success()
                                 ->send();
+
+                            return redirect(request()->header('Referer'));
                         }
                     })
             ]);
