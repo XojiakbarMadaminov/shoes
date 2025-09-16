@@ -21,6 +21,12 @@ trait HasCurrentStoreScope
                 $builder->where($table . '.store_id', $user->current_store_id);
             }
 
+            if ($table === 'stocks') {
+                $builder->whereHas('stores', function ($q) use ($user) {
+                    $q->where('stores.id', $user->current_store_id);
+                });
+            }
+
             if ($table === 'products') {
                 $builder->whereHas('productStocks.stock.stores', function ($q) use ($user) {
                     $q->where('stores.id', $user->current_store_id);

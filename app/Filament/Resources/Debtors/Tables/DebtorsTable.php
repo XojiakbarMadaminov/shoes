@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Debtors\Tables;
 
+use App\Filament\Resources\Debtors\DebtorResource;
 use App\Models\Debtor;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -36,6 +37,7 @@ class DebtorsTable
                     ->sortable()
                     ->label('Sana')
             ])
+            ->recordUrl(fn ($record) => DebtorResource::getUrl('view', ['record' => $record]))
             ->filters([
                 //
             ])

@@ -21,7 +21,7 @@ class ProductsTable
             'active_stocks_for_store_' . auth()->id(),
             60, // 1 soat
             fn() => Stock::query()
-                ->where('is_active', true)
+                ->scopes('active')
                 ->whereHas('stores', fn($q) => $q->where('stores.id', auth()->user()->current_store_id))
                 ->get()
         );

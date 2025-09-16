@@ -15,4 +15,14 @@ class CreateDebtor extends CreateRecord
 
         return $data;
     }
+
+    protected function afterCreate(): void
+    {
+        $this->record->transactions()->create([
+            'type'   => 'debt',
+            'amount' => $this->record->amount,
+            'date'   => $this->record->date,
+            'note'   => 'Dastlabki qarz',
+        ]);
+    }
 }

@@ -53,6 +53,7 @@ class ProductForm
                         $user = auth()->user();
 
                         $stocks = Stock::query()
+                            ->scopes('active')
                             ->where('is_active', true)
                             ->whereHas('stores', fn($q) => $q->where('stores.id', $user->current_store_id))
                             ->get();

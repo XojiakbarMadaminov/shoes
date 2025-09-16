@@ -6,6 +6,7 @@ use App\Filament\Resources\Debtors\Pages\CreateDebtor;
 use App\Filament\Resources\Debtors\Pages\EditDebtor;
 use App\Filament\Resources\Debtors\Pages\ListDebtors;
 use App\Filament\Resources\Debtors\Pages\ViewDebtor;
+use App\Filament\Resources\Debtors\RelationManagers\TransactionRelationManager;
 use App\Filament\Resources\Debtors\Schemas\DebtorForm;
 use App\Filament\Resources\Debtors\Schemas\DebtorInfolist;
 use App\Filament\Resources\Debtors\Tables\DebtorsTable;
@@ -42,7 +43,7 @@ class DebtorResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            TransactionRelationManager::class,
         ];
     }
 
