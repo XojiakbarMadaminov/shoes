@@ -32,7 +32,7 @@ class ProductForm
                                 $set('barcode', self::generateEAN13Barcode());
                             })
                     ),
-                TextInput::make('name')->label('Nomi')->required(),
+                TextInput::make('name')->unique('products', 'name', ignoreRecord: true)->label('Nomi')->required(),
                 TextInput::make('initial_price')->label('Kelgan narxi')->numeric(),
                 TextInput::make('price')
                     ->label('Sotish narxi')

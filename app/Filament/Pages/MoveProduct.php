@@ -19,8 +19,8 @@ class MoveProduct extends Page implements Forms\Contracts\HasForms
     use Forms\Concerns\InteractsWithForms;
 
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-arrow-path';
-    protected static ?string $navigationLabel = 'Stockdan Stockga ko‘chirish';
-    protected static ?string $title = 'Stock ko‘chirish';
+    protected static ?string $navigationLabel = 'Tovarlarni ko‘chirish';
+    protected static ?string $title = 'Tovarlarni ko‘chirish';
 
     protected string $view = 'filament.pages.move-product';
 
@@ -85,49 +85,45 @@ class MoveProduct extends Page implements Forms\Contracts\HasForms
 
         $productIds = collect($data['products'])->pluck('product_id')->all();
 
-        // 1) Product nomlarini oldindan olib kelamiz
-        $products = \App\Models\Product::whereIn('id', $productIds)
+        $products = Product::whereIn('id', $productIds)
             ->pluck('name', 'id');
 
-        // 2) From_stock dagi mavjud quantitylarni oldindan olib kelamiz
-        $fromStockQuantities = \App\Models\ProductStock::whereIn('product_id', $productIds)
+        $fromStockQuantities = ProductStock::whereIn('product_id', $productIds)
             ->where('stock_id', $data['from_stock_id'])
             ->pluck('quantity', 'product_id');
 
-        // 3) Validatsiya
         foreach ($data['products'] as $item) {
             $productName = $products[$item['product_id']] ?? 'Noma’lum mahsulot';
-            $currentQty  = $fromStockQuantities[$item['product_id']] ?? 0;
+            $currentQty = $fromStockQuantities[$item['product_id']] ?? 0;
 
             if ($item['quantity'] > $currentQty) {
-                \Filament\Notifications\Notification::make()
+                Notification::make()
                     ->title('Xatolik')
                     ->body("{$productName} uchun maksimal {$currentQty} dona ko‘chirishingiz mumkin.")
                     ->danger()
                     ->send();
 
-                return; // ❌ to‘xtatamiz
+                return;
             }
         }
 
-        // 4) Ko‘chirish
         foreach ($data['products'] as $item) {
-            \App\Models\ProductStock::where('product_id', $item['product_id'])
+            ProductStock::where('product_id', $item['product_id'])
                 ->where('stock_id', $data['from_stock_id'])
                 ->decrement('quantity', $item['quantity']);
 
-            \App\Models\ProductStock::updateOrCreate(
+            ProductStock::updateOrCreate(
                 [
                     'product_id' => $item['product_id'],
-                    'stock_id'   => $data['to_stock_id'],
+                    'stock_id' => $data['to_stock_id'],
                 ],
                 [
-                    'quantity' => \DB::raw('quantity + ' . (int) $item['quantity']),
+                    'quantity' => \DB::raw('quantity + ' . (int)$item['quantity']),
                 ]
             );
         }
 
-        \Filament\Notifications\Notification::make()
+        Notification::make()
             ->title('Muvaffaqiyatli')
             ->body('Mahsulotlar stocklar orasida ko‘chirildi.')
             ->success()
