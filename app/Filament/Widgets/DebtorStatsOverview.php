@@ -8,6 +8,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class DebtorStatsOverview extends BaseWidget
 {
+
     protected function getCards(): array
     {
         $debts = Debtor::query()
