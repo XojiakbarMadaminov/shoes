@@ -11,13 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('stocks', function (Blueprint $table) {
+        Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->boolean('is_main')->default(false);
-            $table->boolean('is_active')->default(true);
+            $table->foreignId('store_id')->constrained('stores')->cascadeOnDelete();
+            $table->string('customer_name')->nullable();
+            $table->decimal('total', 13, 2);
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
@@ -26,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('stocks');
+        Schema::dropIfExists('sales');
     }
 };

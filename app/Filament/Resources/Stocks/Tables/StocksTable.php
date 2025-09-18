@@ -22,6 +22,7 @@ class StocksTable
                     ->badge()
                     ->separator(', ')
                     ->sortable(),
+                IconColumn::make('is_main')->label('Asosiy savdo bo\'ladigan sklad')->boolean(),
                 IconColumn::make('is_active')->label('Status')->boolean(),
             ])
             ->filters([
