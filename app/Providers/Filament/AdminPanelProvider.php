@@ -35,6 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::hex('#484ab5'), // Color::hex('#b5972d') // Color::Amber,
             ])
+            ->darkMode()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -56,17 +57,14 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            ->authMiddleware([
-                Authenticate::class,
-            ])
             ->maxContentWidth('screen-2xl')
             ->topNavigation()
-            ->brandName('Tractor')
+            ->brandName('Learning2')
             ->resourceCreatePageRedirect('index')
             ->resourceEditPageRedirect('index')
             ->userMenuItems([
                 Action::make('currentStore')
-                    ->label(fn () => auth()->user()?->currentStore?->name ?? 'magazin tanlanmagan')
+                    ->label(fn() => auth()->user()?->currentStore?->name ?? 'magazin tanlanmagan')
                     ->color(Color::hex('#484ab5'))
                     ->disabled(),
                 Action::make('switchStore')
@@ -92,8 +90,10 @@ class AdminPanelProvider extends PanelProvider
                             return redirect(request()->header('Referer'));
                         }
                     })
-            ]);
-
-
+            ])
+            ->authMiddleware([
+                Authenticate::class,
+            ])
+            ->viteTheme('resources/css/filament/admin/theme.css');
     }
 }

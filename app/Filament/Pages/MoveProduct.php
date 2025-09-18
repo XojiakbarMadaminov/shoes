@@ -5,18 +5,19 @@ namespace App\Filament\Pages;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\Stock;
-use Filament\Forms;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
-class MoveProduct extends Page implements Forms\Contracts\HasForms
+class MoveProduct extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use InteractsWithForms;
 
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-arrow-path';
     protected static ?string $navigationLabel = 'Tovarlarni ko‘chirish';
