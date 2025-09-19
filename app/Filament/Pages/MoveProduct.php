@@ -23,6 +23,8 @@ class MoveProduct extends Page implements HasForms
     protected static ?string $navigationLabel = 'Tovarlarni ko‘chirish';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-arrow-path';
     protected static ?string $title = 'Tovarlarni ko‘chirish';
+    protected static ?int $navigationSort = 4;
+
 
     protected string $view = 'filament.pages.move-product';
 
@@ -110,20 +112,26 @@ class MoveProduct extends Page implements HasForms
         }
 
         foreach ($data['products'] as $item) {
+            // From stockdan ayirish
             ProductStock::where('product_id', $item['product_id'])
                 ->where('stock_id', $data['from_stock_id'])
                 ->decrement('quantity', $item['quantity']);
 
-            ProductStock::updateOrCreate(
+            // To stockda yozuvni topish yoki yaratish
+            $toStock = ProductStock::firstOrCreate(
                 [
                     'product_id' => $item['product_id'],
-                    'stock_id' => $data['to_stock_id'],
+                    'stock_id'   => $data['to_stock_id'],
                 ],
                 [
-                    'quantity' => \DB::raw('quantity + ' . (int)$item['quantity']),
+                    'quantity' => 0,
                 ]
             );
+
+            // Keyin increment qilish
+            $toStock->increment('quantity', $item['quantity']);
         }
+
 
         Notification::make()
             ->title('Muvaffaqiyatli')

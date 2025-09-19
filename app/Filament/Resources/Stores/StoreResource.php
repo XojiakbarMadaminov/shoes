@@ -23,6 +23,7 @@ class StoreResource extends Resource
     protected static ?string $navigationLabel = 'Magazin';
     protected static ?string $label = 'Magazin';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?int $navigationSort = 6;
 
 
     public static function form(Schema $schema): Schema

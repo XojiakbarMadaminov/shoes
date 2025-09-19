@@ -21,6 +21,7 @@ class Pos extends Page
     protected static ?string $title = 'Sotuv';
     protected string $view = 'filament.pages.pos';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-shopping-cart';
+    protected static ?int $navigationSort = 1;
 
     public function getHeading(): string
     {

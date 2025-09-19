@@ -24,6 +24,7 @@ class StockResource extends Resource
     protected static ?string $label = 'Sklad';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
     protected static ?string $recordTitleAttribute = 'Sklad';
+    protected static ?int $navigationSort = 7;
 
     public static function form(Schema $schema): Schema
     {
