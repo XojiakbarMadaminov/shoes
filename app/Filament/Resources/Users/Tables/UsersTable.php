@@ -15,13 +15,17 @@ class UsersTable
     {
         return $table
             ->columns([
-                TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('email')->searchable()->sortable(),
+                TextColumn::make('name')->label('Ismi')->searchable()->sortable(),
+                TextColumn::make('email')->label('Email')->searchable()->sortable(),
                 TextColumn::make('stores.name')
-                    ->label('Stores')
+                    ->label('Biriktirilgan magazinlar')
                     ->badge()
                     ->sortable(),
-                TextColumn::make('created_at')->dateTime(),
+                TextColumn::make('roles.name')
+                    ->label('Rol')
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('created_at')->label('Qo‘shilgan sana')->dateTime(),
             ])
             ->filters([
                 //

@@ -11,13 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('stores', function (Blueprint $table) {
+        Schema::create('debtor_sms_logs', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('address');
-            $table->string('phone');
-            $table->timestamps();
-            $table->softDeletes();
+            $table->unsignedBigInteger('debtor_id');
+            $table->timestamp('sent_at');
+
+            // Foreign key
+            $table->foreign('debtor_id')
+                ->references('id')
+                ->on('debtors')
+                ->onDelete('cascade');
         });
     }
 
@@ -26,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('stores');
+        Schema::dropIfExists('debtor_sms_logs');
     }
 };

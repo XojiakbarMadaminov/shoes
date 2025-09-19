@@ -17,6 +17,7 @@ class StoresTable
             ->columns([
                 TextColumn::make('name')->label('Nomi'),
                 TextColumn::make('address')->label('Manzil'),
+                TextColumn::make('phone')->label('Telefon'),
             ])
             ->filters([
                 //

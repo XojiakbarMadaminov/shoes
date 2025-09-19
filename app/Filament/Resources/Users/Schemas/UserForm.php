@@ -16,7 +16,7 @@ class UserForm
                 Section::make('User Information')
                     ->schema([
                         TextInput::make('name')
-                            ->label('Full Name')
+                            ->label('Ism')
                             ->required()
                             ->maxLength(255),
 
@@ -29,7 +29,7 @@ class UserForm
                             ->maxLength(255),
 
                         TextInput::make('password')
-                            ->label('Password')
+                            ->label('Parol')
                             ->password()
                             ->dehydrateStateUsing(fn($state) => !empty($state) ? bcrypt($state) : null)
                             ->dehydrated(fn($state) => filled($state))
@@ -39,13 +39,14 @@ class UserForm
                 Section::make('Stores')
                     ->schema([
                         Select::make('stores')
-                            ->label('Stores')
+                            ->label('Magazinlar')
                             ->multiple()
                             ->relationship('stores', 'name')
                             ->preload()
                             ->searchable(),
 
                         Select::make('roles')
+                            ->label('Rol')
                             ->relationship('roles', 'name')
                             ->multiple()
                             ->preload()

@@ -27,7 +27,7 @@ class SendDebtorSms extends Command
                     });
             })
             ->orderBy('d.id')
-            ->select('d.id', 'd.full_name', 'd.phone', 'd.amount', 'd.currency', 'd.date')
+            ->select('d.id', 'd.full_name', 'd.phone', 'd.amount', 'd.currency', 'd.date', 'd.store_id')
             ->chunk(100, function ($debtors) use ($today) {
                 $smsService = new SmsService();
 
@@ -62,7 +62,10 @@ class SendDebtorSms extends Command
                     }
 
                     if ($shouldSend) {
-                        $message = "Sizda Qumtepada joylashgan Million parfume do'konidan {$debtor->amount} {$debtor->currency} qarzdorlik mavjud. Tez orada to'lang yoki +998903291187 raqamiga murojaat qiling.";
+                        $store = DB::table('stores')->where('id', $debtor->store_id)->first();
+                        $message = "Sizda {$store->address}da joylashgan {$store->name} do'konidan {$debtor->amount} {$debtor->currency} qarzdorlik mavjud. Tez orada to'lang yoki {$store->phone} raqamiga murojaat qiling.";
+                        $this->info($message);
+                        return;
                         $result = $smsService->sendSms($phone, $message);
 
                         if ($result['success']) {
