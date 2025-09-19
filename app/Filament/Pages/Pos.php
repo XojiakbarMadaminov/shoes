@@ -7,6 +7,7 @@ use App\Models\ProductStock;
 use App\Models\Sale;
 use App\Models\Stock;
 use App\Services\CartService;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Panel\Concerns\HasNotifications;
@@ -15,11 +16,11 @@ use Livewire\Attributes\On;
 
 class Pos extends Page
 {
-    use HasNotifications;
+    use HasNotifications, HasPageShield;
 
+    protected static ?string $title = 'Sotuv';
     protected string $view = 'filament.pages.pos';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-shopping-cart';
-    protected static ?string $title = 'Sotuv';
 
     public function getHeading(): string
     {

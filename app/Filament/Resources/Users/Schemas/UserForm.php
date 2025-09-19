@@ -43,7 +43,13 @@ class UserForm
                             ->multiple()
                             ->relationship('stores', 'name')
                             ->preload()
-                            ->searchable()
+                            ->searchable(),
+
+                        Select::make('roles')
+                            ->relationship('roles', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->searchable(),
                     ]),
             ]);
     }

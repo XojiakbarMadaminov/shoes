@@ -3,11 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Debtor;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class DebtorStatsOverview extends BaseWidget
 {
+    use HasWidgetShield;
 
     protected function getCards(): array
     {

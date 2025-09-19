@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Sale;
 use App\Models\SaleItem;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -12,7 +13,7 @@ use Livewire\Attributes\On;
 
 class SalesStatsOverview extends BaseWidget
 {
-    use InteractsWithForms;
+    use InteractsWithForms, HasWidgetShield;
 
     public ?string $start_date = null;
     public ?string $end_date = null;

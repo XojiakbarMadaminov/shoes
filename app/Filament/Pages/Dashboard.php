@@ -2,21 +2,26 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\DebtorStatsOverview;
 use App\Filament\Widgets\LeastSellingProductsChart;
 use App\Filament\Widgets\SalesStatsOverview;
 use App\Filament\Widgets\TopSellingProductsChart;
 use App\Filament\Widgets\UnsoldProductsList;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Forms\Components\DatePicker;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Schemas\Components\Form;
+use Filament\Support\Icons\Heroicon;
 
 class Dashboard extends BaseDashboard
 {
-    protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-home';
+    use HasPageShield;
+
+    protected static ?string $navigationLabel = 'Statistika';
+    protected static string|null|\BackedEnum $navigationIcon = Heroicon::ChartPie;
     protected string $view = 'filament.pages.dashboard';
     public ?string $start_date = null;
     public ?string $end_date = null;
+
 
     public function getFooterWidgets(): array
     {

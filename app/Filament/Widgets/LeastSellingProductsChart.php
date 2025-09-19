@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\SaleItem;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
@@ -10,6 +11,7 @@ use Livewire\Attributes\On;
 
 class LeastSellingProductsChart extends ChartWidget
 {
+    use HasWidgetShield;
     protected ?string $heading = 'Eng kam sotilgan 10 ta tovar';
 
     public ?string $start_date = null;

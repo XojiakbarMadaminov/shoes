@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\Stock;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -17,10 +18,10 @@ use Filament\Schemas\Schema;
 
 class MoveProduct extends Page implements HasForms
 {
-    use InteractsWithForms;
+    use InteractsWithForms, HasPageShield;
 
-    protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-arrow-path';
     protected static ?string $navigationLabel = 'Tovarlarni ko‘chirish';
+    protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-arrow-path';
     protected static ?string $title = 'Tovarlarni ko‘chirish';
 
     protected string $view = 'filament.pages.move-product';

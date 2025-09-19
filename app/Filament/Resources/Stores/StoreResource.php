@@ -20,9 +20,10 @@ class StoreResource extends Resource
 {
     protected static ?string $model = Store::class;
 
+    protected static ?string $navigationLabel = 'Magazin';
+    protected static ?string $label = 'Magazin';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $recordTitleAttribute = 'Store';
 
     public static function form(Schema $schema): Schema
     {

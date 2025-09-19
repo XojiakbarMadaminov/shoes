@@ -3,12 +3,15 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Product;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
 
 class UnsoldProductsList extends TableWidget
 {
+    use HasWidgetShield;
+
     protected int|string|array $columnSpan = 'full';
 
     protected static ?string $heading = 'Umuman sotilmagan tovarlar';
