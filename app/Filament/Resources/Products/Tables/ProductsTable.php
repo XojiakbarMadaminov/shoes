@@ -2,7 +2,10 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Models\Product;
 use App\Models\Stock;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -12,6 +15,7 @@ use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 
 class ProductsTable
 {
@@ -61,6 +65,11 @@ class ProductsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                Action::make('print_barcode')
+                    ->label('Print Barcode')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (Product $record) => route('product.barcode.pdf', $record))
+                    ->openUrlInNewTab(),
                 ViewAction::make(),
                 EditAction::make(),
             ])
@@ -69,6 +78,18 @@ class ProductsTable
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
+                    BulkAction::make('bulk_print_barcode')
+                        ->label('Barcodeni chop etish')
+                        ->icon('heroicon-o-printer')
+                        ->action(function (Collection $records) {
+                            $ids = $records->pluck('id')->toArray();
+                            $url = route('product.barcodes.bulk', ['ids' => $ids]);
+
+                            // Redirect qilish uchun response qaytaramiz:
+                            return redirect($url);
+                        })
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion()
                 ]),
             ])
             ->modifyQueryUsing(fn($query) => $query->with('productStocks'));
