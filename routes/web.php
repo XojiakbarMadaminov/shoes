@@ -4,6 +4,7 @@ use App\Models\Debtor;
 use App\Models\Product;
 use App\Models\Store;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -34,20 +35,49 @@ Route::get('/switch-store/{store}', function (Store $store) {
 })->name('switch-store');
 
 // 1. Bitta product uchun
-Route::get('/products/{product}/barcode-pdf', function (Product $product) {
-    return Pdf::loadView('product-barcode', ['products' => collect([$product])])
-//        ->setPaper([0, 0, 85.0, 65.2], 'landscape') // 23mm x 30mm
+Route::get('/products/{product}/barcode-pdf', function (Product $product, Request $request) {
+    $size = $request->get('size', '30x20');
+
+    $sizes = [
+        '30x20' => [0, 0, 85.04, 56.69],   // 30mm x 20mm
+        '57x30' => [0, 0, 161.62, 85.04],  // 57mm x 30mm
+        '85x65' => [0, 0, 240.94, 184.25], // 85mm x 65mm
+    ];
+
+    $paper = $sizes[$size] ?? $sizes['30x20'];
+
+    return Pdf::loadView('product-barcode', [
+        'products' => collect([$product]),
+        'size'     => $size,
+    ])
+        ->setPaper($paper)
         ->setOptions(['defaultFont' => 'sans-serif'])
         ->stream("barcode-{$product->id}.pdf");
 })->name('product.barcode.pdf');
 
 
-// 2. Ko‘p product uchun (masalan, tanlanganlar)
-Route::get('/products/barcodes/bulk', function () {
-    $productIds = request()->input('ids', []); // ?ids[]=1&ids[]=3&ids[]=5
-    $products = Product::whereIn('id', $productIds)->get();
 
-    return Pdf::loadView('product-barcode', compact('products'))
-        ->setPaper([0, 0, 136, 85.0]) // ko‘proq sahifali variant uchun A4 mos
+// 2. Ko‘p product uchun (masalan, tanlanganlar)
+Route::get('/products/barcodes/bulk', function (Request $request) {
+    $ids  = explode(',', $request->input('ids', ''));
+    $size = $request->get('size', '30x20');
+
+    $products = Product::whereIn('id', $ids)->get();
+
+    $sizes = [
+        '30x20' => [0, 0, 85.04, 56.69],
+        '57x30' => [0, 0, 161.62, 85.04],
+        '85x65' => [0, 0, 240.94, 184.25],
+    ];
+
+    $paper = $sizes[$size] ?? $sizes['30x20'];
+
+    return Pdf::loadView('product-barcode', [
+        'products' => $products,
+        'size'     => $size,
+    ])
+        ->setPaper($paper)
+        ->setOptions(['defaultFont' => 'sans-serif'])
         ->stream("barcodes.pdf");
 })->name('product.barcodes.bulk');
+
