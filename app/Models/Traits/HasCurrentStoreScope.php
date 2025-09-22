@@ -39,6 +39,13 @@ trait HasCurrentStoreScope
                 });
             }
 
+            if ($table === 'sale_items') {
+                $builder->whereHas('sale', function ($q) use ($user) {
+                    $q->where('store_id', $user->current_store_id);
+                });
+            }
+
+
         });
     }
 }
