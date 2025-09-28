@@ -33,7 +33,8 @@ class UserForm
                             ->password()
                             ->dehydrateStateUsing(fn($state) => !empty($state) ? bcrypt($state) : null)
                             ->dehydrated(fn($state) => filled($state))
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->hiddenOn('edit'),
                     ])->columns(2),
 
                 Section::make('Stores')
