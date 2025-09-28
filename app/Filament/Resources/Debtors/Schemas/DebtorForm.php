@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources\Debtors\Schemas;
 
+use App\Models\Debtor;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
 
@@ -28,11 +30,35 @@ class DebtorForm
                         ->label('Telefon raqam')
                         ->maxLength(9)
                         ->prefix('+998')
-                        ->placeholder('90 123 45 67')
+                        ->placeholder('90 123 45 67 yoki 0')
                         ->required()
-                        ->rule('regex:/^[0-9]{0,9}$/') // 0 dan 9 gacha raqam, ixtiyoriy uzunlik
-                        ->dehydrateStateUsing(fn ($state) => '+998' . preg_replace('/\D/', '', $state))
-                        ->formatStateUsing(fn ($state) => $state ? ltrim(preg_replace('/^\+998/', '', $state), '0') : ''),
+                        ->reactive()
+                        ->rule('regex:/^[0-9]{0,9}$/')
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            // Agar foydalanuvchi 0 kiritsa — tekshiruv ishlamasin
+                            if ($state === '0') {
+                                return;
+                            }
+
+                            $phone = '+998' . preg_replace('/\D/', '', $state);
+
+                            $exists = Debtor::where('phone', $phone)
+                                ->where('amount', '>', 0)
+                                ->exists();
+
+                            if ($exists) {
+                                $set('phone', null);
+                                Notification::make()
+                                    ->title('Ushbu raqam qarzdorlar ro‘yxatida mavjud!')
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->dehydrateStateUsing(fn ($state) => $state === '0' ? '0' : '+998' . preg_replace('/\D/', '', $state))
+                        ->formatStateUsing(fn ($state) => $state && $state !== '0'
+                            ? ltrim(preg_replace('/^\+998/', '', $state), '0')
+                            : $state),
+
 
                     Select::make('currency')
                         ->label('Valyuta')
