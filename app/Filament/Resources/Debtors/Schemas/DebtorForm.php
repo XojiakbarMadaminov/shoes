@@ -43,6 +43,7 @@ class DebtorForm
                             $phone = '+998' . preg_replace('/\D/', '', $state);
 
                             $exists = Debtor::where('phone', $phone)
+                                ->where('store_id', auth()->user()->current_store_id)
                                 ->where('amount', '>', 0)
                                 ->exists();
 
