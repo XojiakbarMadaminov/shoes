@@ -33,7 +33,7 @@
 <body>
 
 <div class="center">
-    <img src="{{ public_path('images/million_black_white_transparent.png') }}" alt="Million Parfume" class="logo">
+    <img src="{{ public_path('images/million_black_white_transparent.png') }}" alt="Traktor ehtiyot qismlari" class="logo">
 </div>
 
 <div class="center">*** QARZDORLIK CHEKI ***</div>
@@ -60,11 +60,11 @@
 <div class="divider"></div>
 
 <div class="center">
-    <img src="{{ public_path('images/qr.png') }}" class="logo">
+    <img src="{{ public_path('images/traktor-qr.png') }}" class="logo">
 </div>
 
 <div class="divider"></div>
-<div class="line">Elyor: {{ config('app.phone') }}</div>
+<div class="line">Tel: {{ config('app.phone') }}</div>
 <div class="line">Karta: {{ config('app.card') }}</div>
 
 <div class="divider"></div>
