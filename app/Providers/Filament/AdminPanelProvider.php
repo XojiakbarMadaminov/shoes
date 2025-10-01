@@ -58,7 +58,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->maxContentWidth('screen-2xl')
             ->topNavigation()
-            ->brandName('Learning2')
+            ->brandName('Agropos')
             ->resourceCreatePageRedirect('index')
             ->resourceEditPageRedirect('index')
             ->userMenuItems([
