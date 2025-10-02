@@ -13,9 +13,13 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class ProductsTable
@@ -43,6 +47,10 @@ class ProductsTable
                         ->label('Bar kod')
                         ->searchable(),
 
+                    TextColumn::make('yuan_price')
+                        ->label('Yuan narxi (¥)')
+                        ->numeric(),
+
                     TextColumn::make('initial_price')
                         ->label('Kelgan narxi')
                         ->numeric(),
@@ -50,6 +58,10 @@ class ProductsTable
                     TextColumn::make('price')
                         ->label('Narxi')
                         ->numeric(),
+                    TextColumn::make('category.name')
+                        ->label('Kategoriyasi')
+                        ->sortable()
+                        ->searchable(),
                 ],
 
                 $stocks->map(fn($stock) => TextColumn::make("stock_{$stock->id}")
@@ -64,6 +76,38 @@ class ProductsTable
             ))
             ->filters([
                 TrashedFilter::make(),
+                SelectFilter::make('category_id')
+                    ->label('Kategoriyasi')
+                    ->relationship('category', 'name', fn($query) => $query->scopes('active')),
+                Filter::make('stock_quantity')
+                    ->label('Ombordagi miqdor')
+                    ->schema([
+                        Select::make('stock_id')
+                            ->label('Ombor')
+                            ->options(
+                                Stock::query()
+                                    ->scopes('active')
+                                    ->pluck('name', 'id')
+                                    ->toArray()
+                            )
+                            ->required(),
+
+                        TextInput::make('quantity')
+                            ->label('Miqdor')
+                            ->numeric()
+                            ->default(0)
+                            ->required(),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['stock_id']) || empty($data['quantity'])) {
+                            return $query;
+                        }
+
+                        return $query->whereHas('productStocks', function ($q) use ($data) {
+                            $q->where('stock_id', $data['stock_id'])
+                                ->where('quantity', '<=', (int)$data['quantity']);
+                        });
+                    }),
             ])
             ->recordActions([
                 Action::make('print_barcode')

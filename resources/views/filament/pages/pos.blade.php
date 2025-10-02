@@ -221,6 +221,10 @@
                             </th>
                             <th scope="col"
                                 class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Yuan narxi
+                            </th>
+                            <th scope="col"
+                                class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 Kelgan narxi
                             </th>
                             <th scope="col"
@@ -253,7 +257,6 @@
                                         x-on:change="$wire.updateStock({{ $row['id'] }}, $event.target.value);"
                                     >
                                         @foreach(App\Models\Stock::scopes(['active'])->get() as $stock)
-                                            @php Log::info($stock); @endphp
                                             <option value="{{ $stock->id }}"
                                                 @selected($stock->is_main)>
                                                 {{ $stock->name }}
@@ -292,8 +295,19 @@
                                     </div>
                                 </td>
 
-                                {{-- Kelgan narxi --}}
+                                {{-- Yuan narxi --}}
+                                <td class="px-3 py-3 text-right">
+                                    <div>
+                                        <input type="number"
+                                               disabled
+                                               value="{{ $row['yuan_price'] }}"
+                                               class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white
+                                                  focus:ring-primary-500 focus:border-primary-500 rounded-md shadow-sm text-right
+                                                  py-1.5 px-2 text-sm">
+                                    </div>
+                                </td>
 
+                                {{-- Kelgan narxi --}}
                                 <td class="px-3 py-3 text-right">
                                     <div>
                                         <input type="number"

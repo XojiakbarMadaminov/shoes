@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Product;
 use App\Models\Stock;
+use App\Models\Product;
 
 class CartService
 {
@@ -12,6 +12,7 @@ class CartService
     public function all(int $cartId = 1): array
     {
         $carts = session($this->key, []);
+
         return $carts[$cartId] ?? [];
     }
 
@@ -28,6 +29,7 @@ class CartService
             $items[$product->id] = [
                 'id'            => $product->id,
                 'name'          => $product->name,
+                'yuan_price'    => $product->yuan_price,
                 'price'         => $product->price,
                 'qty'           => $qty,
                 'initial_price' => $product->initial_price,
@@ -39,7 +41,6 @@ class CartService
         session()->put($this->key, $carts);
     }
 
-
     public function update(int $productId, int $qty, int $cartId = 1): void
     {
         $carts = session($this->key, []);
@@ -47,7 +48,7 @@ class CartService
 
         if (isset($items[$productId])) {
             $items[$productId]['qty'] = max(1, $qty);
-            $carts[$cartId] = $items;
+            $carts[$cartId]           = $items;
             session()->put($this->key, $carts);
         }
     }
@@ -91,6 +92,7 @@ class CartService
     public function getAllCartIds(): array
     {
         $carts = session($this->key, []);
+
         // Barcha cartlarni qaytarish (bo'sh ham, to'la ham)
         return array_keys($carts);
     }
@@ -98,12 +100,14 @@ class CartService
     public function getActiveCartIds(): array
     {
         $carts = $this->getAllCarts();
-        return array_keys(array_filter($carts, fn($cart) => !empty($cart)));
+
+        return array_keys(array_filter($carts, fn ($cart) => !empty($cart)));
     }
 
     public function cartExists(int $cartId): bool
     {
         $carts = session($this->key, []);
+
         return isset($carts[$cartId]) && !empty($carts[$cartId]);
     }
 
@@ -117,7 +121,7 @@ class CartService
         $minPrice = round($product->initial_price * 1.05, 2);
 
         if ($price < $minPrice) {
-            throw new \InvalidArgumentException("Bu narx minimal narxdan past. Iltimos, minimal narxdan oshiring.");
+            throw new \InvalidArgumentException('Bu narx minimal narxdan past. Iltimos, minimal narxdan oshiring.');
         }
 
         $carts = session($this->key, []);
@@ -125,7 +129,7 @@ class CartService
 
         if (isset($items[$productId])) {
             $items[$productId]['price'] = $price;
-            $carts[$cartId] = $items;
+            $carts[$cartId]             = $items;
             session()->put($this->key, $carts);
         }
     }
@@ -137,10 +141,8 @@ class CartService
 
         if (isset($items[$productId])) {
             $items[$productId]['stock_id'] = $stockId;
-            $carts[$cartId] = $items;
+            $carts[$cartId]                = $items;
             session()->put($this->key, $carts);
         }
     }
-
-
 }

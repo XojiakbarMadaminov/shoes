@@ -31,6 +31,11 @@ class Product extends Model
             ->withTimestamps();
     }
 
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
     public function getTotalQuantityAttribute(): int
     {
         return $this->productStocks->sum('quantity');

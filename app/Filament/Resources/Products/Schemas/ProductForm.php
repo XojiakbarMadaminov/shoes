@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\Schemas;
 use App\Models\Stock;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -18,35 +19,56 @@ class ProductForm
     {
         return $schema
             ->components([
-                TextInput::make('barcode')
-                    ->label('Bar kod')
-                    ->unique('products', 'barcode', ignoreRecord: true)
-                    ->numeric()
-                    ->required()
-                    ->autofocus()
-                    ->suffixAction(
-                        Action::make('generateBarcode')
-                            ->icon('heroicon-m-sparkles')
-                            ->tooltip('EAN-13 Bar kod yaratish')
-                            ->action(function (Set $set) {
-                                $set('barcode', self::generateEAN13Barcode());
-                            })
-                    ),
-                TextInput::make('name')->unique('products', 'name', ignoreRecord: true)->label('Nomi')->required(),
-                TextInput::make('initial_price')->label('Kelgan narxi')->numeric(),
-                TextInput::make('price')
-                    ->label('Sotish narxi')
-                    ->numeric()
-                    ->required()
-                    ->rule(function (callable $get) {
-                        $initial = $get('initial_price');
+                Section::make('Tovar ma`lumotlari')
+                    ->columnSpanFull()
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('name')
+                            ->label('Nomi')
+                            ->unique('products', 'name', ignoreRecord: true)
+                            ->required()
+                            ->columnSpanFull(),
 
-                        return function (string $attribute, $value, $fail) use ($initial) {
-                            if ($initial !== null && $value <= $initial) {
-                                $fail('Sotish narxi kelgan narxidan katta bo‘lishi kerak.');
-                            }
-                        };
-                    }),
+                        TextInput::make('barcode')
+                            ->label('Bar kod')
+                            ->unique('products', 'barcode', ignoreRecord: true)
+                            ->numeric()
+                            ->required()
+                            ->autofocus()
+                            ->suffixAction(
+                                Action::make('generateBarcode')
+                                    ->icon('heroicon-m-sparkles')
+                                    ->tooltip('EAN-13 Bar kod yaratish')
+                                    ->action(function (Set $set) {
+                                        $set('barcode', self::generateEAN13Barcode());
+                                    })
+                            ),
+                        Select::make('category_id')
+                            ->label('Kategoriyasi')
+                            ->relationship('category', 'name',  fn($query) => $query->scopes('active')),
+                    ]),
+
+                Section::make(' Narxlar')
+                    ->columnSpanFull()
+                    ->columns(3)
+                    ->schema([
+                        TextInput::make('yuan_price')->label('Yuan narxi')->numeric()->nullable()->prefix('¥'),
+                        TextInput::make('initial_price')->label('Kelgan narxi')->numeric()->required(),
+                        TextInput::make('price')
+                            ->label('Sotish narxi')
+                            ->numeric()
+                            ->required()
+                            ->rule(function (callable $get) {
+                                $initial = $get('initial_price');
+
+                                return function (string $attribute, $value, $fail) use ($initial) {
+                                    if ($initial !== null && $value <= $initial) {
+                                        $fail('Sotish narxi kelgan narxidan katta bo‘lishi kerak.');
+                                    }
+                                };
+                            })
+                    ]),
+
                 Section::make('Tovar miqdori')
                     ->columnSpanFull()
                     ->schema(function ($record) {

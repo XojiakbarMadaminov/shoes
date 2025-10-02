@@ -22,7 +22,7 @@ class StoreResource extends Resource
 
     protected static ?string $navigationLabel = 'Magazin';
     protected static ?string $label = 'Magazin';
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::BuildingStorefront;
     protected static ?int $navigationSort = 6;
 
 
