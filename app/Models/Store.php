@@ -3,17 +3,19 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Store extends Model
 {
-    protected $table = 'stores';
+    use SoftDeletes;
+
+    protected $table   = 'stores';
     protected $guarded = [];
 
     public function stocks()
     {
         return $this->belongsToMany(Stock::class, 'store_stock');
     }
-
 
     public function users()
     {
@@ -24,5 +26,4 @@ class Store extends Model
     {
         return $this->hasMany(Debtor::class);
     }
-
 }
