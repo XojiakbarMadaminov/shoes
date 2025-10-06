@@ -1,0 +1,8 @@
+{
+    "dejavu sans": {
+        "bold": "C:\\Users\\user\\Documents\\projects\\tractor\\vendor\\dompdf\\dompdf\/lib\/fonts\/DejaVuSans-Bold",
+        "bold_italic": "C:\\Users\\user\\Documents\\projects\\tractor\\vendor\\dompdf\\dompdf\/lib\/fonts\/DejaVuSans-BoldOblique",
+        "italic": "C:\\Users\\user\\Documents\\projects\\tractor\\vendor\\dompdf\\dompdf\/lib\/fonts\/DejaVuSans-Oblique",
+        "normal": "dejavu_sans_normal_30add1208219b3602fd68d125edd02c3"
+    }
+}

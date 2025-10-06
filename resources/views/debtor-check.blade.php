@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <style>
         @page { margin: 0; }
+        @font-face {
+            font-family: 'DejaVu Sans';
+            src: url("{{ public_path('fonts/DejaVuSans.ttf') }}") format('truetype');
+        }
 
         body {
-            font-family: monospace;
-            font-size: 14px;
+            font-family: 'DejaVu Sans', monospace;
+            font-size: 12px;
             width: 176pt; /* 62mm */
             margin: 0;
             padding: 10px;

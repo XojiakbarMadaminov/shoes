@@ -51,7 +51,6 @@ Route::get('/products/{product}/barcode-pdf', function (Product $product, Reques
         'size'     => $size,
     ])
         ->setPaper($paper)
-        ->setOptions(['defaultFont' => 'sans-serif'])
         ->stream("barcode-{$product->id}.pdf");
 })->name('product.barcode.pdf');
 
@@ -77,7 +76,6 @@ Route::get('/products/barcodes/bulk', function (Request $request) {
         'size'     => $size,
     ])
         ->setPaper($paper)
-        ->setOptions(['defaultFont' => 'sans-serif'])
         ->stream("barcodes.pdf");
 })->name('product.barcodes.bulk');
 

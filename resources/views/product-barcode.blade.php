@@ -7,10 +7,15 @@
             margin: 0;
         }
 
+        @font-face {
+            font-family: 'DejaVu Sans';
+            src: url("{{ public_path('fonts/DejaVuSans.ttf') }}") format('truetype');
+        }
+
         body {
             margin: 0;
             padding: 0;
-            font-family: sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
         }
 
         /* Har bir label alohida sahifa bo‘lsin */
@@ -38,6 +43,7 @@
             overflow-wrap: break-word;
             white-space: normal;
             text-align: center;
+            font-family: 'DejaVu Sans', sans-serif;
         }
 
 
