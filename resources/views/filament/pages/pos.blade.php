@@ -20,9 +20,8 @@
                 </div>
 
                 <div id="receipt-content" class="receipt-content">
-                    <div class="center" style="margin-bottom:10px;">
-                        <img src="{{ asset('images/million_black_white_transparent.png') }}" alt="Logo"
-                             style="height:50px;">
+                    <div class="center" style="margin-bottom:10px; margin-top:5px;">
+                        <h3>Traktor ehtiyot qismlari</h3>
                     </div>
                     <div class="center bold" style="font-size:18px; margin-bottom:6px;">SAVDO CHEKI</div>
                     <div style="text-align:center; margin-bottom:4px;">{{ $receiptData['receipt_number'] ?? '' }}</div>
@@ -58,7 +57,7 @@
                         Yana tashrifingizni kutamiz
                     </div>
                     <div class="receipt-footer-printonly">
-                        <img src="{{ asset('images/qr.png') }}" alt="QR code" style="max-width:32mm; max-height:32mm;">
+                        <img src="{{ asset('images/traktor-qr.png') }}" alt="QR code" style="max-width:32mm; max-height:32mm;">
                     </div>
                 </div>
 

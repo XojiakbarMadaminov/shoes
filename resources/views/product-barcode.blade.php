@@ -57,7 +57,7 @@
 @foreach($products as $product)
     <div class="label">
         <div class="product-name"
-             style="font-size: {{ strlen($product->name) > 40 ? '8px' : (strlen($product->name) > 20 ? '10px' : '12px') }}">
+             style="font-size: {{ strlen($product->name) > 40 ? '8px' : (strlen($product->name) > 20 ? '8px' : '10px') }}">
             {{ $product->name }}
         </div>
 
@@ -67,7 +67,7 @@
                 {!! DNS1D::getBarcodeHTML($product->barcode, 'EAN13', 1.2, 28) !!}
             </div>
         </div>
-
+        <div class="product-name" style="font-size: 10px">{{ $product->barcode }}</div>
     </div>
 @endforeach
 </body>
