@@ -63,7 +63,7 @@
 @foreach($products as $product)
     <div class="label">
         <div class="product-name"
-             style="font-size: {{ strlen($product->name) > 40 ? '8px' : (strlen($product->name) > 20 ? '8px' : '10px') }}">
+             style="font-size: {{ strlen($product->name) > 40 ? '6px' : (strlen($product->name) > 20 ? '8px' : '10px') }}">
             {{ $product->name }}
         </div>
 
