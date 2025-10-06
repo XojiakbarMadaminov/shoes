@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique()->nullable();
             $table->string('barcode')->unique()->nullable();
-            $table->bigInteger('yuan_price')->nullable();
+            $table->decimal('yuan_price', 15, 2)->nullable();
             $table->bigInteger('initial_price')->nullable();
             $table->bigInteger('price')->nullable();
             $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
