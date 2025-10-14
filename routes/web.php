@@ -1,10 +1,10 @@
 <?php
 
+use App\Models\Store;
 use App\Models\Debtor;
 use App\Models\Product;
-use App\Models\Store;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -15,8 +15,8 @@ Route::get('/', function () {
 Route::get('/debtor/{debtor}/check-pdf', function (Debtor $debtor) {
     $debtor->load('transactions');
 
-    $base = 300;
-    $extra = 20 * $debtor->transactions->count();
+    $base   = 300;
+    $extra  = 20 * $debtor->transactions->count();
     $height = min(396, $base + $extra); // max 140mm
 
     return Pdf::loadView('debtor-check', compact('debtor'))
@@ -54,8 +54,6 @@ Route::get('/products/{product}/barcode-pdf', function (Product $product, Reques
         ->stream("barcode-{$product->id}.pdf");
 })->name('product.barcode.pdf');
 
-
-
 // 2. Ko‘p product uchun (masalan, tanlanganlar)
 Route::get('/products/barcodes/bulk', function (Request $request) {
     $ids  = explode(',', $request->input('ids', ''));
@@ -76,6 +74,5 @@ Route::get('/products/barcodes/bulk', function (Request $request) {
         'size'     => $size,
     ])
         ->setPaper($paper)
-        ->stream("barcodes.pdf");
+        ->stream('barcodes.pdf');
 })->name('product.barcodes.bulk');
-
