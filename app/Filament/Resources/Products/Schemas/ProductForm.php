@@ -4,14 +4,13 @@ namespace App\Filament\Resources\Products\Schemas;
 
 use App\Models\Stock;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 
 class ProductForm
 {
@@ -19,13 +18,11 @@ class ProductForm
     {
         return $schema
             ->components([
-                Section::make('Tovar ma`lumotlari')
+                Section::make('Tovar maʼlumotlari')
                     ->columnSpanFull()
-                    ->columns(2)
                     ->schema([
                         TextInput::make('name')
                             ->label('Nomi')
-                            ->unique('products', 'name', ignoreRecord: true)
                             ->required()
                             ->columnSpanFull(),
 
@@ -43,65 +40,74 @@ class ProductForm
                                         $set('barcode', self::generateEAN13Barcode());
                                     })
                             ),
+
                         Select::make('category_id')
                             ->label('Kategoriyasi')
-                            ->relationship('category', 'name',  fn($query) => $query->scopes('active')),
-                    ]),
+                            ->preload()
+                            ->relationship('category', 'name')
+                            ->searchable(),
 
-                Section::make(' Narxlar')
+                        Select::make('color_id')->relationship('color', 'title')->label('Rang'),
+                    ])->columns(3),
+
+                Section::make('Narxlar')
                     ->columnSpanFull()
-                    ->columns(3)
                     ->schema([
-                        TextInput::make('yuan_price')->label('Yuan narxi')->numeric()->nullable()->prefix('¥'),
-                        TextInput::make('initial_price')->label('Kelgan narxi')->numeric()->required(),
+                        TextInput::make('initial_price')
+                            ->label('Kelgan narxi')
+                            ->numeric()
+                            ->required(),
+
                         TextInput::make('price')
                             ->label('Sotish narxi')
                             ->numeric()
-                            ->required()
-                            ->rule(function (callable $get) {
-                                $initial = $get('initial_price');
+                            ->required(),
+                    ])->columns(),
 
-                                return function (string $attribute, $value, $fail) use ($initial) {
-                                    if ($initial !== null && $value <= $initial) {
-                                        $fail('Sotish narxi kelgan narxidan katta bo‘lishi kerak.');
-                                    }
-                                };
-                            })
-                    ]),
-
-                Section::make('Tovar miqdori')
+                Section::make('Razmerlar va Stocklar')
                     ->columnSpanFull()
-                    ->schema(function ($record) {
-                        $user = auth()->user();
+                    ->description('Har bir razmer uchun har bir ombordagi miqdorni kiriting')
+                    ->schema([
+                        Repeater::make('sizes')
+                            ->label('Razmerlar')
+                            ->schema(function () {
+                                $stocks = Stock::where('is_active', true)->pluck('name', 'id')->toArray();
 
-                        $stocks = Stock::query()
-                            ->scopes('active')
-                            ->where('is_active', true)
-                            ->whereHas('stores', fn($q) => $q->where('stores.id', $user->current_store_id))
-                            ->get();
+                                return [
+                                    Grid::make()
+                                        ->columns(count($stocks) + 1) // 1 ta razmer + har bir stock uchun 1 ta input
+                                        ->schema(function () use ($stocks) {
+                                            $fields = [];
 
-                        return [
-                            Grid::make($stocks->count())
-                            ->schema(
-                                $stocks->map(fn($stock) =>
-                                TextInput::make("stocks.{$stock->id}.quantity")
-                                    ->label($stock->name)
-                                    ->numeric()
-                                    ->afterStateHydrated(function (TextInput $component) use ($record, $stock) {
-                                        if ($record) {
-                                            $ps = $record->productStocks()
-                                                ->where('stock_id', $stock->id)
-                                                ->first();
-                                            $component->state($ps?->quantity ?? 0);
-                                        }
-                                    })
-                                )->toArray()
-                            ),
-                        ];
-                    })
+                                            // 1-ustun: Razmer
+                                            $fields[] = TextInput::make('size')
+                                                ->label('Razmer')
+                                                ->numeric();
+
+                                            // Keyingi ustunlar: Har bir ombor uchun input
+                                            foreach ($stocks as $id => $name) {
+                                                $fields[] = TextInput::make("stock_{$id}")
+                                                    ->label($name)
+                                                    ->numeric()
+                                                    ->default(0);
+                                            }
+
+                                            return $fields;
+                                        }),
+                                ];
+                            })
+                            ->default(function () {
+                                // Form ochilganda default 36–41 razmerlar chiqadi
+                                return collect(range(36, 41))
+                                    ->map(fn ($size) => ['size' => $size])
+                                    ->toArray();
+                            })
+                            ->columns(1)
+                            ->reorderable(false),   // tartibini o‘zgartirishni o‘chiradi
+
+                    ]),
             ]);
     }
-
 
     private static function generateEAN13Barcode(): string
     {

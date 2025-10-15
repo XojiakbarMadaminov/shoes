@@ -2,36 +2,38 @@
 
 namespace App\Filament\Resources\Products\Pages;
 
-use App\Filament\Resources\Products\ProductResource;
-use App\Models\ProductStock;
 use Filament\Resources\Pages\CreateRecord;
+use App\Filament\Resources\Products\ProductResource;
 
 class CreateProduct extends CreateRecord
 {
     protected static string $resource = ProductResource::class;
-    protected $stocks;
+    protected $sizesData;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        if (isset($data['stocks'])) {
-            $this->stocks = $data['stocks'];
-            unset($data['stocks']);
-        }
+        $this->sizesData = $data['sizes'] ?? [];
+        unset($data['sizes']);
+
         return $data;
     }
 
     protected function afterCreate(): void
     {
-        if (!empty($this->stocks)) {
-            foreach ($this->stocks as $stockId => $stockData) {
-                ProductStock::create([
-                    'product_id' => $this->record->id,
-                    'stock_id' => $stockId,
-                    'quantity' => $stockData['quantity'] ?? 0,
-                ]);
+        $product = $this->record;
+
+        foreach ($this->sizesData as $sizeRow) {
+            $size = $product->sizes()->create(['size' => $sizeRow['size']]);
+
+            foreach ($sizeRow as $key => $val) {
+                if (str_starts_with($key, 'stock_') && $val !== null) {
+                    $stockId = (int) str_replace('stock_', '', $key);
+                    $size->stocks()->create([
+                        'stock_id' => $stockId,
+                        'quantity' => (int) $val,
+                    ]);
+                }
             }
         }
     }
-
-
 }

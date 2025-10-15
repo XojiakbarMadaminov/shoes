@@ -2,33 +2,43 @@
 
 namespace App\Models;
 
-use App\Models\Traits\HasCurrentStoreScope;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Traits\HasCurrentStoreScope;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
-    use SoftDeletes, HasCurrentStoreScope;
-    protected $table = 'products';
+    use HasCurrentStoreScope, SoftDeletes;
+
+    protected $table   = 'products';
     protected $guarded = [];
 
-    public function productStocks(): HasMany
+    public function sizes()
     {
-        return $this->hasMany(ProductStock::class);
+        return $this->hasMany(ProductSize::class);
+    }
+
+    public function color()
+    {
+        return $this->belongsTo(Color::class);
+    }
+
+    public function sizeStocks()
+    {
+        return $this->hasManyThrough(
+            ProductSizeStock::class,
+            ProductSize::class,
+            'product_id',
+            'product_size_id',
+            'id',
+            'id'
+        );
     }
 
     public function saleItems(): HasMany
     {
         return $this->hasMany(SaleItem::class, 'product_id');
-    }
-
-    public function stocks(): BelongsToMany
-    {
-        return $this->belongsToMany(Stock::class, ProductStock::class)
-            ->withPivot('quantity')
-            ->withTimestamps();
     }
 
     public function category()

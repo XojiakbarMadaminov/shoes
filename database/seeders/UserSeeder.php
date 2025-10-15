@@ -8,7 +8,6 @@ use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
-
     /**
      * Run the database seeds.
      */
@@ -25,17 +24,5 @@ class UserSeeder extends Seeder
 
         $adminRole = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
         $superAdmin->roles()->syncWithoutDetaching([$adminRole->id]);
-
-        // admin user
-        $admin = User::updateOrCreate(
-            ['email' => 'admin@gmail.com'],
-            [
-                'name' => 'Admin',
-                'password' => bcrypt('123123'),
-            ]
-        );
-
-        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        $admin->roles()->syncWithoutDetaching([$adminRole->id]);
     }
 }
