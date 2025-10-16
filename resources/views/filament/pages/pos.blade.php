@@ -219,8 +219,8 @@
                                 Miqdori
                             </th>
                             <th scope="col"
-                                class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Yuan narxi
+                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Razmerlar va miqdori
                             </th>
                             <th scope="col"
                                 class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -294,16 +294,23 @@
                                     </div>
                                 </td>
 
-                                {{-- Yuan narxi --}}
-                                <td class="px-3 py-3 text-right">
-                                    <div>
-                                        <input type="number"
-                                               disabled
-                                               value="{{ $row['yuan_price'] }}"
-                                               class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white
-                                                  focus:ring-primary-500 focus:border-primary-500 rounded-md shadow-sm text-right
-                                                  py-1.5 px-2 text-sm">
-                                    </div>
+                                {{-- Razmerlar va miqdor --}}
+                                <td class="px-3 py-3 text-center">
+                                    <x-filament::button
+                                        tag="button"
+                                        size="xs"
+                                        :color="isset($row['sizes']) && count(array_filter($row['sizes'])) > 0 ? 'success' : 'danger'"
+                                        class="whitespace-nowrap"
+                                        x-on:click.prevent="
+                                            $wire.getProductSizes({{ (int) $row['id'] }}).then(data => {
+                                                window.dispatchEvent(new CustomEvent('open-size-modal', { detail: data }));
+                                            });
+                                        "
+                                    >
+                                        ⚙️ Razmerlar
+                                    </x-filament::button>
+
+
                                 </td>
 
                                 {{-- Kelgan narxi --}}
@@ -410,5 +417,67 @@
                 </div>
             @endif
         </x-filament::card>
+    </div>
+
+    {{-- 🔹 Razmer tanlash modal --}}
+    <div
+        x-data="{ open: false, product: null, sizes: [], quantities: {} }"
+        x-on:open-size-modal.window="
+        open = true;
+        product = $event.detail.product;
+        sizes = $event.detail.sizes;
+        quantities = $event.detail.quantities ?? {};
+    "
+        x-show="open"
+        class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
+        x-transition
+    >
+        <div
+            class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4 relative"
+            @click.outside="open = false"
+            x-transition
+        >
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
+                <span x-text="product?.name ?? 'Mahsulot'"></span> — Razmerlar
+            </h2>
+
+            <template x-if="sizes.length > 0">
+                <div class="space-y-3 max-h-64 overflow-y-auto pr-2">
+                    <template x-for="(size, index) in sizes" :key="index">
+                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                            <span class="text-sm text-gray-700 dark:text-gray-300" x-text="size.name"></span>
+                            <input
+                                type="number"
+                                min="0"
+                                class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm text-right py-1.5 px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
+                                x-model.number="quantities[size.id]"
+                            >
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <template x-if="sizes.length === 0">
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Bu mahsulot uchun razmerlar mavjud emas.
+                </p>
+            </template>
+
+            <div class="flex justify-end gap-2 mt-6">
+                <button
+                    @click="open = false"
+                    class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md text-sm"
+                >
+                    Yopish
+                </button>
+                <button
+                    wire:key="qty-size-input-{{ $activeCartId }}-product.id"
+                    @click="$wire.updateSizes(product.id, quantities); open = false;"
+                    class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-semibold"
+                >
+                    Saqlash
+                </button>
+            </div>
+        </div>
     </div>
 </x-filament::page>

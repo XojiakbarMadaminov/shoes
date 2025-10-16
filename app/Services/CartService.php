@@ -53,6 +53,22 @@ class CartService
         }
     }
 
+    public function updateSizes(int $productId, array $sizes, int $cartId = 1): void
+    {
+        $carts = session($this->key, []);
+        $items = $carts[$cartId] ?? [];
+
+        if (isset($items[$productId])) {
+            // 🔹 Razmerlarni va umumiy qty ni yangilaymiz
+            $items[$productId]['sizes'] = $sizes;
+            $items[$productId]['qty']   = max(1, array_sum($sizes));
+
+            $carts[$cartId] = $items;
+            session()->put($this->key, $carts);
+        }
+    }
+
+
     public function remove(int $productId, int $cartId = 1): void
     {
         $carts = session($this->key, []);

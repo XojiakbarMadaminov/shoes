@@ -3,46 +3,45 @@
 namespace App\Filament\Pages;
 
 use App\Models\Product;
-use App\Models\ProductStock;
-use App\Models\Sale;
-use App\Models\Stock;
-use App\Services\CartService;
-use BezhanSalleh\FilamentShield\Traits\HasPageShield;
-use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Panel\Concerns\HasNotifications;
-use Illuminate\Support\Collection as EloquentCollection;
 use Livewire\Attributes\On;
+use App\Models\ProductStock;
+use App\Services\CartService;
+use App\Models\ProductSizeStock;
+use Filament\Notifications\Notification;
+use Filament\Panel\Concerns\HasNotifications;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
+use Illuminate\Support\Collection as EloquentCollection;
 
 class Pos extends Page
 {
     use HasNotifications, HasPageShield;
 
-    protected static ?string $title = 'Sotuv';
-    protected string $view = 'filament.pages.pos';
+    protected static ?string $title                          = 'Sotuv';
+    protected string $view                                   = 'filament.pages.pos';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-shopping-cart';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort                    = 1;
 
     public function getHeading(): string
     {
         return '';
     }
 
-    public string $search = '';
-    public int $activeCartId = 1; // Joriy faol cart ID
-    public bool $showReceipt = false; // Chek ko'rsatish uchun
+    public string $search     = '';
+    public int $activeCartId  = 1; // Joriy faol cart ID
+    public bool $showReceipt  = false; // Chek ko'rsatish uchun
     public array $receiptData = []; // Chek ma'lumotlari
 
-    /** @var EloquentCollection<int, \App\Models\Product> */
+    /** @var EloquentCollection<int, Product> */
     public EloquentCollection $products;
 
-    public array $cart = [];
-    public array $totals = ['qty' => 0, 'amount' => 0];
+    public array $cart        = [];
+    public array $totals      = ['qty' => 0, 'amount' => 0];
     public array $activeCarts = []; // Barcha faol cartlar ro'yxati
 
     public function mount(): void
     {
-        $this->products = new EloquentCollection();
+        $this->products = new EloquentCollection;
         $this->refreshActiveCarts();
 
         // Oxirgi faol cart ID ni session dan olish
@@ -73,7 +72,7 @@ class Pos extends Page
 
         $this->refreshCart();
         $this->reset('search');
-        $this->products = new EloquentCollection();
+        $this->products = new EloquentCollection;
     }
 
     public function createNewCart(): void
@@ -111,6 +110,7 @@ class Pos extends Page
                 ->title('Kamida bitta savat ochiq bo\'lishi kerak')
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -118,7 +118,7 @@ class Pos extends Page
 
         // Agar yopilayotgan cart joriy faol cart bo'lsa, boshqasini tanlash
         if ($this->activeCartId === $cartId) {
-            $remainingCarts = array_filter($allActiveCarts, fn($id) => $id !== $cartId);
+            $remainingCarts     = array_filter($allActiveCarts, fn ($id) => $id !== $cartId);
             $this->activeCartId = reset($remainingCarts) ?: 1;
             session()->put('pos_active_cart_id', $this->activeCartId);
         }
@@ -136,13 +136,15 @@ class Pos extends Page
     public function updatedSearch(): void
     {
         if (empty(trim($this->search))) {
-            $this->products = new EloquentCollection();
+            $this->products = new EloquentCollection;
+
             return;
         }
 
         $this->products = Product::query()
-            ->where(fn($q) => $q->where('barcode', 'ILIKE', "%{$this->search}%")
-                ->orWhere('name', 'ILIKE', "%{$this->search}%")
+            ->where(
+                fn ($q) => $q->where('barcode', 'ILIKE', "%{$this->search}%")
+                    ->orWhere('name', 'ILIKE', "%{$this->search}%")
             )
             ->orderBy('name')
             ->limit(15)
@@ -162,13 +164,14 @@ class Pos extends Page
         $cartService = app(CartService::class);
 
         $cart = $cartService->all($this->activeCartId);
-        $row = $cart[$id] ?? null;
+        $row  = $cart[$id] ?? null;
 
         if (!$row || empty($row['stock_id'])) {
             Notification::make()
                 ->title('Avval skladni tanlang')
                 ->danger()
                 ->send();
+
             return false;
         }
 
@@ -182,6 +185,7 @@ class Pos extends Page
                 ->body("Skladda faqat {$available} dona mavjud.")
                 ->danger()
                 ->send();
+
             return false;
         }
 
@@ -191,7 +195,6 @@ class Pos extends Page
         $this->refreshActiveCarts();
     }
 
-
     public function remove(int $id): void
     {
         app(CartService::class)->remove($id, $this->activeCartId);
@@ -200,86 +203,77 @@ class Pos extends Page
     }
 
     /* ---------- Checkout ---------- */
-    public function checkout(): void
+    public function checkout()
     {
         $cartService = app(CartService::class);
+        $cart        = $cartService->all($this->activeCartId);
+        $cartItems = $cartService->all($this->activeCartId);
         $totals = $cartService->totals($this->activeCartId);
 
-        if (!$totals['qty']) {
+        if (empty($cart)) {
             Notification::make()
-                ->title('Savat bo\'sh')
-                ->warning()
+                ->title('Savat bo‘sh')
+                ->danger()
                 ->send();
-            return;
-        }
 
-        $cartItems = $cartService->all($this->activeCartId);
-
-        foreach ($cartItems as $row) {
-            if (empty($row['stock_id'])) {
-                Notification::make()
-                    ->title("{$row['name']} uchun sklad tanlanmagan")
-                    ->danger()
-                    ->send();
-                return;
-            }
-
-            $available = ProductStock::where('product_id', $row['id'])
-                ->where('stock_id', $row['stock_id'])
-                ->value('quantity');
-
-            if ($row['qty'] > $available) {
-                Notification::make()
-                    ->title("{$row['name']} uchun yetarli miqdor yo‘q")
-                    ->body("Skladda faqat {$available} dona mavjud.")
-                    ->danger()
-                    ->send();
-                return;
-            }
+            return false;
         }
 
         $this->prepareReceipt($this->activeCartId, $cartItems, $totals);
 
-        \DB::transaction(function () use ($cartService, $totals) {
-            $sale = Sale::create([
-                'store_id' => auth()->user()->current_store_id,
-                'total' => $totals['amount']
-            ]);
+        foreach ($cart as $productId => $item) {
+            // 🔹 Agar razmerli mahsulot bo‘lsa
+            foreach ($item['sizes'] as $sizeId => $qty) {
+                if ($qty <= 0) {
+                    continue;
+                }
 
-            foreach ($cartService->all($this->activeCartId) as $row) {
-                $sale->items()->create([
-                    'product_id' => $row['id'],
-                    'qty' => $row['qty'],
-                    'price' => $row['price'],
-                    'subtotal' => $row['qty'] * $row['price'],
-                ]);
+                // 🔸 Skladdagi mavjud miqdorni tekshiramiz
+                $available = ProductSizeStock::where('product_size_id', $sizeId)
+                    ->where('stock_id', $item['stock_id'])
+                    ->value('quantity');
 
-                ProductStock::where('product_id', $row['id'])
-                    ->where('stock_id', $row['stock_id'])
-                    ->decrement('quantity', $row['qty']);
+                if ($qty > $available) {
+                    $size = \App\Models\ProductSize::find($sizeId);
+                    Notification::make()
+                        ->title('Yetarli miqdor yo‘q')
+                        ->body("Razmer: <b>{$size->size}</b> uchun faqat <b>{$available}</b> dona mavjud.")
+                        ->danger()
+                        ->send();
+
+                    return false;
+                }
+
+                // 🔸 Agar yetarli bo‘lsa, bazadagi miqdorni kamaytiramiz
+                ProductSizeStock::where('product_size_id', $sizeId)
+                    ->where('stock_id', $item['stock_id'])
+                    ->decrement('quantity', $qty);
             }
-        });
+        }
 
+        // 🔹 Hammasi muvaffaqiyatli bo‘lsa, savatni tozalaymiz
+        session()->forget("pos_cart_{$this->activeCartId}");
         $cartService->clear($this->activeCartId);
-        $this->reset('search');
-        $this->products = new EloquentCollection();
+
         $this->refreshCart();
         $this->refreshActiveCarts();
 
         Notification::make()
-            ->title("Savat #{$this->activeCartId} da sotuv yakunlandi")
+            ->title("Savat #{$this->activeCartId} yakunlandi")
             ->success()
             ->send();
+
+        return true;
     }
 
     /* ---------- Chek funksiyalari ---------- */
     public function prepareReceipt(int $cartId, array $items, array $totals): void
     {
         $this->receiptData = [
-            'cart_id' => $cartId,
-            'items' => $items,
-            'totals' => $totals,
-            'date' => now()->format('d.m.Y H:i:s'),
+            'cart_id'        => $cartId,
+            'items'          => $items,
+            'totals'         => $totals,
+            'date'           => now()->format('d.m.Y H:i:s'),
             'receipt_number' => 'R' . str_pad($cartId, 4, '0', STR_PAD_LEFT) . time(),
         ];
 
@@ -298,17 +292,18 @@ class Pos extends Page
     }
 
     /* ---------- Helper metodlar ---------- */
-    #[On('refresh-cart')]
+    #[
+        On('refresh-cart')]
     public function refreshCart(): void
     {
-        $cartService = app(CartService::class);
-        $this->cart = $cartService->all($this->activeCartId);
+        $cartService  = app(CartService::class);
+        $this->cart   = $cartService->all($this->activeCartId);
         $this->totals = $cartService->totals($this->activeCartId);
     }
 
     public function refreshActiveCarts(): void
     {
-        $cartService = app(CartService::class);
+        $cartService       = app(CartService::class);
         $this->activeCarts = [];
 
         // Barcha mavjud cartlarni olish (bo'sh ham, to'la ham)
@@ -329,7 +324,9 @@ class Pos extends Page
     public function scanEnter(): void
     {
         $code = trim($this->search);
-        if (!$code) return;
+        if (!$code) {
+            return;
+        }
 
         $product = Product::where('barcode', $code)->first();
         if ($product) {
@@ -402,5 +399,68 @@ class Pos extends Page
         $this->refreshActiveCarts();
     }
 
+    // 🔹 Mahsulot razmerlarini olish (modal uchun)
+    public function getProductSizes($productId)
+    {
+        $product = Product::with('sizes')->findOrFail($productId);
 
+        $sizes = $product->sizes->map(fn ($s) => [
+            'id'        => $s->id,
+            'name'      => $s->size,
+            'available' => ProductSizeStock::where('product_size_id', $s->id)
+                ->where('stock_id', $this->activeStockId ?? 1)
+                ->value('quantity') ?? 0,
+        ]);
+
+        return [
+            'product'    => ['id' => $product->id, 'name' => $product->name],
+            'sizes'      => $sizes,
+            'quantities' => $this->cart[$productId]['sizes'] ?? [],
+        ];
+    }
+
+    public function updateSizes(int $productId, array $sizes)
+    {
+        $cartService = app(CartService::class);
+        $cart        = $cartService->all($this->activeCartId);
+        $row         = $cart[$productId] ?? null;
+
+        if (!$row || empty($row['stock_id'])) {
+            Notification::make()
+                ->title('Avval skladni tanlang')
+                ->danger()
+                ->send();
+
+            return false;
+        }
+
+        $stockId = $row['stock_id'];
+
+        foreach ($sizes as $sizeId => $qty) {
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $size      = \App\Models\ProductSize::find($sizeId);
+            $available = ProductSizeStock::where('product_size_id', $sizeId)
+                ->where('stock_id', $stockId)
+                ->value('quantity');
+
+            if ($qty > $available) {
+                Notification::make()
+                    ->title('Yetarli miqdor yo‘q')
+                    ->body("Razmer: <b>{$size->size}</b> uchun faqat <b>{$available}</b> dona mavjud.")
+                    ->danger()
+                    ->send();
+
+                return false;
+            }
+        }
+
+        // 🔹 Hammasi to‘g‘ri — saqlaymiz
+        $cartService->updateSizes($productId, $sizes, $this->activeCartId);
+
+        $this->refreshCart();
+        $this->refreshActiveCarts();
+    }
 }
