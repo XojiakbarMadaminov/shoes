@@ -13,9 +13,14 @@ return new class extends Migration
     {
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained('stores')->cascadeOnDelete();
-            $table->string('customer_name')->nullable();
-            $table->decimal('total', 13, 2);
+            $table->unsignedBigInteger('cart_id'); // POS dagi savat ID
+            $table->foreignId('client_id')->nullable()->constrained('clients')->nullOnDelete();
+
+            $table->decimal('total_amount', 15, 2)->default(0);
+            $table->decimal('paid_amount', 15, 2)->default(0);
+            $table->decimal('remaining_amount', 15, 2)->default(0);
+
+            $table->enum('payment_type', ['cash', 'card', 'debt'])->default('cash');
             $table->timestamps();
         });
     }

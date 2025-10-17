@@ -13,11 +13,15 @@ return new class extends Migration
     {
         Schema::create('sale_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('sale_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('product_id')->constrained();
-            $table->unsignedInteger('qty');
-            $table->decimal('price', 13, 2);
-            $table->decimal('subtotal', 13, 2);
+            $table->foreignId('sale_id')->constrained('sales')->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->foreignId('stock_id')->constrained('stocks')->cascadeOnDelete();
+            $table->foreignId('product_size_id')->nullable()->constrained('product_sizes')->cascadeOnDelete();
+
+            $table->bigInteger('quantity')->default(0);
+            $table->decimal('price', 15, 2)->default(0);
+            $table->decimal('total', 15, 2)->default(0);
+
             $table->timestamps();
         });
     }

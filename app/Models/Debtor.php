@@ -32,4 +32,9 @@ class Debtor extends Model
     {
         return $this->belongsTo(Store::class);
     }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
 }

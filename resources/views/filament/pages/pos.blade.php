@@ -391,8 +391,7 @@
 
                     {{-- Tugmalar satri --}}
                     <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-
-                        {{-- Chapda — yopish (kichik, qizil) --}}
+                        {{-- Yopish --}}
                         <x-filament::button
                             wire:click="closeCart({{ $activeCartId }})"
                             size="sm"
@@ -403,17 +402,28 @@
                             Yopish
                         </x-filament::button>
 
-                        {{-- O‘ngda — to‘lovni yakunlash (katta, yashil) --}}
+                        {{-- 🧍 Klient tanlash --}}
+                        <x-filament::button
+                            color="warning"
+                            size="sm"
+                            class="sm:w-auto w-full order-1 sm:order-2"
+                            wire:click="openClientPanel"
+                        >
+                            🧍 Klient tanlash
+                        </x-filament::button>
+
+                        {{-- Checkout --}}
                         <x-filament::button
                             wire:click="checkout"
                             color="success"
                             size="lg"
                             icon="heroicon-o-check-circle"
-                            class="sm:w-auto w-full order-1 sm:order-2"
+                            class="sm:w-auto w-full order-1 sm:order-3"
                         >
                             Savat #{{ $activeCartId }} ni yakunlash
                         </x-filament::button>
                     </div>
+
                 </div>
             @endif
         </x-filament::card>
@@ -459,7 +469,7 @@
 
             <template x-if="sizes.length === 0">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Bu mahsulot uchun razmerlar mavjud emas.
+                    Bu mahsulot uchun razmerlar mavjud emas
                 </p>
             </template>
 
@@ -480,4 +490,234 @@
             </div>
         </div>
     </div>
+
+    {{-- ðŸ§'â€�ðŸ'¼ Klient tanlash Slide-over Panel --}}
+    @if($showClientPanel)
+        <div class="fixed inset-0 bg-black bg-opacity-30 z-50 flex justify-end" wire:click="$set('showClientPanel', false)">
+            <div
+                class="w-full sm:w-1/3 bg-white dark:bg-gray-900 shadow-2xl h-full overflow-y-auto"
+                wire:click.stop
+                x-data
+                x-init="$nextTick(() => $refs.clientSearch?.focus())"
+            >
+                {{-- Header --}}
+                <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 z-10">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
+                            Klient tanlash
+                        </h2>
+                        <button
+                            wire:click="$set('showClientPanel', false)"
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                            <x-heroicon-o-x-mark class="w-6 h-6"/>
+                        </button>
+                    </div>
+
+                    {{-- Qidiruv --}}
+                    <x-filament::input.wrapper>
+                        <x-slot name="prefix">
+                            <x-heroicon-o-magnifying-glass class="w-5 h-5 text-gray-400"/>
+                        </x-slot>
+                        <x-filament::input
+                            x-ref="clientSearch"
+                            wire:model.live.debounce.300ms="searchClient"
+                            placeholder="Ism yoki telefon raqam..."
+                        />
+                    </x-filament::input.wrapper>
+
+                    {{-- Yangi klient qo'shish tugmasi --}}
+                    <x-filament::button
+                        wire:click="toggleCreateClientForm"
+                        size="sm"
+                        color="success"
+                        icon="heroicon-o-plus"
+                        class="w-full mt-3"
+                    >
+                        Yangi klient qo'shish
+                    </x-filament::button>
+                </div>
+
+                {{-- Content --}}
+                <div class="p-4 space-y-4">
+                    {{-- Yangi klient yaratish formasi --}}
+                    @if($showCreateClientForm)
+                        <x-filament::card>
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                                Yangi klient yaratish
+                            </h3>
+
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        To'liq ism *
+                                    </label>
+                                    <x-filament::input
+                                        wire:model="newClient.full_name"
+                                        placeholder="Masalan: Aliyev Ali"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Telefon raqam
+                                    </label>
+                                    <x-filament::input
+                                        wire:model="newClient.phone"
+                                        placeholder="+998 XX XXX XX XX"
+                                    />
+                                </div>
+
+                                <div class="flex gap-2 mt-4">
+                                    <x-filament::button
+                                        wire:click="createClient"
+                                        color="success"
+                                        class="flex-1"
+                                    >
+                                        Saqlash
+                                    </x-filament::button>
+                                    <x-filament::button
+                                        wire:click="toggleCreateClientForm"
+                                        color="gray"
+                                        class="flex-1"
+                                    >
+                                        Bekor qilish
+                                    </x-filament::button>
+                                </div>
+                            </div>
+                        </x-filament::card>
+                    @endif
+
+                    {{-- Klientlar ro'yxati --}}
+                    @if(!empty($clients) && count($clients) > 0)
+                        <div class="space-y-2">
+                            <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                Klientlar ({{ count($clients) }})
+                            </h3>
+
+                            @foreach($clients as $client)
+                                <div
+                                    wire:click="selectClient({{ $client->id }})"
+                                    class="p-3 rounded-lg border cursor-pointer transition-all
+                                        {{ $selectedClientId === $client->id
+                                            ? 'bg-primary-50 border-primary-500 dark:bg-primary-900/20 dark:border-primary-600'
+                                            : 'bg-white border-gray-200 hover:border-primary-300 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-primary-700'
+                                        }}"
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <p class="font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $client->full_name }}
+                                            </p>
+                                            @if($client->phone)
+                                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                    {{ $client->phone }}
+                                                </p>
+                                            @endif
+                                        </div>
+                                        @if($selectedClientId === $client->id)
+                                            <x-heroicon-o-check-circle class="w-6 h-6 text-primary-600 dark:text-primary-500"/>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-8">
+                            <x-heroicon-o-user-group class="w-16 h-16 mx-auto mb-3 text-gray-400"/>
+                            <p class="text-gray-500 dark:text-gray-400">
+                                Klientlar topilmadi
+                            </p>
+                        </div>
+                    @endif
+
+                    {{-- To'lov usullari --}}
+                    @if($selectedClientId)
+                        <x-filament::card class="mt-6">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                                To'lov usulini tanlang
+                            </h3>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                {{-- Naqd --}}
+                                <button
+                                    wire:click="selectPaymentType('cash')"
+                                    class="p-4 rounded-lg border-2 transition-all text-center
+                                        {{ $paymentType === 'cash'
+                                            ? 'border-success-500 bg-success-50 dark:bg-success-900/20'
+                                            : 'border-gray-300 hover:border-success-400 dark:border-gray-600'
+                                        }}"
+                                >
+                                    <div class="text-3xl mb-2">💵</div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">Naqd</div>
+                                </button>
+
+                                {{-- Karta --}}
+                                <button
+                                    wire:click="selectPaymentType('card')"
+                                    class="p-4 rounded-lg border-2 transition-all text-center
+                                        {{ $paymentType === 'card'
+                                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                                            : 'border-gray-300 hover:border-primary-400 dark:border-gray-600'
+                                        }}"
+                                >
+                                    <div class="text-3xl mb-2">💳</div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">Karta</div>
+                                </button>
+
+                                {{-- Qarz --}}
+                                <button
+                                    wire:click="selectPaymentType('debt')"
+                                    class="p-4 rounded-lg border-2 transition-all text-center
+                                        {{ $paymentType === 'debt'
+                                            ? 'border-warning-500 bg-warning-50 dark:bg-warning-900/20'
+                                            : 'border-gray-300 hover:border-warning-400 dark:border-gray-600'
+                                        }}"
+                                >
+                                    <div class="text-3xl mb-2">📋</div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">Qarz</div>
+                                </button>
+
+                                {{-- O'tkazma --}}
+                                <button
+                                    wire:click="selectPaymentType('transfer')"
+                                    class="p-4 rounded-lg border-2 transition-all text-center
+                                        {{ $paymentType === 'transfer'
+                                            ? 'border-info-500 bg-info-50 dark:bg-info-900/20'
+                                            : 'border-gray-300 hover:border-info-400 dark:border-gray-600'
+                                        }}"
+                                >
+                                    <div class="text-3xl mb-2">🏦</div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">O'tkazma</div>
+                                </button>
+                            </div>
+
+                            {{-- Tanlangan ma'lumotlar --}}
+                            <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-600 dark:text-gray-400">Klient:</span>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $clients->firstWhere('id', $selectedClientId)?->full_name ?? 'Tanlanmagan' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm mt-2">
+                                    <span class="text-gray-600 dark:text-gray-400">To'lov:</span>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">
+                                        {{ match($paymentType) {
+                                            'cash' => '💵 Naqd',
+                                            'card' => '💳 Karta',
+                                            'debt' => '📋 Qarz',
+                                            'transfer' => '🏦 O\'tkazma',
+                                            default => 'Tanlanmagan'
+                                        } }}
+                                    </span>
+                                </div>
+                            </div>
+                        </x-filament::card>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
 </x-filament::page>
