@@ -3,18 +3,21 @@
 namespace App\Filament\Pages;
 
 use App\Models\Product;
-use App\Models\ProductStock;
+use App\Models\ProductSizeStock;
 use App\Models\Stock;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\DB;
 
 class MoveProduct extends Page implements HasForms
 {
@@ -57,6 +60,7 @@ class MoveProduct extends Page implements HasForms
                                 Select::make('product_id')
                                     ->label('Mahsulot')
                                     ->searchable()
+                                    ->reactive()
                                     ->getSearchResultsUsing(function (string $search) {
                                         return Product::query()
                                             ->where('name', 'ilike', "%{$search}%")
@@ -64,14 +68,46 @@ class MoveProduct extends Page implements HasForms
                                             ->limit(50)
                                             ->pluck('name', 'id');
                                     })
-                                    ->getOptionLabelUsing(fn($value): ?string => Product::find($value)?->name)
+                                    ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->name)
+                                    ->afterStateUpdated(function ($set, ?string $state) {
+                                        if (! $state) {
+                                            $set('sizes', []);
+
+                                            return;
+                                        }
+
+                                        $product = Product::with('sizes')->find($state);
+
+                                        $sizes = $product?->sizes?->map(fn ($size) => [
+                                            'size_id'   => $size->id,
+                                            'size_name' => $size->size,
+                                            'quantity'  => 0,
+                                        ])->toArray() ?? [];
+
+                                        $set('sizes', $sizes);
+                                    })
                                     ->required()
                                     ->autofocus(),
 
-                                TextInput::make('quantity')
-                                    ->label('Miqdor')
-                                    ->numeric()
-                                    ->required(),
+                                Repeater::make('sizes')
+                                    ->label('Razmerlar')
+                                    ->schema([
+                                        Hidden::make('size_id'),
+                                        Hidden::make('size_name'),
+                                        TextInput::make('quantity')
+                                            ->columnSpanFull()
+                                            ->label(fn ($get) => (($get('size_name') ?? 'Razmer')))
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->default(0)
+                                            ->required(false),
+                                    ])
+                                    ->grid(3)
+                                    ->columns(3)
+                                    ->default([])
+                                    ->addable(false)
+                                    ->deletable(false)
+                                    ->reorderable(false),
                             ])
                             ->grid()
                             ->minItems(1)
@@ -87,55 +123,128 @@ class MoveProduct extends Page implements HasForms
     {
         $data = $this->form->getState();
 
-        $productIds = collect($data['products'])->pluck('product_id')->all();
+        $productsData = collect($data['products'] ?? []);
 
-        $products = Product::whereIn('id', $productIds)
+        if ($productsData->isEmpty()) {
+            Notification::make()
+                ->title('Mahsulot tanlanmagan')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $fromStockId = $data['from_stock_id'];
+        $toStockId   = $data['to_stock_id'];
+
+        $productNames = Product::whereIn('id', $productsData->pluck('product_id')->filter())
             ->pluck('name', 'id');
 
-        $fromStockQuantities = ProductStock::whereIn('product_id', $productIds)
-            ->where('stock_id', $data['from_stock_id'])
-            ->pluck('quantity', 'product_id');
+        $hasMovement = false;
 
-        foreach ($data['products'] as $item) {
-            $productName = $products[$item['product_id']] ?? 'Noma’lum mahsulot';
-            $currentQty = $fromStockQuantities[$item['product_id']] ?? 0;
+        foreach ($productsData as $item) {
+            $productId   = $item['product_id'] ?? null;
+            $productName = $productNames[$productId] ?? 'Noma’lum mahsulot';
 
-            if ($item['quantity'] > $currentQty) {
-                Notification::make()
-                    ->title('Xatolik')
-                    ->body("{$productName} uchun maksimal {$currentQty} dona ko‘chirishingiz mumkin.")
-                    ->danger()
-                    ->send();
+            foreach ($item['sizes'] ?? [] as $sizeItem) {
+                $quantity = (int) ($sizeItem['quantity'] ?? 0);
 
-                return;
+                if ($quantity <= 0) {
+                    continue;
+                }
+
+                $hasMovement = true;
+
+                $sizeId   = $sizeItem['size_id'] ?? null;
+                $sizeName = $sizeItem['size_name'] ?? 'Razmer';
+
+                if (! $sizeId) {
+                    continue;
+                }
+
+                $available = ProductSizeStock::where('product_size_id', $sizeId)
+                    ->where('stock_id', $fromStockId)
+                    ->value('quantity') ?? 0;
+
+                if ($quantity > $available) {
+                    Notification::make()
+                        ->title('Xatolik')
+                        ->body("{$productName} ({$sizeName}) uchun maksimal {$available} dona ko‘chirishingiz mumkin.")
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
             }
         }
 
-        foreach ($data['products'] as $item) {
-            // From stockdan ayirish
-            ProductStock::where('product_id', $item['product_id'])
-                ->where('stock_id', $data['from_stock_id'])
-                ->decrement('quantity', $item['quantity']);
+        if (! $hasMovement) {
+            Notification::make()
+                ->title('Miqdor kiritilmadi')
+                ->body('Har bir razmer uchun ko‘chiriladigan miqdorni kiriting.')
+                ->warning()
+                ->send();
 
-            // To stockda yozuvni topish yoki yaratish
-            $toStock = ProductStock::firstOrCreate(
-                [
-                    'product_id' => $item['product_id'],
-                    'stock_id'   => $data['to_stock_id'],
-                ],
-                [
-                    'quantity' => 0,
-                ]
-            );
-
-            // Keyin increment qilish
-            $toStock->increment('quantity', $item['quantity']);
+            return;
         }
 
+        try {
+            DB::transaction(function () use ($productsData, $fromStockId, $toStockId) {
+                foreach ($productsData as $item) {
+                    foreach ($item['sizes'] ?? [] as $sizeItem) {
+                        $quantity = (int) ($sizeItem['quantity'] ?? 0);
+
+                        if ($quantity <= 0) {
+                            continue;
+                        }
+
+                        $sizeId = $sizeItem['size_id'] ?? null;
+
+                        if (! $sizeId) {
+                            continue;
+                        }
+
+                        $fromStock = ProductSizeStock::firstOrCreate(
+                            [
+                                'product_size_id' => $sizeId,
+                                'stock_id'        => $fromStockId,
+                            ],
+                            ['quantity' => 0]
+                        );
+
+                        if ($fromStock->quantity < $quantity) {
+                            throw new \RuntimeException('Yetarli miqdor mavjud emas.');
+                        }
+
+                        $fromStock->decrement('quantity', $quantity);
+
+                        $toStock = ProductSizeStock::firstOrCreate(
+                            [
+                                'product_size_id' => $sizeId,
+                                'stock_id'        => $toStockId,
+                            ],
+                            ['quantity' => 0]
+                        );
+
+                        $toStock->increment('quantity', $quantity);
+                    }
+                }
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            Notification::make()
+                ->title('Ko‘chirish amalga oshmadi')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         Notification::make()
             ->title('Muvaffaqiyatli')
-            ->body('Mahsulotlar stocklar orasida ko‘chirildi.')
+            ->body('Mahsulotlar razmerlari bo‘yicha ko‘chirildi.')
             ->success()
             ->send();
 
