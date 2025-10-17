@@ -46,6 +46,7 @@ class Pos extends Page
     public array $cartClients          = [];
     public array $cartPaymentTypes     = [];
     public array $cartPartialPayments  = [];
+    public array $cartMixedPayments    = [];
     public bool $showClientPanel = false;
     public bool $showCreateClientForm = false;
     public string $searchClient = '';
@@ -53,6 +54,11 @@ class Pos extends Page
     public ?int $selectedClientId = null;
     public string $paymentType = '';
     public ?float $partialPaymentAmount = null;
+    public array $mixedPayment = [
+        'cash' => null,
+        'card' => null,
+    ];
+    protected bool $isSyncingMixedPayment = false;
 
     public array $newClient = [
         'full_name' => '',
@@ -67,6 +73,7 @@ class Pos extends Page
         $this->cartClients          = session('pos_cart_clients', []);
         $this->cartPaymentTypes     = session('pos_cart_payment_types', []);
         $this->cartPartialPayments  = session('pos_cart_partial_payments', []);
+        $this->cartMixedPayments    = session('pos_cart_mixed_payments', []);
 
         // Oxirgi faol cart ID ni session dan olish
         $savedCartId = session('pos_active_cart_id', 1);
@@ -118,7 +125,8 @@ class Pos extends Page
         unset(
             $this->cartClients[$newCartId],
             $this->cartPaymentTypes[$newCartId],
-            $this->cartPartialPayments[$newCartId]
+            $this->cartPartialPayments[$newCartId],
+            $this->cartMixedPayments[$newCartId]
         );
         $this->loadActiveCartMeta();
         $this->persistCartMeta();
@@ -151,7 +159,8 @@ class Pos extends Page
         unset(
             $this->cartClients[$cartId],
             $this->cartPaymentTypes[$cartId],
-            $this->cartPartialPayments[$cartId]
+            $this->cartPartialPayments[$cartId],
+            $this->cartMixedPayments[$cartId]
         );
 
         // Agar yopilayotgan cart joriy faol cart bo'lsa, boshqasini tanlash
@@ -291,7 +300,7 @@ class Pos extends Page
             return false;
         }
 
-        $validPaymentTypes = ['cash', 'card', 'debt', 'transfer', 'partial'];
+        $validPaymentTypes = ['cash', 'card', 'debt', 'transfer', 'partial', 'mixed'];
 
         if (!in_array($this->paymentType, $validPaymentTypes, true)) {
             Notification::make()
@@ -313,6 +322,7 @@ class Pos extends Page
         }
 
         $partialAmount = null;
+        $mixedAmounts = ['cash' => 0.0, 'card' => 0.0];
 
         if ($this->paymentType === 'partial') {
             $partialAmount = round((float) ($this->partialPaymentAmount ?? 0), 2);
@@ -337,8 +347,57 @@ class Pos extends Page
                 return false;
             }
 
-            $this->partialPaymentAmount = $partialAmount;
             $this->cartPartialPayments[$this->activeCartId] = $partialAmount;
+            $this->persistCartMeta();
+        }
+
+        if ($this->paymentType === 'mixed') {
+            $cardAmount = $this->mixedPayment['card'] !== null
+                ? round(max(0, (float) $this->mixedPayment['card']), 2)
+                : 0.0;
+
+            $cashAmount = $this->mixedPayment['cash'] !== null
+                ? round(max(0, (float) $this->mixedPayment['cash']), 2)
+                : 0.0;
+
+            $sum = round($cardAmount + $cashAmount, 2);
+
+            if ($sum <= 0) {
+                Notification::make()
+                    ->title('To‘lov summasi kiritilmagan')
+                    ->body('Naqd yoki karta bo‘yicha to‘lovni kiriting.')
+                    ->warning()
+                    ->send();
+
+                return false;
+            }
+
+            if (abs($sum - $totalAmount) > 0.01) {
+                Notification::make()
+                    ->title('To‘lov summasi mos emas')
+                    ->body('Naqd va karta summalari jami savdo summasiga teng bo‘lishi kerak.')
+                    ->warning()
+                    ->send();
+
+                return false;
+            }
+
+            $this->mixedPayment = [
+                'card' => $cardAmount > 0 ? $cardAmount : null,
+                'cash' => $cashAmount > 0 ? $cashAmount : null,
+            ];
+
+            $mixedAmounts = [
+                'card' => $cardAmount,
+                'cash' => $cashAmount,
+            ];
+
+            if ($mixedAmounts['card'] > 0 || $mixedAmounts['cash'] > 0) {
+                $this->cartMixedPayments[$this->activeCartId] = $this->mixedPayment;
+            } else {
+                unset($this->cartMixedPayments[$this->activeCartId]);
+            }
+
             $this->persistCartMeta();
         }
 
@@ -435,14 +494,17 @@ class Pos extends Page
 
 
         try {
-            DB::transaction(function () use ($preparedItems, $totalAmount, $paymentType, $clientId, $partialAmount) {
+            DB::transaction(function () use ($preparedItems, $totalAmount, $paymentType, $clientId, $partialAmount, $mixedAmounts) {
                 $paidAmount = match ($paymentType) {
                     'debt'    => 0.0,
                     'partial' => $partialAmount ?? 0.0,
+                    'mixed'   => $totalAmount,
                     default   => $totalAmount,
                 };
 
                 $remainingAmount = round($totalAmount - $paidAmount, 2);
+                $mixedCash        = $paymentType === 'mixed' ? ($mixedAmounts['cash'] ?? 0.0) : 0.0;
+                $mixedCard        = $paymentType === 'mixed' ? ($mixedAmounts['card'] ?? 0.0) : 0.0;
 
                 $sale = Sale::create([
                     'cart_id'          => $this->activeCartId,
@@ -451,6 +513,8 @@ class Pos extends Page
                     'paid_amount'      => $paidAmount,
                     'remaining_amount' => $remainingAmount,
                     'payment_type'     => $paymentType,
+                    'mixed_cash_amount'   => $mixedCash,
+                    'mixed_card_amount'   => $mixedCard,
                 ]);
 
 
@@ -523,7 +587,8 @@ class Pos extends Page
         unset(
             $this->cartClients[$this->activeCartId],
             $this->cartPaymentTypes[$this->activeCartId],
-            $this->cartPartialPayments[$this->activeCartId]
+            $this->cartPartialPayments[$this->activeCartId],
+            $this->cartMixedPayments[$this->activeCartId]
         );
         $this->persistCartMeta();
         $this->loadActiveCartMeta();
@@ -574,6 +639,13 @@ class Pos extends Page
         $cartService  = app(CartService::class);
         $this->cart   = $cartService->all($this->activeCartId);
         $this->totals = $cartService->totals($this->activeCartId);
+
+        if (
+            $this->paymentType === 'mixed'
+            && (($this->mixedPayment['card'] ?? null) !== null || ($this->mixedPayment['cash'] ?? null) !== null)
+        ) {
+            $this->handleMixedPaymentUpdate('card', $this->mixedPayment['card']);
+        }
     }
 
     public function refreshActiveCarts(): void
@@ -599,14 +671,55 @@ class Pos extends Page
     {
         $this->selectedClientId = $this->cartClients[$this->activeCartId] ?? null;
         $this->paymentType      = $this->cartPaymentTypes[$this->activeCartId] ?? '';
-        $this->partialPaymentAmount = $this->cartPartialPayments[$this->activeCartId] ?? null;
+
+        $partialValue = $this->cartPartialPayments[$this->activeCartId] ?? null;
+        if (is_array($partialValue)) {
+            $partialValue = array_sum(array_filter(
+                $partialValue,
+                fn ($v) => is_numeric($v)
+            ));
+        }
+        $this->partialPaymentAmount = $partialValue !== null ? (float) $partialValue : null;
+
+        $mixed = $this->cartMixedPayments[$this->activeCartId] ?? ['cash' => null, 'card' => null];
+        if (!is_array($mixed)) {
+            $mixed = ['cash' => null, 'card' => null];
+        }
+        $this->mixedPayment = [
+            'cash' => $mixed['cash'] ?? null,
+            'card' => $mixed['card'] ?? null,
+        ];
     }
 
     protected function persistCartMeta(): void
     {
         session()->put('pos_cart_clients', $this->cartClients);
         session()->put('pos_cart_payment_types', $this->cartPaymentTypes);
-        session()->put('pos_cart_partial_payments', $this->cartPartialPayments);
+
+        $partialNormalized = [];
+        foreach ($this->cartPartialPayments as $cartId => $value) {
+            if (is_array($value)) {
+                $value = array_sum(array_filter($value, fn ($v) => is_numeric($v)));
+            }
+            $partialNormalized[$cartId] = $value;
+        }
+        $this->cartPartialPayments = $partialNormalized;
+        session()->put('pos_cart_partial_payments', $partialNormalized);
+
+        $mixedNormalized = [];
+        foreach ($this->cartMixedPayments as $cartId => $values) {
+            if (!is_array($values)) {
+                $values = ['cash' => null, 'card' => null];
+            }
+
+            $mixedNormalized[$cartId] = [
+                'cash' => isset($values['cash']) ? $values['cash'] : null,
+                'card' => isset($values['card']) ? $values['card'] : null,
+            ];
+        }
+
+        $this->cartMixedPayments = $mixedNormalized;
+        session()->put('pos_cart_mixed_payments', $mixedNormalized);
     }
 
     /* ---------- Skaner metodlari ---------- */
@@ -849,7 +962,7 @@ class Pos extends Page
     /* === To'lov turini tanlash === */
     public function selectPaymentType(string $type): void
     {
-        if (!in_array($type, ['cash', 'card', 'debt', 'transfer', 'partial'])) {
+        if (!in_array($type, ['cash', 'card', 'debt', 'transfer', 'partial', 'mixed'])) {
             Notification::make()
                 ->title('Noto\'g\'ri to\'lov turi')
                 ->danger()
@@ -863,27 +976,28 @@ class Pos extends Page
 
         if ($type === 'partial') {
             $this->partialPaymentAmount = $this->cartPartialPayments[$this->activeCartId] ?? null;
+            $this->mixedPayment = ['cash' => null, 'card' => null];
+        } elseif ($type === 'mixed') {
+            $stored = $this->cartMixedPayments[$this->activeCartId] ?? ['cash' => null, 'card' => null];
+            if (!is_array($stored)) {
+                $stored = ['cash' => null, 'card' => null];
+            }
+            $this->mixedPayment = [
+                'cash' => $stored['cash'] ?? null,
+                'card' => $stored['card'] ?? null,
+            ];
+            $this->partialPaymentAmount = null;
+            $this->handleMixedPaymentUpdate('card', $this->mixedPayment['card']);
         } else {
             $this->partialPaymentAmount = null;
-            unset($this->cartPartialPayments[$this->activeCartId]);
+            $this->mixedPayment = ['cash' => null, 'card' => null];
+            unset(
+                $this->cartPartialPayments[$this->activeCartId],
+                $this->cartMixedPayments[$this->activeCartId]
+            );
         }
 
         $this->persistCartMeta();
-
-//        Notification::make()
-//            ->title('To\'lov turi tanlandi')
-//            ->body(match ($type) {
-//                'card'     => '💳 Karta',
-//                'cash'     => '💵 Naqd',
-//                'transfer' => '🏦 O\'tkazma',
-//                'debt'     => '📋 Qarz',
-//                'partial'  => '🔀 Qisman',
-//                default    => 'Tanlandi',
-//            })
-//            ->success()
-//            ->send();
-
-        // Panelni yopmaymiz - foydalanuvchi o'zi yopsin yoki checkout qilsin
     }
 
     public function updatedPartialPaymentAmount($value): void
@@ -902,9 +1016,104 @@ class Pos extends Page
             return;
         }
 
-        $normalized = round(max(0, (float) $value), 2);
+        $normalized  = round(max(0, (float) $value), 2);
+        $totalAmount = round((float) ($this->totals['amount'] ?? 0), 2);
+
+        if ($totalAmount > 0 && $normalized >= $totalAmount) {
+            $normalized = max($totalAmount - 1000.00, 0);
+        }
+
         $this->partialPaymentAmount = $normalized;
-        $this->cartPartialPayments[$this->activeCartId] = $normalized;
+
+        if ($normalized > 0) {
+            $this->cartPartialPayments[$this->activeCartId] = $normalized;
+        } else {
+            unset($this->cartPartialPayments[$this->activeCartId]);
+        }
+
         $this->persistCartMeta();
+    }
+
+    public function updatedMixedPaymentCard($value): void
+    {
+        $this->handleMixedPaymentUpdate('card', $value);
+    }
+
+    public function updatedMixedPaymentCash($value): void
+    {
+        $this->handleMixedPaymentUpdate('cash', $value);
+    }
+
+    protected function handleMixedPaymentUpdate(string $type, $value): void
+    {
+        if ($this->paymentType !== 'mixed') {
+            $this->mixedPayment = ['cash' => null, 'card' => null];
+
+            return;
+        }
+
+        if (!in_array($type, ['cash', 'card'], true)) {
+            return;
+        }
+
+        if ($this->isSyncingMixedPayment) {
+            return;
+        }
+
+        $this->isSyncingMixedPayment = true;
+
+        try {
+            $totalAmount = round((float) ($this->totals['amount'] ?? 0), 2);
+            $normalized  = $this->normalizeMixedPaymentValue($value);
+
+            if ($type === 'card') {
+                $cardAmount = $normalized ?? 0.0;
+
+                if ($totalAmount > 0 && $cardAmount > $totalAmount) {
+                    $cardAmount = $totalAmount;
+                }
+
+                $cashAmount = $totalAmount > 0
+                    ? round(max($totalAmount - $cardAmount, 0), 2)
+                    : 0.0;
+
+                $this->mixedPayment['card'] = $cardAmount > 0 ? $cardAmount : null;
+                $this->mixedPayment['cash'] = $cashAmount > 0 ? $cashAmount : null;
+            } else {
+                $cashAmount = $normalized ?? 0.0;
+
+                if ($totalAmount > 0 && $cashAmount > $totalAmount) {
+                    $cashAmount = $totalAmount;
+                }
+
+                $cardAmount = $totalAmount > 0
+                    ? round(max($totalAmount - $cashAmount, 0), 2)
+                    : 0.0;
+
+                $this->mixedPayment['cash'] = $cashAmount > 0 ? $cashAmount : null;
+                $this->mixedPayment['card'] = $cardAmount > 0 ? $cardAmount : null;
+            }
+
+            if (($this->mixedPayment['cash'] ?? null) === null && ($this->mixedPayment['card'] ?? null) === null) {
+                unset($this->cartMixedPayments[$this->activeCartId]);
+            } else {
+                $this->cartMixedPayments[$this->activeCartId] = $this->mixedPayment;
+            }
+
+            $this->persistCartMeta();
+        } finally {
+            $this->isSyncingMixedPayment = false;
+        }
+    }
+
+    protected function normalizeMixedPaymentValue($value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $amount = round(max(0, (float) $value), 2);
+
+        return $amount > 0 ? $amount : null;
     }
 }

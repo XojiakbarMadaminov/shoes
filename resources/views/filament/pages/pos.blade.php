@@ -216,10 +216,6 @@
                             </th>
                             <th scope="col"
                                 class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Miqdori
-                            </th>
-                            <th scope="col"
-                                class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 Razmerlar va miqdori
                             </th>
                             <th scope="col"
@@ -262,36 +258,6 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                </td>
-
-                                {{-- Miqdor --}}
-                                <td class="px-3 py-3 text-center">
-                                    <div
-                                        wire:key="qty-input-{{ $activeCartId }}-{{ $row['id'] }}"
-                                        x-data="{
-                                            oldValue: {{ $row['qty'] }},
-                                            updateQty(event) {
-                                                const newQty = parseInt(event.target.value);
-                                                $wire.updateQty({{ $row['id'] }}, newQty)
-                                                    .then(result => {
-                                                        if (result === false) {
-                                                            // ❌ xato bo‘lsa, eski qiymatni qaytarish
-                                                            event.target.value = this.oldValue;
-                                                        } else {
-                                                            // ✅ to‘g‘ri bo‘lsa, yangilash
-                                                            this.oldValue = newQty;
-                                                        }
-                                                    });
-                                            }
-                                        }"
-                                    >
-                                        <input type="number" min="1"
-                                               value="{{ $row['qty'] }}"
-                                               @change="updateQty($event)"
-                                               class="w-20 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white
-                                                  focus:ring-primary-500 focus:border-primary-500 rounded-md shadow-sm text-center
-                                                  py-1.5 px-2 text-sm">
-                                    </div>
                                 </td>
 
                                 {{-- Razmerlar va miqdor --}}
@@ -691,6 +657,19 @@
                                     <div class="text-3xl mb-2">🔀</div>
                                     <div class="font-medium text-gray-900 dark:text-gray-100">Qisman</div>
                                 </button>
+
+                                {{-- Naqd + Karta --}}
+                                <button
+                                    wire:click="selectPaymentType('mixed')"
+                                    class="p-4 rounded-lg border-2 transition-all text-center
+                                        {{ $paymentType === 'mixed'
+                                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                                            : 'border-gray-300 hover:border-purple-400 dark:border-gray-600'
+                                        }}"
+                                >
+                                    <div class="text-3xl mb-2">💳+💵</div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">Karta + Naqd</div>
+                                </button>
                             </div>
 
                             @if($paymentType === 'partial')
@@ -711,6 +690,38 @@
                                 </div>
                             @endif
 
+                            @if($paymentType === 'mixed')
+                                <div class="mt-4 grid gap-3 md:grid-cols-2">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Kartada to'lanadi
+                                        </label>
+                                        <x-filament::input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            wire:model.live.debounce.300ms="mixedPayment.card"
+                                            placeholder="Masalan: 200000"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Naqdda to'lanadi
+                                        </label>
+                                        <x-filament::input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            wire:model.live.debounce.300ms="mixedPayment.cash"
+                                            placeholder="Masalan: 150000"
+                                        />
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                    Karta summasi kiritilganda qolgan qismi avtomatik naqdga taqsimlanadi.
+                                </p>
+                            @endif
+
                             {{-- Tanlangan ma'lumotlar --}}
                             <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                 <div class="flex items-center justify-between text-sm">
@@ -727,6 +738,7 @@
                                             'card' => '💳 Karta',
                                             'debt' => '📋 Qarz',
                                             'partial' => '🔀 Qisman',
+                                            'mixed' => '💳+💵 Karta + Naqd',
                                             default => 'Tanlanmagan'
                                         } }}
                                     </span>
@@ -738,6 +750,33 @@
                                             {{ number_format($partialPaymentAmount, 2, '.', ' ') }} so'm
                                         </span>
                                     </div>
+                                @endif
+
+                                @if($paymentType === 'mixed')
+                                    @php
+                                        $mixedCash = $mixedPayment['cash'] ?? null;
+                                        $mixedCard = $mixedPayment['card'] ?? null;
+                                    @endphp
+                                    @if(filled($mixedCard) || filled($mixedCash))
+                                        <div class="flex flex-col gap-1 mt-2 text-sm">
+                                            @if(filled($mixedCard))
+                                                <div class="flex items-center justify-between">
+                                                    <span class="text-gray-600 dark:text-gray-400">Karta:</span>
+                                                    <span class="font-medium text-gray-900 dark:text-gray-100">
+                                                        {{ number_format($mixedCard, 2, '.', ' ') }} so'm
+                                                    </span>
+                                                </div>
+                                            @endif
+                                            @if(filled($mixedCash))
+                                                <div class="flex items-center justify-between">
+                                                    <span class="text-gray-600 dark:text-gray-400">Naqd:</span>
+                                                    <span class="font-medium text-gray-900 dark:text-gray-100">
+                                                        {{ number_format($mixedCash, 2, '.', ' ') }} so'm
+                                                    </span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
                                 @endif
                             </div>
                         </x-filament::card>
