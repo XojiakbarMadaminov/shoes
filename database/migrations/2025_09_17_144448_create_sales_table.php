@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('paid_amount', 15, 2)->default(0);
             $table->decimal('remaining_amount', 15, 2)->default(0);
 
-            $table->enum('payment_type', ['cash', 'card', 'debt'])->default('cash');
+            $table->string('payment_type')->nullable();
             $table->timestamps();
         });
     }

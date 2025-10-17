@@ -639,7 +639,7 @@
                                 To'lov usulini tanlang
                             </h3>
 
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                                 {{-- Naqd --}}
                                 <button
                                     wire:click="selectPaymentType('cash')"
@@ -679,19 +679,37 @@
                                     <div class="font-medium text-gray-900 dark:text-gray-100">Qarz</div>
                                 </button>
 
-                                {{-- O'tkazma --}}
+                                {{-- Qisman --}}
                                 <button
-                                    wire:click="selectPaymentType('transfer')"
+                                    wire:click="selectPaymentType('partial')"
                                     class="p-4 rounded-lg border-2 transition-all text-center
-                                        {{ $paymentType === 'transfer'
-                                            ? 'border-info-500 bg-info-50 dark:bg-info-900/20'
-                                            : 'border-gray-300 hover:border-info-400 dark:border-gray-600'
+                                        {{ $paymentType === 'partial'
+                                            ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                                            : 'border-gray-300 hover:border-purple-400 dark:border-gray-600'
                                         }}"
                                 >
-                                    <div class="text-3xl mb-2">🏦</div>
-                                    <div class="font-medium text-gray-900 dark:text-gray-100">O'tkazma</div>
+                                    <div class="text-3xl mb-2">🔀</div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">Qisman</div>
                                 </button>
                             </div>
+
+                            @if($paymentType === 'partial')
+                                <div class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Qisman to'lov summasi
+                                    </label>
+                                    <x-filament::input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        wire:model.live.debounce.300ms="partialPaymentAmount"
+                                        placeholder="Masalan: 150000"
+                                    />
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Qolgan summa qarz sifatida saqlanadi.
+                                    </p>
+                                </div>
+                            @endif
 
                             {{-- Tanlangan ma'lumotlar --}}
                             <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -708,11 +726,19 @@
                                             'cash' => '💵 Naqd',
                                             'card' => '💳 Karta',
                                             'debt' => '📋 Qarz',
-                                            'transfer' => '🏦 O\'tkazma',
+                                            'partial' => '🔀 Qisman',
                                             default => 'Tanlanmagan'
                                         } }}
                                     </span>
                                 </div>
+                                @if($paymentType === 'partial' && filled($partialPaymentAmount))
+                                    <div class="flex items-center justify-between text-sm mt-2">
+                                        <span class="text-gray-600 dark:text-gray-400">To'langan summa:</span>
+                                        <span class="font-medium text-gray-900 dark:text-gray-100">
+                                            {{ number_format($partialPaymentAmount, 2, '.', ' ') }} so'm
+                                        </span>
+                                    </div>
+                                @endif
                             </div>
                         </x-filament::card>
                     @endif

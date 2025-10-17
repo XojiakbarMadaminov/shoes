@@ -22,10 +22,10 @@ class DebtorsTable
         return $table
             ->columns([
                 TextColumn::make('id')->label('ID')->sortable(),
-                TextColumn::make('full_name')
+                TextColumn::make('client.full_name')
                     ->searchable()
                     ->label('To`liq ism'),
-                TextColumn::make('phone')
+                TextColumn::make('client.phone')
                     ->searchable()
                     ->label('Telefon nomer'),
                 TextColumn::make('amount')

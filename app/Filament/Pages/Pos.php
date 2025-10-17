@@ -40,17 +40,19 @@ class Pos extends Page
     /** @var EloquentCollection<int, Product> */
     public EloquentCollection $products;
 
-    public array $cart        = [];
-    public array $totals      = ['qty' => 0, 'amount' => 0];
-    public array $activeCarts = []; // Barcha faol cartlar ro'yxati
-    public array $cartClients = [];
-    public array $cartPaymentTypes = [];
+    public array $cart                 = [];
+    public array $totals               = ['qty' => 0, 'amount' => 0];
+    public array $activeCarts          = []; // Barcha faol cartlar ro'yxati
+    public array $cartClients          = [];
+    public array $cartPaymentTypes     = [];
+    public array $cartPartialPayments  = [];
     public bool $showClientPanel = false;
     public bool $showCreateClientForm = false;
     public string $searchClient = '';
     public $clients = [];
     public ?int $selectedClientId = null;
     public string $paymentType = '';
+    public ?float $partialPaymentAmount = null;
 
     public array $newClient = [
         'full_name' => '',
@@ -62,8 +64,9 @@ class Pos extends Page
         $this->products = new EloquentCollection;
         $this->refreshActiveCarts();
 
-        $this->cartClients       = session('pos_cart_clients', []);
-        $this->cartPaymentTypes  = session('pos_cart_payment_types', []);
+        $this->cartClients          = session('pos_cart_clients', []);
+        $this->cartPaymentTypes     = session('pos_cart_payment_types', []);
+        $this->cartPartialPayments  = session('pos_cart_partial_payments', []);
 
         // Oxirgi faol cart ID ni session dan olish
         $savedCartId = session('pos_active_cart_id', 1);
@@ -112,7 +115,11 @@ class Pos extends Page
         $this->activeCartId = $newCartId;
         // Yangi faol cart ID ni session ga saqlash
         session()->put('pos_active_cart_id', $newCartId);
-        unset($this->cartClients[$newCartId], $this->cartPaymentTypes[$newCartId]);
+        unset(
+            $this->cartClients[$newCartId],
+            $this->cartPaymentTypes[$newCartId],
+            $this->cartPartialPayments[$newCartId]
+        );
         $this->loadActiveCartMeta();
         $this->persistCartMeta();
 
@@ -141,7 +148,11 @@ class Pos extends Page
         }
 
         $cartService->clear($cartId);
-        unset($this->cartClients[$cartId], $this->cartPaymentTypes[$cartId]);
+        unset(
+            $this->cartClients[$cartId],
+            $this->cartPaymentTypes[$cartId],
+            $this->cartPartialPayments[$cartId]
+        );
 
         // Agar yopilayotgan cart joriy faol cart bo'lsa, boshqasini tanlash
         if ($this->activeCartId === $cartId) {
@@ -248,6 +259,18 @@ class Pos extends Page
             return false;
         }
 
+        $totalAmount = round((float) ($totals['amount'] ?? 0), 2);
+
+        if ($totalAmount <= 0) {
+            Notification::make()
+                ->title('Savat summasi noto‘g‘ri')
+                ->body('Savat bo‘sh yoki mahsulot narxlari noto‘g‘ri.')
+                ->danger()
+                ->send();
+
+            return false;
+        }
+
         if (!$this->selectedClientId) {
             Notification::make()
                 ->title('Klient tanlanmagan')
@@ -268,7 +291,7 @@ class Pos extends Page
             return false;
         }
 
-        $validPaymentTypes = ['cash', 'card', 'debt', 'transfer'];
+        $validPaymentTypes = ['cash', 'card', 'debt', 'transfer', 'partial'];
 
         if (!in_array($this->paymentType, $validPaymentTypes, true)) {
             Notification::make()
@@ -287,6 +310,36 @@ class Pos extends Page
                 ->send();
 
             return false;
+        }
+
+        $partialAmount = null;
+
+        if ($this->paymentType === 'partial') {
+            $partialAmount = round((float) ($this->partialPaymentAmount ?? 0), 2);
+
+            if ($partialAmount <= 0) {
+                Notification::make()
+                    ->title('Qisman to‘lov summasi kiritilmagan')
+                    ->body('Iltimos, to‘lanadigan summani kiriting.')
+                    ->warning()
+                    ->send();
+
+                return false;
+            }
+
+            if ($partialAmount >= $totalAmount) {
+                Notification::make()
+                    ->title('Qisman to‘lov summasi noto‘g‘ri')
+                    ->body('Qisman to‘lov summasi umumiy summadan kam bo‘lishi kerak.')
+                    ->warning()
+                    ->send();
+
+                return false;
+            }
+
+            $this->partialPaymentAmount = $partialAmount;
+            $this->cartPartialPayments[$this->activeCartId] = $partialAmount;
+            $this->persistCartMeta();
         }
 
         $preparedItems = [];
@@ -376,14 +429,19 @@ class Pos extends Page
             return false;
         }
 
-        $totalAmount   = round((float) ($totals['amount'] ?? 0), 2);
         $receiptItems  = array_values($cart);
         $paymentType   = $this->paymentType;
         $clientId      = $this->selectedClientId;
 
+
         try {
-            DB::transaction(function () use ($preparedItems, $totalAmount, $paymentType, $clientId) {
-                $paidAmount      = $paymentType === 'debt' ? 0.0 : $totalAmount;
+            DB::transaction(function () use ($preparedItems, $totalAmount, $paymentType, $clientId, $partialAmount) {
+                $paidAmount = match ($paymentType) {
+                    'debt'    => 0.0,
+                    'partial' => $partialAmount ?? 0.0,
+                    default   => $totalAmount,
+                };
+
                 $remainingAmount = round($totalAmount - $paidAmount, 2);
 
                 $sale = Sale::create([
@@ -394,6 +452,7 @@ class Pos extends Page
                     'remaining_amount' => $remainingAmount,
                     'payment_type'     => $paymentType,
                 ]);
+
 
                 foreach ($preparedItems as $prepared) {
                     $lineTotal = round($prepared['quantity'] * $prepared['price'], 2);
@@ -413,7 +472,7 @@ class Pos extends Page
                         ->decrement('quantity', $prepared['quantity']);
                 }
 
-                if ($paymentType === 'debt') {
+                if ($remainingAmount > 0) {
                     $user    = auth()->user();
                     $storeId = $user?->current_store_id;
 
@@ -433,7 +492,7 @@ class Pos extends Page
                         ]
                     );
 
-                    $addedAmount = (int) round($totalAmount);
+                    $addedAmount = (int) round($remainingAmount);
                     $debtor->increment('amount', $addedAmount);
 
                     DebtorTransaction::create([
@@ -461,7 +520,11 @@ class Pos extends Page
 
         $cartService->clear($this->activeCartId);
 
-        unset($this->cartClients[$this->activeCartId], $this->cartPaymentTypes[$this->activeCartId]);
+        unset(
+            $this->cartClients[$this->activeCartId],
+            $this->cartPaymentTypes[$this->activeCartId],
+            $this->cartPartialPayments[$this->activeCartId]
+        );
         $this->persistCartMeta();
         $this->loadActiveCartMeta();
 
@@ -536,12 +599,14 @@ class Pos extends Page
     {
         $this->selectedClientId = $this->cartClients[$this->activeCartId] ?? null;
         $this->paymentType      = $this->cartPaymentTypes[$this->activeCartId] ?? '';
+        $this->partialPaymentAmount = $this->cartPartialPayments[$this->activeCartId] ?? null;
     }
 
     protected function persistCartMeta(): void
     {
         session()->put('pos_cart_clients', $this->cartClients);
         session()->put('pos_cart_payment_types', $this->cartPaymentTypes);
+        session()->put('pos_cart_partial_payments', $this->cartPartialPayments);
     }
 
     /* ---------- Skaner metodlari ---------- */
@@ -698,12 +763,32 @@ class Pos extends Page
     /* === Klientlarni qidirish === */
     public function loadClients(): void
     {
-        $this->clients = Client::query()
-            ->when($this->searchClient, fn ($q) => $q->where('full_name', 'ilike', "%{$this->searchClient}%")
-                ->orWhere('phone', 'ilike', "%{$this->searchClient}%"))
+        $term = trim($this->searchClient);
+
+        $clients = Client::query()
+            ->when($term, function ($query) use ($term) {
+                $query->where(function ($inner) use ($term) {
+                    $inner->where('full_name', 'ilike', "%{$term}%")
+                        ->orWhere('phone', 'ilike', "%{$term}%");
+                });
+            })
             ->orderBy('full_name')
-            ->limit(20)
+            ->limit(4)
             ->get();
+
+        if ($this->selectedClientId) {
+            $selectedClient = $clients->firstWhere('id', $this->selectedClientId)
+                ?? Client::find($this->selectedClientId);
+
+            if ($selectedClient) {
+                $clients = $clients
+                    ->reject(fn ($client) => $client->id === $selectedClient->id)
+                    ->prepend($selectedClient)
+                    ->values();
+            }
+        }
+
+        $this->clients = $clients;
     }
 
     public function updatedSearchClient(): void
@@ -717,12 +802,6 @@ class Pos extends Page
         $this->selectedClientId = $id;
         $this->cartClients[$this->activeCartId] = $id;
         $this->persistCartMeta();
-
-        Notification::make()
-            ->title('Klient tanlandi')
-            ->body(Client::find($id)?->full_name)
-            ->success()
-            ->send();
     }
 
     /* === Yangi klient formasi === */
@@ -770,7 +849,7 @@ class Pos extends Page
     /* === To'lov turini tanlash === */
     public function selectPaymentType(string $type): void
     {
-        if (!in_array($type, ['cash', 'card', 'debt', 'transfer'])) {
+        if (!in_array($type, ['cash', 'card', 'debt', 'transfer', 'partial'])) {
             Notification::make()
                 ->title('Noto\'g\'ri to\'lov turi')
                 ->danger()
@@ -781,20 +860,51 @@ class Pos extends Page
 
         $this->paymentType = $type;
         $this->cartPaymentTypes[$this->activeCartId] = $type;
+
+        if ($type === 'partial') {
+            $this->partialPaymentAmount = $this->cartPartialPayments[$this->activeCartId] ?? null;
+        } else {
+            $this->partialPaymentAmount = null;
+            unset($this->cartPartialPayments[$this->activeCartId]);
+        }
+
         $this->persistCartMeta();
 
-        Notification::make()
-            ->title('To\'lov turi tanlandi')
-            ->body(match ($type) {
-                'card'     => '💳 Karta',
-                'cash'     => '💵 Naqd',
-                'transfer' => '🏦 O\'tkazma',
-                'debt'     => '📋 Qarz',
-                default    => 'Tanlandi',
-            })
-            ->success()
-            ->send();
+//        Notification::make()
+//            ->title('To\'lov turi tanlandi')
+//            ->body(match ($type) {
+//                'card'     => '💳 Karta',
+//                'cash'     => '💵 Naqd',
+//                'transfer' => '🏦 O\'tkazma',
+//                'debt'     => '📋 Qarz',
+//                'partial'  => '🔀 Qisman',
+//                default    => 'Tanlandi',
+//            })
+//            ->success()
+//            ->send();
 
         // Panelni yopmaymiz - foydalanuvchi o'zi yopsin yoki checkout qilsin
+    }
+
+    public function updatedPartialPaymentAmount($value): void
+    {
+        if ($this->paymentType !== 'partial') {
+            $this->partialPaymentAmount = null;
+
+            return;
+        }
+
+        if ($value === null || $value === '') {
+            $this->partialPaymentAmount = null;
+            unset($this->cartPartialPayments[$this->activeCartId]);
+            $this->persistCartMeta();
+
+            return;
+        }
+
+        $normalized = round(max(0, (float) $value), 2);
+        $this->partialPaymentAmount = $normalized;
+        $this->cartPartialPayments[$this->activeCartId] = $normalized;
+        $this->persistCartMeta();
     }
 }
