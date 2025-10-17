@@ -28,6 +28,28 @@
                     <div style="text-align:center; margin-bottom:8px;">{{ $receiptData['date'] ?? '' }}</div>
 
                     <div>Savat: #{{ $receiptData['cart_id'] ?? '' }}</div>
+                    <div style="margin-top:8px; font-size:12px;">
+                        <div>ID: <strong>{{ $receiptData['meta']['sale_id'] ?? '—' }}</strong></div>
+                        <div>Klient: <strong>{{ $receiptData['meta']['client_name'] ?? 'Tanlanmagan' }}</strong></div>
+                        <div>To'lov turi: <strong>
+                            {{ match($receiptData['meta']['payment_type'] ?? null) {
+                                'cash' => 'Naqd',
+                                'card' => 'Karta',
+                                'debt' => 'Qarz',
+                                'transfer' => 'O\'tkazma',
+                                'partial' => 'Qisman',
+                                'mixed' => 'Karta + Naqd',
+                                default => 'Noma\'lum'
+                            } }}
+                        </strong></div>
+                        @if(($receiptData['meta']['payment_type'] ?? null) === 'partial')
+                            <div>To'langan summa: <strong>{{ number_format($receiptData['meta']['paid_amount'] ?? 0, 2, '.', ' ') }} so'm</strong></div>
+                        @endif
+                        @if(($receiptData['meta']['remaining_amount'] ?? 0) > 0)
+                            <div>Qolgan qarz: <strong>{{ number_format($receiptData['meta']['remaining_amount'], 2, '.', ' ') }} so'm</strong></div>
+                        @endif
+                    </div>
+
                     <div class="line"></div>
 
                     @if(isset($receiptData['items']))

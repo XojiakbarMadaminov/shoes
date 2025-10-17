@@ -493,8 +493,11 @@ class Pos extends Page
         $clientId      = $this->selectedClientId;
 
 
+        $sale = null;
+        $remainingAmountForReceipt = 0.0;
+
         try {
-            DB::transaction(function () use ($preparedItems, $totalAmount, $paymentType, $clientId, $partialAmount, $mixedAmounts) {
+            [$sale, $remainingAmountForReceipt] = DB::transaction(function () use ($preparedItems, $totalAmount, $paymentType, $clientId, $partialAmount, $mixedAmounts) {
                 $paidAmount = match ($paymentType) {
                     'debt'    => 0.0,
                     'partial' => $partialAmount ?? 0.0,
@@ -551,8 +554,8 @@ class Pos extends Page
                         ],
                         [
                             'amount'   => 0,
-                            'currency' => 'UZS',
-                            'date'     => now()->toDateString(),
+                            'currency' => 'uzs',
+                            'date'     => now(),
                         ]
                     );
 
@@ -563,10 +566,11 @@ class Pos extends Page
                         'debtor_id' => $debtor->id,
                         'amount'    => $addedAmount,
                         'type'      => 'debt',
-                        'date'      => now()->toDateString(),
+                        'date'      => now(),
                         'note'      => "Sotuv #{$sale->id}",
                     ]);
                 }
+                return [$sale, $remainingAmount];
             });
         } catch (\Throwable $exception) {
             report($exception);
@@ -580,7 +584,22 @@ class Pos extends Page
             return false;
         }
 
-        $this->prepareReceipt($this->activeCartId, $receiptItems, $totals);
+        if ($sale) {
+            $sale->loadMissing('client');
+
+            $this->prepareReceipt(
+                $this->activeCartId,
+                $receiptItems,
+                $totals,
+                [
+                    'sale_id'          => $sale->id,
+                    'client_name'      => $sale->client?->full_name,
+                    'payment_type'     => $paymentType,
+                    'paid_amount'      => $sale->paid_amount,
+                    'remaining_amount' => $remainingAmountForReceipt,
+                ]
+            );
+        }
 
         $cartService->clear($this->activeCartId);
 
@@ -607,7 +626,7 @@ class Pos extends Page
     }
 
     /* ---------- Chek funksiyalari ---------- */
-    public function prepareReceipt(int $cartId, array $items, array $totals): void
+    public function prepareReceipt(int $cartId, array $items, array $totals, array $meta = []): void
     {
         $this->receiptData = [
             'cart_id'        => $cartId,
@@ -615,6 +634,7 @@ class Pos extends Page
             'totals'         => $totals,
             'date'           => now()->format('d.m.Y H:i:s'),
             'receipt_number' => 'R' . str_pad($cartId, 4, '0', STR_PAD_LEFT) . time(),
+            'meta'           => $meta,
         ];
 
         $this->showReceipt = true;

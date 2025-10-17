@@ -18,6 +18,11 @@ class Debtor extends Model
         return $this->hasMany(DebtorTransaction::class)->orderBy('date');
     }
 
+    public function latestTransaction()
+    {
+        return $this->hasOne(DebtorTransaction::class)->latestOfMany('date');
+    }
+
     public function scopeZeroDebt(Builder $query): Builder
     {
         return $query->where('amount', '<=', 0);

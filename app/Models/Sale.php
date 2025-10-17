@@ -2,17 +2,23 @@
 
 namespace App\Models;
 
-use App\Models\Traits\HasCurrentStoreScope;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\HasCurrentStoreScope;
 
 class Sale extends Model
 {
     use HasCurrentStoreScope;
-    protected $table = 'sales';
+
+    protected $table   = 'sales';
     protected $guarded = [];
 
     public function items()
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
     }
 }

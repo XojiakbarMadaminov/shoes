@@ -2,24 +2,37 @@
 
 namespace App\Filament\Resources\Debtors\Tables;
 
-use App\Filament\Resources\Debtors\DebtorResource;
 use App\Models\Debtor;
+use App\Models\DebtorTransaction;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Tables\Table;
 use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
+use Filament\Forms\Components\DatePicker;
+use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\Debtors\DebtorResource;
 
 class DebtorsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $latestDateSubquery = DebtorTransaction::select('date')
+                    ->whereColumn('debtor_transactions.debtor_id', 'debtors.id')
+                    ->latest('date')
+                    ->limit(1);
+
+                $query
+                    ->with('latestTransaction')
+                    ->orderBy($latestDateSubquery, 'desc');
+            })
             ->columns([
                 TextColumn::make('id')->label('ID')->sortable(),
                 TextColumn::make('client.full_name')
@@ -31,48 +44,19 @@ class DebtorsTable
                 TextColumn::make('amount')
                     ->sortable()
                     ->label('Qarz summasi'),
-                TextColumn::make('currency')
-                    ->label('Valyuta'),
-                TextColumn::make('date')
-                    ->sortable()
-                    ->label('Sana')
+                TextColumn::make('latestTransaction.date')
+                    ->label('Oxirgi operatsiya')
+                    ->sortable(),
             ])
             ->recordUrl(fn ($record) => DebtorResource::getUrl('view', ['record' => $record]))
             ->filters([
                 //
             ])
             ->recordActions([
-                Action::make('add_debt')
-                    ->label('Qarz qo‘shish')
-                    ->color('danger')
-                    ->form([
-                        TextInput::make('amount')
-                            ->label('Qarz summasi')
-                            ->prefix(fn(Debtor $record) => $record->currency)
-                            ->numeric()
-                            ->required(),
-                        Textarea::make('note')
-                            ->label('Izoh')
-                            ->nullable(),
-                        DatePicker::make('date')
-                            ->label('Sana')
-                            ->default(today()),
-                    ])
-                    ->action(function (array $data, Debtor $record) {
-                        // Bazaga yozish
-                        $record->transactions()->create([
-                            'type' => 'debt',
-                            'amount' => $data['amount'],
-                            'date' => $data['date'],
-                            'note' => $data['note'] ?? null,
-                        ]);
-
-                        $record->increment('amount', $data['amount']); // total qarz yangilanadi
-                    }),
                 Action::make('add_payment')
                     ->label('To‘lov qilish')
                     ->color('success')
-                    ->form(fn(Debtor $record) => [
+                    ->schema(fn (Debtor $record) => [
                         TextInput::make('amount')
                             ->label('To‘lov summasi')
                             ->prefix($record->currency)
@@ -81,9 +65,9 @@ class DebtorsTable
                             ->rule('lte:' . $record->amount) // `amount` dan katta bo‘lmasin
                             ->helperText('Maksimum: ' . $record->amount . ' ' . $record->currency),
 
-                        DatePicker::make('date')
+                        DateTimePicker::make('date')
                             ->label('To‘lov sanasi')
-                            ->default(today())
+                            ->default(now())
                             ->required(),
 
                         Textarea::make('note')
@@ -101,10 +85,10 @@ class DebtorsTable
                         }
 
                         $record->transactions()->create([
-                            'type' => 'payment',
+                            'type'   => 'payment',
                             'amount' => $data['amount'],
-                            'date' => $data['date'],
-                            'note' => $data['note'] ?? null,
+                            'date'   => $data['date'],
+                            'note'   => $data['note'] ?? null,
                         ]);
 
                         $record->decrement('amount', $data['amount']);

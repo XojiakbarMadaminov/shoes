@@ -59,16 +59,16 @@ class DebtorForm
                         ->formatStateUsing(fn ($state) => $state && $state !== '0'
                             ? ltrim(preg_replace('/^\+998/', '', $state), '0')
                             : $state),
-
-
-                    Select::make('currency')
-                        ->label('Valyuta')
-                        ->options([
-                            'uzs' => 'UZS (So‘m)',
-                            'usd' => 'USD (Dollar)',
-                        ])
-                        ->default('uzs')
-                        ->required(),
+//
+//
+//                    Select::make('currency')
+//                        ->label('Valyuta')
+//                        ->options([
+//                            'uzs' => 'UZS (So‘m)',
+//                            'usd' => 'USD (Dollar)',
+//                        ])
+//                        ->default('uzs')
+//                        ->required(),
 
 
                     TextInput::make('amount')

@@ -2,18 +2,19 @@
 
 namespace App\Filament\Resources\Debtors\RelationManagers;
 
-use Filament\Actions\Action;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Resources\RelationManagers\RelationManager;
 
 class TransactionRelationManager extends RelationManager
 {
     protected static string $relationship = 'transactions';
-    protected static ?string $title = 'Qarz/To‘lovlar tarixi';
+    protected static ?string $title       = 'Qarz/To‘lovlar tarixi';
 
     public function table(Tables\Table $table): Tables\Table
     {
@@ -22,20 +23,15 @@ class TransactionRelationManager extends RelationManager
                 TextColumn::make('type')
                     ->label('Turi')
                     ->badge()
-                    ->color(fn($record) => $record->type === 'debt' ? 'danger' : 'success')
-                    ->formatStateUsing(fn($state) => $state === 'debt' ? 'Qarz' : 'To‘lov'),
+                    ->color(fn ($record) => $record->type === 'debt' ? 'danger' : 'success')
+                    ->formatStateUsing(fn ($state) => $state === 'debt' ? 'Qarz' : 'To‘lov'),
 
                 TextColumn::make('amount')
                     ->label('Summasi')
                     ->sortable(),
 
-                TextColumn::make('debtor.currency')
-                    ->label('Valyuta')
-                    ->sortable(),
-
                 TextColumn::make('date')
-                    ->label('Sana')
-                    ->date('d-m-Y'),
+                    ->label('Sana'),
 
                 TextColumn::make('note')
                     ->label('Izoh')
@@ -46,7 +42,7 @@ class TransactionRelationManager extends RelationManager
                         Action::make('view_note')
                             ->label('Ko‘rish')
                             ->modalHeading('To‘liq izoh')
-                            ->modalDescription(fn($record) => $record->note ?? 'Izoh mavjud emas')
+                            ->modalDescription(fn ($record) => $record->note ?? 'Izoh mavjud emas')
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Yopish')
                     ),
@@ -75,10 +71,10 @@ class TransactionRelationManager extends RelationManager
                 ])
                 ->action(function (array $data) {
                     $this->ownerRecord->transactions()->create([
-                        'type' => 'debt',
+                        'type'   => 'debt',
                         'amount' => $data['amount'],
-                        'date' => $data['date'],
-                        'note' => $data['note'],
+                        'date'   => $data['date'],
+                        'note'   => $data['note'],
                     ]);
 
                     $this->ownerRecord->increment('amount', $data['amount']);
@@ -102,10 +98,10 @@ class TransactionRelationManager extends RelationManager
                 ])
                 ->action(function (array $data) {
                     $this->ownerRecord->transactions()->create([
-                        'type' => 'payment',
+                        'type'   => 'payment',
                         'amount' => $data['amount'],
-                        'date' => $data['date'],
-                        'note' => $data['note'],
+                        'date'   => $data['date'],
+                        'note'   => $data['note'],
                     ]);
 
                     $this->ownerRecord->decrement('amount', $data['amount']);

@@ -19,7 +19,7 @@ return new class extends Migration
 
             $table->bigInteger('amount')->default(0); // umumiy qarz
             $table->string('currency', 10)->default('UZS');
-            $table->date('date')->nullable();
+            $table->dateTime('date')->nullable();
             $table->longText('note')->nullable();
             $table->timestamps();
         });

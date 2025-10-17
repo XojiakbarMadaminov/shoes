@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('debtor_id')->constrained('debtors')->cascadeOnDelete();
             $table->bigInteger('amount');
             $table->enum('type', ['debt', 'payment']);
-            $table->date('date');
+            $table->datetime('date');
             $table->longText('note')->nullable();
             $table->timestamps();
         });
