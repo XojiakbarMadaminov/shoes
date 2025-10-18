@@ -1,6 +1,9 @@
 @php
     $client = $sale->client;
     $items = $sale->items;
+    $paymentLabel = match($sale->payment_type){
+            'cash' => 'Naqd', 'card' => 'Karta', 'debt' => 'Qarz', 'transfer' => 'O‘tkazma', 'partial' => 'Qisman', 'mixed' => 'Karta + Naqd', default => ($sale->payment_type ?? '-')
+        };
 @endphp
 
 <div class="space-y-4">
@@ -15,7 +18,7 @@
         </div>
         <div>
             <div class="text-gray-500 dark:text-gray-400">To‘lov turi</div>
-            <div class="font-medium">{{ $sale->payment_type ?? '-' }}</div>
+            <div class="font-medium">{{ $paymentLabel ?? '-' }}</div>
             <div class="text-gray-500 dark:text-gray-400">Sana</div>
             <div>{{ $sale->created_at?->format('Y-m-d H:i') }}</div>
         </div>

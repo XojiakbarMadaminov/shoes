@@ -2,14 +2,17 @@
 
 namespace App\Filament\Pages;
 
+use Carbon\Carbon;
 use App\Models\Sale;
 use App\Models\Stock;
 use Filament\Pages\Page;
 use Filament\Tables\Table;
 use Filament\Actions\Action;
 use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -34,9 +37,21 @@ class SalesHistoryPage extends Page implements HasTable
                     ->with(['client', 'items.product'])
             )
             ->columns([
+                TextColumn::make('id')
+                    ->label('ID')
+                    ->toggleable()
+                    ->sortable()
+                    ->searchable(),
+
                 TextColumn::make('client.full_name')
                     ->label('Klient')
                     ->toggleable()
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('client.phone')
+                    ->label('Telefon')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable()
                     ->searchable(),
 
@@ -84,7 +99,7 @@ class SalesHistoryPage extends Page implements HasTable
                 Filter::make('date_period')
                     ->label('Sana')
                     ->schema([
-                        \Filament\Forms\Components\Select::make('period')
+                        Select::make('period')
                             ->options([
                                 'today'  => 'Bugun',
                                 'week'   => 'Hafta',
@@ -92,10 +107,10 @@ class SalesHistoryPage extends Page implements HasTable
                                 'custom' => 'Oraliq',
                             ])
                             ->native(false),
-                        \Filament\Forms\Components\DatePicker::make('start_date')
+                        DatePicker::make('start_date')
                             ->label('Boshlanish sana')
                             ->native(false),
-                        \Filament\Forms\Components\DatePicker::make('end_date')
+                        DatePicker::make('end_date')
                             ->label('Tugash sana')
                             ->native(false),
                     ])
@@ -114,13 +129,13 @@ class SalesHistoryPage extends Page implements HasTable
                             $start = $data['start_date'] ?? null;
                             $end   = $data['end_date'] ?? null;
                             if ($start && $end) {
-                                return $query->whereBetween('created_at', [\Carbon\Carbon::parse($start)->startOfDay(), \Carbon\Carbon::parse($end)->endOfDay()]);
+                                return $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
                             }
                             if ($start) {
-                                return $query->where('created_at', '>=', \Carbon\Carbon::parse($start)->startOfDay());
+                                return $query->where('created_at', '>=', Carbon::parse($start)->startOfDay());
                             }
                             if ($end) {
-                                return $query->where('created_at', '<=', \Carbon\Carbon::parse($end)->endOfDay());
+                                return $query->where('created_at', '<=', Carbon::parse($end)->endOfDay());
                             }
                         }
 
@@ -155,11 +170,11 @@ class SalesHistoryPage extends Page implements HasTable
                         ]);
                     }),
 
-                //                Action::make('print_receipt')
-                //                    ->label('Chek')
-                //                    ->icon('heroicon-o-printer')
-                //                    ->url(fn (Sale $record) => route('sale.receipt.pdf', $record))
-                //                    ->openUrlInNewTab(),
+                Action::make('print_receipt')
+                    ->label('Chek')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (Sale $record) => route('sale.receipt.pdf', $record))
+                    ->openUrlInNewTab(),
             ])
             ->emptyStateHeading('Sotuvlar topilmadi')
             ->emptyStateDescription('Filtrlarni o‘zgartirib ko‘ring.');

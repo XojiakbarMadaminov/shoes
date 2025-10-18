@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Sale;
 use App\Models\Store;
 use App\Models\Debtor;
 use App\Models\Product;
@@ -33,6 +34,20 @@ Route::get('/switch-store/{store}', function (Store $store) {
 
     return back();
 })->name('switch-store');
+
+// Sales receipt PDF (same layout intent as POS receipt)
+Route::get('/sales/{sale}/receipt-pdf', function (Sale $sale) {
+    $sale->load(['client', 'items.product']);
+
+    $itemsCount = $sale->items->count();
+    $base       = 320; // base height
+    $extra      = 22 * $itemsCount;
+    $height     = min(600, $base + $extra);
+
+    return Pdf::loadView('sales-receipt', [
+        'sale' => $sale,
+    ])->setPaper([0, 0, 200, $height], 'portrait')->stream('sale-receipt.pdf');
+})->name('sale.receipt.pdf');
 
 // 1. Bitta product uchun
 Route::get('/products/{product}/barcode-pdf', function (Product $product, Request $request) {
