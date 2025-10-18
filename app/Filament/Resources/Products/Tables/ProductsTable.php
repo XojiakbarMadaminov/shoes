@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\Tables;
 use App\Models\Stock;
 use App\Models\Product;
 use Filament\Tables\Table;
+use App\Models\ProductStock;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\EditAction;
@@ -21,7 +22,6 @@ class ProductsTable
 {
     public static function configure(Table $table): Table
     {
-        // Foydalanuvchi joriy do‘koniga tegishli omborlar
         $stocks = cache()->remember(
             'active_stocks_for_store_' . auth()->id(),
             60,
@@ -35,49 +35,67 @@ class ProductsTable
             ->defaultSort('created_at', 'desc')
             ->columns(array_merge(
                 [
-                    TextColumn::make('name')
-                        ->label('Nomi')
-                        ->searchable()
-                        ->sortable(),
-
-                    TextColumn::make('barcode')
-                        ->label('Bar kod')
-                        ->searchable(),
-
-                    TextColumn::make('color')
-                        ->label('Rang')
-                        ->toggleable(isToggledHiddenByDefault: true),
-
-                    TextColumn::make('initial_price')
-                        ->label('Kelgan narxi')
-                        ->numeric(),
-
-                    TextColumn::make('price')
-                        ->label('Sotish narxi')
-                        ->numeric(),
-
-                    TextColumn::make('category.name')
-                        ->label('Kategoriyasi')
-                        ->sortable()
-                        ->searchable(),
+                    TextColumn::make('name')->label('Nomi')->searchable()->sortable(),
+                    TextColumn::make('barcode')->label('Bar kod')->searchable(),
+                    TextColumn::make('color')->label('Rang')->toggleable(isToggledHiddenByDefault: true),
+                    TextColumn::make('initial_price')->label('Kelgan narxi')->numeric(),
+                    TextColumn::make('price')->label('Sotish narxi')->numeric(),
+                    TextColumn::make('category.name')->label('Kategoriyasi')->sortable()->searchable(),
+                    TextColumn::make('type')->label('Turi')->badge()->formatStateUsing(fn ($state) => $state === 'package' ? 'Paket' : 'Razmer'),
                 ],
-
-                // 🔹 Dinamik ravishda har bir ombor uchun ustun yaratamiz
                 $stocks->map(function ($stock) {
                     return TextColumn::make("stock_{$stock->id}")
                         ->label($stock->name)
                         ->alignCenter()
                         ->getStateUsing(function (Product $record) use ($stock) {
-                            // Har bir product uchun ombor bo‘yicha jami miqdor hisoblanadi
-                            return $record->sizes()
-                                ->with(['stocks' => fn ($q) => $q->where('stock_id', $stock->id)])
-                                ->get()
-                                ->flatMap(fn ($size) => $size->stocks)
-                                ->sum('quantity') ?? 0;
-                        });
+                            $sizeIds = $record->sizes()->pluck('id');
+
+                            return (int) ProductStock::query()
+                                ->where('stock_id', $stock->id)
+                                ->where(function ($q) use ($record, $sizeIds) {
+                                    $q->where('product_id', $record->id)
+                                        ->orWhereIn('product_size_id', $sizeIds);
+                                })
+                                ->sum('quantity');
+                        })
+                        ->disabled(fn (Product $record) => ($record->type ?? 'size') === 'package');
                 })->all()
             ))
             ->recordActions([
+                Action::make('sizes_breakdown')
+                    ->label('Razmerlar')
+                    ->icon('heroicon-o-queue-list')
+                    ->visible(fn (Product $record) => ($record->type ?? 'size') === 'size')
+                    ->modalHeading(fn (Product $record) => "{$record->name} — Razmerlar bo‘yicha zaxira")
+                    ->modalSubmitAction(false)
+                    ->modalWidth('4xl')
+                    ->modalContent(function (Product $record) {
+                        $product = $record->loadMissing('sizes');
+                        $stocks  = Stock::scopes('active')->get();
+                        $sizes   = $product->sizes()->orderBy('size')->get();
+
+                        $data = [];
+                        foreach ($stocks as $stock) {
+                            $row = [];
+                            foreach ($sizes as $size) {
+                                $qty = ProductStock::where('stock_id', $stock->id)
+                                    ->where('product_size_id', $size->id)
+                                    ->value('quantity') ?? 0;
+                                $row[$size->size] = (int) $qty;
+                            }
+                            $data[] = [
+                                'stock' => $stock->name,
+                                'sizes' => $row,
+                                'total' => array_sum($row),
+                            ];
+                        }
+
+                        return view('filament.products.partials.sizes-breakdown', [
+                            'product' => $product,
+                            'sizes'   => $sizes->pluck('size')->values()->all(),
+                            'rows'    => $data,
+                        ]);
+                    }),
                 Action::make('print_barcode')
                     ->label('Print Barcode')
                     ->icon('heroicon-o-printer')
@@ -129,6 +147,6 @@ class ProductsTable
                         ->deselectRecordsAfterCompletion(),
                 ]),
             ])
-            ->modifyQueryUsing(fn ($query) => $query->with(['category', 'sizes.stocks']));
+            ->modifyQueryUsing(fn ($query) => $query->with(['category', 'sizes.productStocks']));
     }
 }

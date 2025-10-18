@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Products\Pages;
 
 use App\Models\Stock;
+use App\Models\ProductStock;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\Products\ProductResource;
@@ -15,6 +17,7 @@ class ViewProduct extends ViewRecord
     {
         return [
             EditAction::make(),
+
         ];
     }
 
@@ -24,12 +27,12 @@ class ViewProduct extends ViewRecord
         $stocks  = Stock::all();
 
         $data['sizes'] = $product->sizes()
-            ->with('stocks')
+            ->with('productStocks')
             ->get()
             ->map(function ($size) use ($stocks) {
                 $row = ['size' => $size->size];
                 foreach ($stocks as $stock) {
-                    $row["stock_{$stock->id}"] = $size->stocks
+                    $row["stock_{$stock->id}"] = $size->productStocks
                         ->firstWhere('stock_id', $stock->id)?->quantity ?? 0;
                 }
 
@@ -37,6 +40,15 @@ class ViewProduct extends ViewRecord
             })
             ->values()
             ->toArray();
+
+        if (($product->type ?? 'size') === 'package') {
+            foreach ($stocks as $stock) {
+                $data["pkg_stock_{$stock->id}"] = (int) (ProductStock::whereNull('product_size_id')
+                    ->where('product_id', $product->id)
+                    ->where('stock_id', $stock->id)
+                    ->value('quantity') ?? 0);
+            }
+        }
 
         return $data;
     }

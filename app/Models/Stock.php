@@ -25,6 +25,11 @@ class Stock extends Model
         return $this->hasMany(ProductSizeStock::class);
     }
 
+    public function productStocks(): HasMany
+    {
+        return $this->hasMany(ProductStock::class);
+    }
+
 
     #[Scope]
     public function active($query)

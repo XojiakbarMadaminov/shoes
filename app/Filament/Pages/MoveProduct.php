@@ -2,32 +2,31 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Product;
-use App\Models\ProductSizeStock;
 use App\Models\Stock;
-use BezhanSalleh\FilamentShield\Traits\HasPageShield;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Get;
-use Filament\Notifications\Notification;
+use App\Models\Product;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Section;
+use App\Models\ProductStock;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\DB;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Forms\Concerns\InteractsWithForms;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class MoveProduct extends Page implements HasForms
 {
-    use InteractsWithForms, HasPageShield;
+    use HasPageShield, InteractsWithForms;
 
-    protected static ?string $navigationLabel = 'Tovarlarni ko‘chirish';
+    protected static ?string $navigationLabel                = 'Tovarlarni ko‘chirish';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-arrow-path';
-    protected static ?string $title = 'Tovarlarni ko‘chirish';
-    protected static ?int $navigationSort = 4;
-
+    protected static ?string $title                          = 'Tovarlarni ko‘chirish';
+    protected static ?int $navigationSort                    = 4;
 
     protected string $view = 'filament.pages.move-product';
 
@@ -70,14 +69,16 @@ class MoveProduct extends Page implements HasForms
                                     })
                                     ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->name)
                                     ->afterStateUpdated(function ($set, ?string $state) {
-                                        if (! $state) {
+                                        if (!$state) {
                                             $set('sizes', []);
+                                            $set('type', null);
+                                            $set('package_quantity', 0);
 
                                             return;
                                         }
 
                                         $product = Product::with('sizes')->find($state);
-
+                                        $set('type', $product?->type ?? 'size');
                                         $sizes = $product?->sizes?->map(fn ($size) => [
                                             'size_id'   => $size->id,
                                             'size_name' => $size->size,
@@ -88,6 +89,14 @@ class MoveProduct extends Page implements HasForms
                                     })
                                     ->required()
                                     ->autofocus(),
+
+                                Hidden::make('type'),
+
+                                TextInput::make('package_quantity')
+                                    ->label('Miqdor (paket)')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->visible(fn (Get $get) => ($get('type') ?? 'size') === 'package'),
 
                                 Repeater::make('sizes')
                                     ->label('Razmerlar')
@@ -107,7 +116,8 @@ class MoveProduct extends Page implements HasForms
                                     ->default([])
                                     ->addable(false)
                                     ->deletable(false)
-                                    ->reorderable(false),
+                                    ->reorderable(false)
+                                    ->visible(fn (Get $get) => ($get('type') ?? 'size') === 'size'),
                             ])
                             ->grid()
                             ->minItems(1)
@@ -158,11 +168,11 @@ class MoveProduct extends Page implements HasForms
                 $sizeId   = $sizeItem['size_id'] ?? null;
                 $sizeName = $sizeItem['size_name'] ?? 'Razmer';
 
-                if (! $sizeId) {
+                if (!$sizeId) {
                     continue;
                 }
 
-                $available = ProductSizeStock::where('product_size_id', $sizeId)
+                $available = ProductStock::where('product_size_id', $sizeId)
                     ->where('stock_id', $fromStockId)
                     ->value('quantity') ?? 0;
 
@@ -178,7 +188,16 @@ class MoveProduct extends Page implements HasForms
             }
         }
 
-        if (! $hasMovement) {
+        // Consider package-based items for movement flag
+        foreach ($productsData as $item) {
+            $type = $item['type'] ?? (Product::find($item['product_id'] ?? null)?->type ?? 'size');
+            if ($type === 'package' && (int) ($item['package_quantity'] ?? 0) > 0) {
+                $hasMovement = true;
+                break;
+            }
+        }
+
+        if (!$hasMovement) {
             Notification::make()
                 ->title('Miqdor kiritilmadi')
                 ->body('Har bir razmer uchun ko‘chiriladigan miqdorni kiriting.')
@@ -191,6 +210,35 @@ class MoveProduct extends Page implements HasForms
         try {
             DB::transaction(function () use ($productsData, $fromStockId, $toStockId) {
                 foreach ($productsData as $item) {
+                    $type = $item['type'] ?? (Product::find($item['product_id'] ?? null)?->type ?? 'size');
+                    if ($type === 'package') {
+                        $quantity = (int) ($item['package_quantity'] ?? 0);
+                        if ($quantity > 0) {
+                            $from = ProductStock::firstOrCreate(
+                                [
+                                    'product_id'      => $item['product_id'],
+                                    'product_size_id' => null,
+                                    'stock_id'        => $fromStockId,
+                                ],
+                                ['quantity' => 0]
+                            );
+                            if ($from->quantity < $quantity) {
+                                throw new \RuntimeException('Yetarli miqdor mavjud emas.');
+                            }
+                            $from->decrement('quantity', $quantity);
+
+                            $to = ProductStock::firstOrCreate(
+                                [
+                                    'product_id'      => $item['product_id'],
+                                    'product_size_id' => null,
+                                    'stock_id'        => $toStockId,
+                                ],
+                                ['quantity' => 0]
+                            );
+                            $to->increment('quantity', $quantity);
+                        }
+                        continue;
+                    }
                     foreach ($item['sizes'] ?? [] as $sizeItem) {
                         $quantity = (int) ($sizeItem['quantity'] ?? 0);
 
@@ -200,11 +248,11 @@ class MoveProduct extends Page implements HasForms
 
                         $sizeId = $sizeItem['size_id'] ?? null;
 
-                        if (! $sizeId) {
+                        if (!$sizeId) {
                             continue;
                         }
 
-                        $fromStock = ProductSizeStock::firstOrCreate(
+                        $fromStock = ProductStock::firstOrCreate(
                             [
                                 'product_size_id' => $sizeId,
                                 'stock_id'        => $fromStockId,
@@ -218,7 +266,7 @@ class MoveProduct extends Page implements HasForms
 
                         $fromStock->decrement('quantity', $quantity);
 
-                        $toStock = ProductSizeStock::firstOrCreate(
+                        $toStock = ProductStock::firstOrCreate(
                             [
                                 'product_size_id' => $sizeId,
                                 'stock_id'        => $toStockId,
@@ -250,6 +298,4 @@ class MoveProduct extends Page implements HasForms
 
         $this->form->fill();
     }
-
-
 }

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Products\Pages;
 
 use App\Models\Stock;
+use App\Models\ProductStock;
 use Filament\Actions\ViewAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
@@ -15,6 +16,7 @@ class EditProduct extends EditRecord
     protected static string $resource = ProductResource::class;
     protected $stocks;
     protected $sizesData;
+    protected $packageStockData;
 
     protected function getHeaderActions(): array
     {
@@ -31,20 +33,30 @@ class EditProduct extends EditRecord
         $product = $this->record;
         $stocks  = Stock::all();
 
-        $data['sizes'] = $product->sizes()
-            ->with('stocks')
-            ->get()
-            ->map(function ($size) use ($stocks) {
-                $row = ['size' => $size->size];
-                foreach ($stocks as $stock) {
-                    $row["stock_{$stock->id}"] = $size->stocks
-                        ->firstWhere('stock_id', $stock->id)?->quantity ?? 0;
-                }
+        if (($product->type ?? 'size') === 'size') {
+            $data['sizes'] = $product->sizes()
+                ->with('productStocks')
+                ->get()
+                ->map(function ($size) use ($stocks) {
+                    $row = ['size' => $size->size];
+                    foreach ($stocks as $stock) {
+                        $row["stock_{$stock->id}"] = $size->productStocks
+                            ->firstWhere('stock_id', $stock->id)?->quantity ?? 0;
+                    }
 
-                return $row;
-            })
-            ->values()
-            ->toArray();
+                    return $row;
+                })
+                ->values()
+                ->toArray();
+        } else {
+            foreach ($stocks as $stock) {
+                $qty = ProductStock::whereNull('product_size_id')
+                    ->where('product_id', $product->id)
+                    ->where('stock_id', $stock->id)
+                    ->value('quantity') ?? 0;
+                $data["pkg_stock_{$stock->id}"] = $qty;
+            }
+        }
 
         return $data;
     }
@@ -52,52 +64,70 @@ class EditProduct extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $this->sizesData = $data['sizes'] ?? [];
+        $this->packageStockData = collect($data)
+            ->filter(fn ($v, $k) => str_starts_with($k, 'pkg_stock_'))
+            ->all();
+
         unset($data['sizes']);
+        foreach (array_keys($this->packageStockData) as $k) {
+            unset($data[$k]);
+        }
 
         return $data;
     }
 
     protected function afterSave(): void
     {
-        $product         = $this->record;
-        $currentSizeRows = collect($this->sizesData);
+        $product = $this->record;
 
-        // 1️⃣ Hozir formda mavjud razmerlar (36–41 ichidan qolganlar)
-        $currentSizes = $currentSizeRows->pluck('size')->toArray();
+        if (($product->type ?? 'size') === 'size') {
+            $currentSizeRows = collect($this->sizesData);
 
-        // 2️⃣ Bazada mavjud eski razmerlar
-        $existingSizes = $product->sizes()->pluck('size')->toArray();
+            $currentSizes = $currentSizeRows->pluck('size')->toArray();
+            $existingSizes = $product->sizes()->pluck('size')->toArray();
+            $deletedSizes = array_diff($existingSizes, $currentSizes);
 
-        // 3️⃣ O‘chirilgan razmerlarni aniqlaymiz
-        $deletedSizes = array_diff($existingSizes, $currentSizes);
+            if (!empty($deletedSizes)) {
+                $product->sizes()
+                    ->whereIn('size', $deletedSizes)
+                    ->each(function ($size) {
+                        $size->productStocks()->delete();
+                        $size->delete();
+                    });
+            }
 
-        // 4️⃣ Eski (formda yo‘q) razmerlarni o‘chiramiz
-        if (!empty($deletedSizes)) {
-            $product->sizes()
-                ->whereIn('size', $deletedSizes)
-                ->each(function ($size) {
-                    $size->stocks()->delete();
-                    $size->delete();
-                });
-        }
+            foreach ($this->sizesData as $sizeRow) {
+                $sizeModel = $product->sizes()->updateOrCreate(
+                    ['size' => $sizeRow['size']],
+                    []
+                );
 
-        // 5️⃣ Endi mavjud yoki yangi razmerlarni yangilaymiz / yaratamiz
-        foreach ($this->sizesData as $sizeRow) {
-            $sizeModel = $product->sizes()->updateOrCreate(
-                ['size' => $sizeRow['size']],
-                []
-            );
-
-            // Har bir stock inputini qayta yozamiz
-            foreach ($sizeRow as $key => $value) {
-                if (str_starts_with($key, 'stock_')) {
-                    $stockId = (int) str_replace('stock_', '', $key);
-                    $sizeModel->stocks()->updateOrCreate(
-                        ['stock_id' => $stockId],
-                        ['quantity' => (int) $value]
-                    );
+                foreach ($sizeRow as $key => $value) {
+                    if (str_starts_with($key, 'stock_')) {
+                        $stockId = (int) str_replace('stock_', '', $key);
+                        $sizeModel->productStocks()->updateOrCreate(
+                            ['stock_id' => $stockId],
+                            ['quantity' => (int) $value]
+                        );
+                    }
                 }
+            }
+        } else {
+            foreach ($this->packageStockData as $key => $val) {
+                $stockId = (int) str_replace('pkg_stock_', '', $key);
+
+                ProductStock::updateOrCreate(
+                    [
+                        'product_id' => $product->id,
+                        'product_size_id' => null,
+                        'stock_id' => $stockId,
+                    ],
+                    [
+                        'quantity' => (int) ($val ?? 0),
+                    ]
+                );
             }
         }
     }
 }
+

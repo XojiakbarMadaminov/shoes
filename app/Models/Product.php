@@ -14,6 +14,13 @@ class Product extends Model
     protected $table   = 'products';
     protected $guarded = [];
 
+    public const TYPE_SIZE = 'size';
+    public const TYPE_PACKAGE = 'package';
+
+    protected $casts = [
+        'type' => 'string',
+    ];
+
     public function sizes()
     {
         return $this->hasMany(ProductSize::class);
@@ -36,6 +43,11 @@ class Product extends Model
         );
     }
 
+    public function productStocks(): HasMany
+    {
+        return $this->hasMany(ProductStock::class, 'product_id');
+    }
+
     public function saleItems(): HasMany
     {
         return $this->hasMany(SaleItem::class, 'product_id');
@@ -48,6 +60,24 @@ class Product extends Model
 
     public function getTotalQuantityAttribute(): int
     {
-        return $this->productStocks->sum('quantity');
+        // Prefer new unified product_stocks table when available
+        $sum = $this->productStocks()->sum('quantity');
+
+        if ($sum > 0) {
+            return (int) $sum;
+        }
+
+        // Backward compatibility: sum over size-based legacy stocks if any
+        return (int) $this->sizeStocks()->sum('quantity');
+    }
+
+    public function isSizeBased(): bool
+    {
+        return ($this->type ?? self::TYPE_SIZE) === self::TYPE_SIZE;
+    }
+
+    public function isPackageBased(): bool
+    {
+        return ($this->type ?? self::TYPE_SIZE) === self::TYPE_PACKAGE;
     }
 }

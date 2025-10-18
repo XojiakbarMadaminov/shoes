@@ -18,4 +18,9 @@ class ProductSize extends Model
     {
         return $this->hasMany(ProductSizeStock::class);
     }
+
+    public function productStocks()
+    {
+        return $this->hasMany(ProductStock::class, 'product_size_id');
+    }
 }

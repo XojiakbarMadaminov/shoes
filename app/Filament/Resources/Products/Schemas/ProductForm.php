@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Products\Schemas;
 
 use App\Models\Stock;
 use Filament\Actions\Action;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
@@ -48,6 +49,16 @@ class ProductForm
                             ->searchable(),
 
                         Select::make('color_id')->relationship('color', 'title')->label('Rang'),
+
+                        Select::make('type')
+                            ->label('Turi')
+                            ->options([
+                                'size'    => 'Razmerli',
+                                'package' => 'Paketli',
+                            ])
+                            ->default('size')
+                            ->required()
+                            ->reactive(),
                     ])->columns(3),
 
                 Section::make('Narxlar')
@@ -67,6 +78,7 @@ class ProductForm
                 Section::make('Razmerlar va Stocklar')
                     ->columnSpanFull()
                     ->description('Har bir razmer uchun har bir ombordagi miqdorni kiriting')
+                    ->visible(fn (Get $get) => ($get('type') ?? 'size') === 'size')
                     ->schema([
                         Repeater::make('sizes')
                             ->label('Razmerlar')
@@ -75,16 +87,14 @@ class ProductForm
 
                                 return [
                                     Grid::make()
-                                        ->columns(count($stocks) + 1) // 1 ta razmer + har bir stock uchun 1 ta input
+                                        ->columns(count($stocks) + 1)
                                         ->schema(function () use ($stocks) {
                                             $fields = [];
 
-                                            // 1-ustun: Razmer
                                             $fields[] = TextInput::make('size')
                                                 ->label('Razmer')
                                                 ->numeric();
 
-                                            // Keyingi ustunlar: Har bir ombor uchun input
                                             foreach ($stocks as $id => $name) {
                                                 $fields[] = TextInput::make("stock_{$id}")
                                                     ->label($name)
@@ -97,15 +107,38 @@ class ProductForm
                                 ];
                             })
                             ->default(function () {
-                                // Form ochilganda default 36–41 razmerlar chiqadi
                                 return collect(range(36, 41))
                                     ->map(fn ($size) => ['size' => $size])
                                     ->toArray();
                             })
                             ->columns(1)
-                            ->reorderable(false),   // tartibini o‘zgartirishni o‘chiradi
+                            ->reorderable(false),
 
                     ]),
+
+                Section::make('Paket miqdori')
+                    ->columnSpanFull()
+                    ->description('Har bir ombor uchun umumiy paket miqdorini kiriting')
+                    ->visible(fn (Get $get) => ($get('type') ?? 'size') === 'package')
+                    ->schema(function () {
+                        $stocks = Stock::where('is_active', true)->pluck('name', 'id')->toArray();
+
+                        return [
+                            Grid::make()
+                                ->columns(count($stocks))
+                                ->schema(function () use ($stocks) {
+                                    $fields = [];
+                                    foreach ($stocks as $id => $name) {
+                                        $fields[] = TextInput::make("pkg_stock_{$id}")
+                                            ->label($name)
+                                            ->numeric()
+                                            ->default(0);
+                                    }
+
+                                    return $fields;
+                                }),
+                        ];
+                    }),
             ]);
     }
 
@@ -127,3 +160,4 @@ class ProductForm
         return $code . $checksum;
     }
 }
+

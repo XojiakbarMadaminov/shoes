@@ -10,7 +10,7 @@ use App\Models\SaleItem;
 use Filament\Pages\Page;
 use Livewire\Attributes\On;
 use App\Services\CartService;
-use App\Models\ProductSizeStock;
+use App\Models\ProductStock;
 use App\Models\DebtorTransaction;
 use Filament\Notifications\Notification;
 use Filament\Panel\Concerns\HasNotifications;
@@ -225,9 +225,22 @@ class Pos extends Page
             return false;
         }
 
-        $available = ProductStock::where('product_id', $id)
+        // Only package-based products can be updated directly here
+        $product = Product::find($id);
+        if (($product?->type ?? 'size') !== 'package') {
+            Notification::make()
+                ->title('Razmerni tanlang')
+                ->body('Razmerli tovar uchun miqdor razmer modalida belgilanadi.')
+                ->warning()
+                ->send();
+
+            return false;
+        }
+
+        $available = ProductStock::whereNull('product_size_id')
+            ->where('product_id', $id)
             ->where('stock_id', $row['stock_id'])
-            ->value('quantity');
+            ->value('quantity') ?? 0;
 
         if ($qty > $available) {
             Notification::make()
@@ -250,6 +263,70 @@ class Pos extends Page
         app(CartService::class)->remove($id, $this->activeCartId);
         $this->refreshCart();
         $this->refreshActiveCarts();
+    }
+
+    // Paketli mahsulotlar uchun miqdorni yangilash
+    public function updatePackageQty(int $id, int $qty)
+    {
+        $cartService = app(CartService::class);
+
+        $cart = $cartService->all($this->activeCartId);
+        $row  = $cart[$id] ?? null;
+
+        if (!$row || empty($row['stock_id'])) {
+            Notification::make()
+                ->title('Avval skladni tanlang')
+                ->danger()
+                ->send();
+
+            return false;
+        }
+
+        $product = Product::find($id);
+        if (($product?->type ?? 'size') !== 'package') {
+            Notification::make()
+                ->title('Razmerni tanlang')
+                ->body('Razmerli tovar uchun miqdor razmer modalida belgilanadi.')
+                ->warning()
+                ->send();
+
+            return false;
+        }
+
+        $available = ProductStock::whereNull('product_size_id')
+            ->where('product_id', $id)
+            ->where('stock_id', $row['stock_id'])
+            ->value('quantity') ?? 0;
+
+        if ($qty > $available) {
+            Notification::make()
+                ->title('Yetarli miqdor yo‘q')
+                ->body("Skladda faqat {$available} dona mavjud.")
+                ->danger()
+                ->send();
+
+            return false;
+        }
+
+        $cartService->update($id, $qty, $this->activeCartId);
+
+        $this->refreshCart();
+        $this->refreshActiveCarts();
+    }
+
+    public function isPackageProduct(int $productId): bool
+    {
+        $product = Product::find($productId);
+
+        return ($product?->type ?? 'size') === 'package';
+    }
+
+    public function getPackageAvailable(int $productId, int $stockId): int
+    {
+        return (int) (ProductStock::whereNull('product_size_id')
+            ->where('product_id', $productId)
+            ->where('stock_id', $stockId)
+            ->value('quantity') ?? 0);
     }
 
     /* ---------- Checkout ---------- */
@@ -416,6 +493,47 @@ class Pos extends Page
                 return false;
             }
 
+            $product = Product::find($productId);
+            if ($product && ($product->type ?? 'size') === 'package') {
+                $qty = (int) ($item['qty'] ?? 0);
+                if ($qty <= 0) {
+                    Notification::make()
+                        ->title('Miqdor kiritilmadi')
+                        ->body("{$item['name']} uchun sotiladigan miqdorni kiriting.")
+                        ->warning()
+                        ->send();
+
+                    return false;
+                }
+
+                $available = ProductStock::whereNull('product_size_id')
+                    ->where('product_id', $productId)
+                    ->where('stock_id', $stockId)
+                    ->value('quantity') ?? 0;
+
+                if ($qty > $available) {
+                    Notification::make()
+                        ->title('Yetarli miqdor yo‘q')
+                        ->body("{$item['name']} uchun maksimal {$available} dona mavjud.")
+                        ->danger()
+                        ->send();
+
+                    return false;
+                }
+
+                $preparedItems[] = [
+                    'product_id'      => $item['id'] ?? $productId,
+                    'stock_id'        => $stockId,
+                    'product_size_id' => null,
+                    'quantity'        => $qty,
+                    'price'           => (float) $item['price'],
+                    'name'            => $item['name'] ?? 'Mahsulot',
+                ];
+
+                // Skip size-based validation for package items
+                continue;
+            }
+
             $sizes = $item['sizes'] ?? [];
 
             if (empty($sizes)) {
@@ -439,7 +557,7 @@ class Pos extends Page
 
                 $hasPositiveQty = true;
 
-                $available = ProductSizeStock::where('product_size_id', $sizeId)
+                $available = ProductStock::where('product_size_id', $sizeId)
                     ->where('stock_id', $stockId)
                     ->value('quantity');
 
@@ -534,9 +652,16 @@ class Pos extends Page
                         'total'           => $lineTotal,
                     ]);
 
-                    ProductSizeStock::where('product_size_id', $prepared['product_size_id'])
-                        ->where('stock_id', $prepared['stock_id'])
-                        ->decrement('quantity', $prepared['quantity']);
+                    if (!empty($prepared['product_size_id'])) {
+                        ProductStock::where('product_size_id', $prepared['product_size_id'])
+                            ->where('stock_id', $prepared['stock_id'])
+                            ->decrement('quantity', $prepared['quantity']);
+                    } else {
+                        ProductStock::whereNull('product_size_id')
+                            ->where('product_id', $prepared['product_id'])
+                            ->where('stock_id', $prepared['stock_id'])
+                            ->decrement('quantity', $prepared['quantity']);
+                    }
                 }
 
                 if ($remainingAmount > 0) {
@@ -829,7 +954,7 @@ class Pos extends Page
         $sizes = $product->sizes->map(fn ($s) => [
             'id'        => $s->id,
             'name'      => $s->size,
-            'available' => ProductSizeStock::where('product_size_id', $s->id)
+            'available' => ProductStock::where('product_size_id', $s->id)
                 ->where('stock_id', $this->activeStockId ?? 1)
                 ->value('quantity') ?? 0,
         ]);
@@ -864,7 +989,7 @@ class Pos extends Page
             }
 
             $size      = \App\Models\ProductSize::find($sizeId);
-            $available = ProductSizeStock::where('product_size_id', $sizeId)
+            $available = ProductStock::where('product_size_id', $sizeId)
                 ->where('stock_id', $stockId)
                 ->value('quantity');
 
