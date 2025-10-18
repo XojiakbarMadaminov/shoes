@@ -31,7 +31,7 @@ class SalesHistoryPage extends Page implements HasTable
         return $table
             ->query(
                 fn (): Builder => Sale::query()
-                    ->with(['client', 'items.product', 'itemsDistinctName.product'])
+                    ->with(['client', 'items.product'])
             )
             ->columns([
                 TextColumn::make('client.full_name')
@@ -39,23 +39,6 @@ class SalesHistoryPage extends Page implements HasTable
                     ->toggleable()
                     ->sortable()
                     ->searchable(),
-
-                TextColumn::make('itemsDistinctName')
-                    ->label('Mahsulot(lar)')
-                    ->formatStateUsing(function ($state, Sale $record) {
-                        $names = $record->itemsDistinctName
-                            ->map(fn ($i) => $i->product?->name)
-                            ->filter()
-                            ->unique()
-                            ->values();
-
-                        return $names->isNotEmpty()
-                            ? $names->join(', ')
-                            : '-';
-                    })
-                    ->wrap()
-                    ->toggleable(),
-
 
                 TextColumn::make('payment_type')
                     ->label('To‘lov turi')
