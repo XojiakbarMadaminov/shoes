@@ -16,11 +16,4 @@ class ListProducts extends ListRecords
             CreateAction::make(),
         ];
     }
-
-    // Triggered when clicking stock quantity on size-based products
-    public function sizes_breakdown($record): void
-    {
-        // Mount the registered table record action to show the modal
-        $this->mountTableAction('sizes_breakdown', $record);
-    }
 }

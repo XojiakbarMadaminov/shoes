@@ -24,7 +24,7 @@ class ProductsTable
     {
         $stocks = cache()->remember(
             'active_stocks_for_store_' . auth()->id(),
-            60,
+            3600,
             fn () => Stock::query()
                 ->scopes('active')
                 ->whereHas('stores', fn ($q) => $q->where('stores.id', auth()->user()->current_store_id))
@@ -48,15 +48,28 @@ class ProductsTable
                         ->label($stock->name)
                         ->alignCenter()
                         ->getStateUsing(function (Product $record) use ($stock) {
-                            $sizeIds = $record->sizes()->pluck('id');
+                            static $cache = [];
 
-                            return (int) ProductStock::query()
-                                ->where('stock_id', $stock->id)
-                                ->where(function ($q) use ($record, $sizeIds) {
-                                    $q->where('product_id', $record->id)
-                                        ->orWhereIn('product_size_id', $sizeIds);
-                                })
-                                ->sum('quantity');
+                            $pid = $record->id;
+                            if (!isset($cache[$pid])) {
+                                $sizeIds = $record->relationLoaded('sizes')
+                                    ? $record->sizes->pluck('id')->all()
+                                    : $record->sizes()->pluck('id')->all();
+
+                                $rows = ProductStock::selectRaw('stock_id, SUM(quantity) as qty')
+                                    ->where(function ($q) use ($pid, $sizeIds) {
+                                        $q->where('product_id', $pid);
+                                        if (!empty($sizeIds)) {
+                                            $q->orWhereIn('product_size_id', $sizeIds);
+                                        }
+                                    })
+                                    ->groupBy('stock_id')
+                                    ->get();
+
+                                $cache[$pid] = $rows->pluck('qty', 'stock_id')->map(fn ($v) => (int) $v)->all();
+                            }
+
+                            return (int) ($cache[$pid][$stock->id] ?? 0);
                         })
                         ->disabled(fn (Product $record) => ($record->type ?? 'size') === 'package');
                 })->all()
@@ -147,6 +160,6 @@ class ProductsTable
                         ->deselectRecordsAfterCompletion(),
                 ]),
             ])
-            ->modifyQueryUsing(fn ($query) => $query->with(['category', 'sizes.productStocks']));
+            ->modifyQueryUsing(fn ($query) => $query->with(['category', 'sizes:id,product_id']));
     }
 }

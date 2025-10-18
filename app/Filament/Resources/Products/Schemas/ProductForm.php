@@ -4,19 +4,22 @@ namespace App\Filament\Resources\Products\Schemas;
 
 use App\Models\Stock;
 use Filament\Actions\Action;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 
 class ProductForm
 {
     public static function configure(Schema $schema): Schema
     {
+        // Optimize: fetch active stocks once and reuse in all closures
+        $stocks = self::getActiveStocks();
+
         return $schema
             ->components([
                 Section::make('Tovar maʼlumotlari')
@@ -48,15 +51,13 @@ class ProductForm
                             ->relationship('category', 'name')
                             ->searchable(),
 
-                        Select::make('color_id')->relationship('color', 'title')->label('Rang'),
-
                         Select::make('type')
                             ->label('Turi')
                             ->options([
                                 'size'    => 'Razmerli',
                                 'package' => 'Paketli',
                             ])
-                            ->default('size')
+                            ->default('package')
                             ->required()
                             ->reactive(),
                     ])->columns(3),
@@ -82,9 +83,7 @@ class ProductForm
                     ->schema([
                         Repeater::make('sizes')
                             ->label('Razmerlar')
-                            ->schema(function () {
-                                $stocks = Stock::where('is_active', true)->pluck('name', 'id')->toArray();
-
+                            ->schema(function () use ($stocks) {
                                 return [
                                     Grid::make()
                                         ->columns(count($stocks) + 1)
@@ -120,9 +119,7 @@ class ProductForm
                     ->columnSpanFull()
                     ->description('Har bir ombor uchun umumiy paket miqdorini kiriting')
                     ->visible(fn (Get $get) => ($get('type') ?? 'size') === 'package')
-                    ->schema(function () {
-                        $stocks = Stock::where('is_active', true)->pluck('name', 'id')->toArray();
-
+                    ->schema(function () use ($stocks) {
                         return [
                             Grid::make()
                                 ->columns(count($stocks))
@@ -140,6 +137,16 @@ class ProductForm
                         ];
                     }),
             ]);
+    }
+
+    private static function getActiveStocks(): array
+    {
+        static $cached = null;
+        if ($cached === null) {
+            $cached = Stock::scopes('active')->pluck('name', 'id')->toArray();
+        }
+
+        return $cached;
     }
 
     private static function generateEAN13Barcode(): string
@@ -160,4 +167,3 @@ class ProductForm
         return $code . $checksum;
     }
 }
-

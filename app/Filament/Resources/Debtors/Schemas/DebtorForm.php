@@ -2,14 +2,13 @@
 
 namespace App\Filament\Resources\Debtors\Schemas;
 
-use App\Models\Debtor;
-use Filament\Forms\Components\DatePicker;
+use App\Models\Client;
+use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Schema;
+use Filament\Forms\Components\DatePicker;
 
 class DebtorForm
 {
@@ -18,58 +17,30 @@ class DebtorForm
         return $schema
             ->components([
                 Grid::make()->schema([
-
-                    TextInput::make('full_name')
-                        ->label('To‘liq ism')
-                        ->placeholder('Ism Familiya')
-                        ->required()
-                        ->maxLength(100)
-                        ->columnSpanFull(),
-
-                    TextInput::make('phone')
-                        ->label('Telefon raqam')
-                        ->maxLength(9)
-                        ->prefix('+998')
-                        ->placeholder('90 123 45 67 yoki 0')
-                        ->required()
-                        ->reactive()
-                        ->rule('regex:/^[0-9]{0,9}$/')
-                        ->afterStateUpdated(function ($state, callable $set) {
-                            // Agar foydalanuvchi 0 kiritsa — tekshiruv ishlamasin
-                            if ($state === '0') {
-                                return;
-                            }
-
-                            $phone = '+998' . preg_replace('/\D/', '', $state);
-
-                            $exists = Debtor::where('phone', $phone)
-                                ->where('store_id', auth()->user()->current_store_id)
-                                ->where('amount', '>', 0)
-                                ->exists();
-
-                            if ($exists) {
-                                $set('phone', null);
-                                Notification::make()
-                                    ->title('Ushbu raqam qarzdorlar ro‘yxatida mavjud!')
-                                    ->danger()
-                                    ->send();
-                            }
+                    Select::make('client_id')
+                        ->label('Klient')
+                        ->searchable()
+                        ->preload()
+                        ->options(fn () => Client::orderBy('full_name')->pluck('full_name', 'id'))
+                        ->getSearchResultsUsing(function (string $search) {
+                            return Client::query()
+                                ->where('full_name', 'ilike', "%{$search}%")
+                                ->orWhere('phone', 'ilike', "%{$search}%")
+                                ->limit(50)
+                                ->pluck('full_name', 'id');
                         })
-                        ->dehydrateStateUsing(fn ($state) => $state === '0' ? '0' : '+998' . preg_replace('/\D/', '', $state))
-                        ->formatStateUsing(fn ($state) => $state && $state !== '0'
-                            ? ltrim(preg_replace('/^\+998/', '', $state), '0')
-                            : $state),
-//
-//
-//                    Select::make('currency')
-//                        ->label('Valyuta')
-//                        ->options([
-//                            'uzs' => 'UZS (So‘m)',
-//                            'usd' => 'USD (Dollar)',
-//                        ])
-//                        ->default('uzs')
-//                        ->required(),
+                        ->getOptionLabelUsing(fn ($value) => optional(Client::find($value))->full_name)
+                        ->required(),
 
+                    TextInput::make('client_phone')
+                        ->label('Telefon')
+                        ->disabled()
+                        ->dehydrated(false)
+                        ->formatStateUsing(function ($state, callable $get) {
+                            $id = $get('client_id');
+
+                            return ($id ? Client::find($id) : null)?->phone;
+                        }),
 
                     TextInput::make('amount')
                         ->label('Qarz summasi')
