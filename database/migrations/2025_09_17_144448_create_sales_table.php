@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('store_id')->nullable()->constrained('stores')->nullOnDelete();
             $table->unsignedBigInteger('cart_id'); // POS dagi savat ID
             $table->foreignId('client_id')->nullable()->constrained('clients')->nullOnDelete();
 

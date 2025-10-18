@@ -2,20 +2,20 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Client;
-use App\Models\Product;
 use App\Models\Sale;
+use App\Models\Client;
 use App\Models\Debtor;
+use App\Models\Product;
 use App\Models\SaleItem;
 use Filament\Pages\Page;
 use Livewire\Attributes\On;
-use App\Services\CartService;
 use App\Models\ProductStock;
+use App\Services\CartService;
 use App\Models\DebtorTransaction;
+use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Panel\Concerns\HasNotifications;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection as EloquentCollection;
 
 class Pos extends Page
@@ -40,21 +40,21 @@ class Pos extends Page
     /** @var EloquentCollection<int, Product> */
     public EloquentCollection $products;
 
-    public array $cart                 = [];
-    public array $totals               = ['qty' => 0, 'amount' => 0];
-    public array $activeCarts          = []; // Barcha faol cartlar ro'yxati
-    public array $cartClients          = [];
-    public array $cartPaymentTypes     = [];
-    public array $cartPartialPayments  = [];
-    public array $cartMixedPayments    = [];
-    public bool $showClientPanel = false;
-    public bool $showCreateClientForm = false;
-    public string $searchClient = '';
-    public $clients = [];
-    public ?int $selectedClientId = null;
-    public string $paymentType = '';
+    public array $cart                  = [];
+    public array $totals                = ['qty' => 0, 'amount' => 0];
+    public array $activeCarts           = []; // Barcha faol cartlar ro'yxati
+    public array $cartClients           = [];
+    public array $cartPaymentTypes      = [];
+    public array $cartPartialPayments   = [];
+    public array $cartMixedPayments     = [];
+    public bool $showClientPanel        = false;
+    public bool $showCreateClientForm   = false;
+    public string $searchClient         = '';
+    public $clients                     = [];
+    public ?int $selectedClientId       = null;
+    public string $paymentType          = '';
     public ?float $partialPaymentAmount = null;
-    public array $mixedPayment = [
+    public array $mixedPayment          = [
         'cash' => null,
         'card' => null,
     ];
@@ -62,7 +62,7 @@ class Pos extends Page
 
     public array $newClient = [
         'full_name' => '',
-        'phone' => '',
+        'phone'     => '',
     ];
 
     public function mount(): void
@@ -70,10 +70,10 @@ class Pos extends Page
         $this->products = new EloquentCollection;
         $this->refreshActiveCarts();
 
-        $this->cartClients          = session('pos_cart_clients', []);
-        $this->cartPaymentTypes     = session('pos_cart_payment_types', []);
-        $this->cartPartialPayments  = session('pos_cart_partial_payments', []);
-        $this->cartMixedPayments    = session('pos_cart_mixed_payments', []);
+        $this->cartClients         = session('pos_cart_clients', []);
+        $this->cartPaymentTypes    = session('pos_cart_payment_types', []);
+        $this->cartPartialPayments = session('pos_cart_partial_payments', []);
+        $this->cartMixedPayments   = session('pos_cart_mixed_payments', []);
 
         // Oxirgi faol cart ID ni session dan olish
         $savedCartId = session('pos_active_cart_id', 1);
@@ -399,7 +399,7 @@ class Pos extends Page
         }
 
         $partialAmount = null;
-        $mixedAmounts = ['cash' => 0.0, 'card' => 0.0];
+        $mixedAmounts  = ['cash' => 0.0, 'card' => 0.0];
 
         if ($this->paymentType === 'partial') {
             $partialAmount = round((float) ($this->partialPaymentAmount ?? 0), 2);
@@ -562,8 +562,8 @@ class Pos extends Page
                     ->value('quantity');
 
                 if ($available === null || $qty > $available) {
-                    $size = \App\Models\ProductSize::find($sizeId);
-                    $sizeName = $size?->size ?? 'Razmer';
+                    $size         = \App\Models\ProductSize::find($sizeId);
+                    $sizeName     = $size?->size ?? 'Razmer';
                     $availableQty = $available ?? 0;
 
                     Notification::make()
@@ -606,16 +606,21 @@ class Pos extends Page
             return false;
         }
 
-        $receiptItems  = array_values($cart);
-        $paymentType   = $this->paymentType;
-        $clientId      = $this->selectedClientId;
+        $receiptItems = array_values($cart);
+        $paymentType  = $this->paymentType;
+        $clientId     = $this->selectedClientId;
 
-
-        $sale = null;
+        $sale                      = null;
         $remainingAmountForReceipt = 0.0;
 
         try {
             [$sale, $remainingAmountForReceipt] = DB::transaction(function () use ($preparedItems, $totalAmount, $paymentType, $clientId, $partialAmount, $mixedAmounts) {
+                $user    = auth()->user();
+                $storeId = $user?->current_store_id;
+
+                if (!$storeId) {
+                    throw new \RuntimeException('Foydalanuvchi uchun joriy do‘kon tanlanmagan.');
+                }
                 $paidAmount = match ($paymentType) {
                     'debt'    => 0.0,
                     'partial' => $partialAmount ?? 0.0,
@@ -624,20 +629,20 @@ class Pos extends Page
                 };
 
                 $remainingAmount = round($totalAmount - $paidAmount, 2);
-                $mixedCash        = $paymentType === 'mixed' ? ($mixedAmounts['cash'] ?? 0.0) : 0.0;
-                $mixedCard        = $paymentType === 'mixed' ? ($mixedAmounts['card'] ?? 0.0) : 0.0;
+                $mixedCash       = $paymentType === 'mixed' ? ($mixedAmounts['cash'] ?? 0.0) : 0.0;
+                $mixedCard       = $paymentType === 'mixed' ? ($mixedAmounts['card'] ?? 0.0) : 0.0;
 
                 $sale = Sale::create([
-                    'cart_id'          => $this->activeCartId,
-                    'client_id'        => $clientId,
-                    'total_amount'     => $totalAmount,
-                    'paid_amount'      => $paidAmount,
-                    'remaining_amount' => $remainingAmount,
-                    'payment_type'     => $paymentType,
-                    'mixed_cash_amount'   => $mixedCash,
-                    'mixed_card_amount'   => $mixedCard,
+                    'cart_id'           => $this->activeCartId,
+                    'client_id'         => $clientId,
+                    'total_amount'      => $totalAmount,
+                    'paid_amount'       => $paidAmount,
+                    'remaining_amount'  => $remainingAmount,
+                    'payment_type'      => $paymentType,
+                    'mixed_cash_amount' => $mixedCash,
+                    'mixed_card_amount' => $mixedCard,
+                    'store_id'          => $storeId,
                 ]);
-
 
                 foreach ($preparedItems as $prepared) {
                     $lineTotal = round($prepared['quantity'] * $prepared['price'], 2);
@@ -665,13 +670,6 @@ class Pos extends Page
                 }
 
                 if ($remainingAmount > 0) {
-                    $user    = auth()->user();
-                    $storeId = $user?->current_store_id;
-
-                    if (!$storeId) {
-                        throw new \RuntimeException('Foydalanuvchi uchun joriy do‘kon tanlanmagan.');
-                    }
-
                     $debtor = Debtor::firstOrCreate(
                         [
                             'store_id'  => $storeId,
@@ -695,6 +693,7 @@ class Pos extends Page
                         'note'      => "Sotuv #{$sale->id}",
                     ]);
                 }
+
                 return [$sale, $remainingAmount];
             });
         } catch (\Throwable $exception) {
@@ -858,8 +857,8 @@ class Pos extends Page
             }
 
             $mixedNormalized[$cartId] = [
-                'cash' => isset($values['cash']) ? $values['cash'] : null,
-                'card' => isset($values['card']) ? $values['card'] : null,
+                'cash' => $values['cash'] ?? null,
+                'card' => $values['card'] ?? null,
             ];
         }
 
@@ -1057,7 +1056,7 @@ class Pos extends Page
     /* === Klient tanlash === */
     public function selectClient(int $id): void
     {
-        $this->selectedClientId = $id;
+        $this->selectedClientId                 = $id;
         $this->cartClients[$this->activeCartId] = $id;
         $this->persistCartMeta();
     }
@@ -1090,10 +1089,10 @@ class Pos extends Page
             'phone'     => $this->newClient['phone'] ?: null,
         ]);
 
-        $this->selectedClientId     = $client->id;
+        $this->selectedClientId                 = $client->id;
         $this->cartClients[$this->activeCartId] = $client->id;
-        $this->newClient            = ['full_name' => '', 'phone' => ''];
-        $this->showCreateClientForm = false;
+        $this->newClient                        = ['full_name' => '', 'phone' => ''];
+        $this->showCreateClientForm             = false;
         $this->loadClients();
         $this->persistCartMeta();
 
@@ -1116,12 +1115,12 @@ class Pos extends Page
             return;
         }
 
-        $this->paymentType = $type;
+        $this->paymentType                           = $type;
         $this->cartPaymentTypes[$this->activeCartId] = $type;
 
         if ($type === 'partial') {
             $this->partialPaymentAmount = $this->cartPartialPayments[$this->activeCartId] ?? null;
-            $this->mixedPayment = ['cash' => null, 'card' => null];
+            $this->mixedPayment         = ['cash' => null, 'card' => null];
         } elseif ($type === 'mixed') {
             $stored = $this->cartMixedPayments[$this->activeCartId] ?? ['cash' => null, 'card' => null];
             if (!is_array($stored)) {
@@ -1135,7 +1134,7 @@ class Pos extends Page
             $this->handleMixedPaymentUpdate('card', $this->mixedPayment['card']);
         } else {
             $this->partialPaymentAmount = null;
-            $this->mixedPayment = ['cash' => null, 'card' => null];
+            $this->mixedPayment         = ['cash' => null, 'card' => null];
             unset(
                 $this->cartPartialPayments[$this->activeCartId],
                 $this->cartMixedPayments[$this->activeCartId]

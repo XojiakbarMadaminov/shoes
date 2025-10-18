@@ -41,9 +41,9 @@ trait HasCurrentStoreScope
                     $q->whereHas('sizes.productStocks.stock.stores', function ($q2) use ($user) {
                         $q2->where('stores.id', $user->current_store_id);
                     })
-                    ->orWhereHas('productStocks.stock.stores', function ($q3) use ($user) {
-                        $q3->where('stores.id', $user->current_store_id);
-                    });
+                        ->orWhereHas('productStocks.stock.stores', function ($q3) use ($user) {
+                            $q3->where('stores.id', $user->current_store_id);
+                        });
                 });
 
                 return;

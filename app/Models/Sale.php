@@ -21,4 +21,12 @@ class Sale extends Model
     {
         return $this->belongsTo(Client::class);
     }
+
+    public function itemsDistinctName()
+    {
+        return $this->hasMany(SaleItem::class)->get()->unique('product_id');
+    }
+
+
+
 }
