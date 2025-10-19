@@ -148,6 +148,7 @@ class ProductForm
                             ->reorderable()
                             ->conversion('optimized') // WebP konversiyani ishlatadi
                             ->responsiveImages()
+                            ->extraAttributes(['class' => 'cursor-zoom-in', 'capture' => 'environment'])
                             ->visibility('public'),
                     ]),
             ]);

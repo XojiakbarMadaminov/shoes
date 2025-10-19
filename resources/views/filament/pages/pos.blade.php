@@ -238,8 +238,8 @@
                     <p class="text-xs mt-1">Qidiruv maydonidan mahsulot qo'shing.</p>
                 </div>
             @else
-                <div class="flow-root">
-                    <table class="w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
+                <div class="flow-root overflow-x-auto">
+                    <table class="min-w-[980px] w-full text-sm divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                         <tr>
                             <th scope="col"
