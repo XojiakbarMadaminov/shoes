@@ -15,7 +15,9 @@ class Debtor extends Model
 
     public function transactions()
     {
-        return $this->hasMany(DebtorTransaction::class)->orderBy('date');
+        return $this->hasMany(DebtorTransaction::class)
+            ->with('sale')
+            ->orderBy('date');
     }
 
     public function latestTransaction()

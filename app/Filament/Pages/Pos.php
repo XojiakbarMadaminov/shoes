@@ -54,6 +54,7 @@ class Pos extends Page
     public ?int $selectedClientId       = null;
     public string $paymentType          = '';
     public ?float $partialPaymentAmount = null;
+    public ?string $paymentNote         = null;
     public array $mixedPayment          = [
         'cash' => null,
         'card' => null,
@@ -690,7 +691,8 @@ class Pos extends Page
                         'amount'    => $addedAmount,
                         'type'      => 'debt',
                         'date'      => now(),
-                        'note'      => "Sotuv #{$sale->id}",
+                        'sale_id'   => $sale->id,
+                        'note'      => filled($this->paymentNote) ? $this->paymentNote : "Sotuv #{$sale->id}",
                     ]);
                 }
 
@@ -740,6 +742,7 @@ class Pos extends Page
         $this->refreshActiveCarts();
 
         $this->showClientPanel = false;
+        $this->paymentNote     = null;
 
         Notification::make()
             ->title("Savat #{$this->activeCartId} yakunlandi")
@@ -1121,6 +1124,7 @@ class Pos extends Page
         if ($type === 'partial') {
             $this->partialPaymentAmount = $this->cartPartialPayments[$this->activeCartId] ?? null;
             $this->mixedPayment         = ['cash' => null, 'card' => null];
+            // keep note for partial
         } elseif ($type === 'mixed') {
             $stored = $this->cartMixedPayments[$this->activeCartId] ?? ['cash' => null, 'card' => null];
             if (!is_array($stored)) {
@@ -1132,6 +1136,7 @@ class Pos extends Page
             ];
             $this->partialPaymentAmount = null;
             $this->handleMixedPaymentUpdate('card', $this->mixedPayment['card']);
+            $this->paymentNote = null; // not used for mixed
         } else {
             $this->partialPaymentAmount = null;
             $this->mixedPayment         = ['cash' => null, 'card' => null];
@@ -1139,6 +1144,9 @@ class Pos extends Page
                 $this->cartPartialPayments[$this->activeCartId],
                 $this->cartMixedPayments[$this->activeCartId]
             );
+            if (!in_array($type, ['debt', 'partial'])) {
+                $this->paymentNote = null;
+            }
         }
 
         $this->persistCartMeta();

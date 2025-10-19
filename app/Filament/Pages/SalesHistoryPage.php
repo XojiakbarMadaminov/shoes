@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use App\Models\Sale;
 use App\Models\Stock;
 use Filament\Pages\Page;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Filament\Actions\Action;
 use Filament\Tables\Filters\Filter;
@@ -24,7 +25,7 @@ class SalesHistoryPage extends Page implements HasTable
     protected static ?string $navigationLabel                = 'Sotuv tarixi';
     protected static ?string $title                          = 'Sotuv tarixi';
     protected static ?string $slug                           = 'sales-history';
-    protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-receipt-percent';
+    protected static string|null|\BackedEnum $navigationIcon = Heroicon::ListBullet;
     protected static ?int $navigationSort                    = 5;
 
     protected string $view = 'filament.pages.sales-history-page';

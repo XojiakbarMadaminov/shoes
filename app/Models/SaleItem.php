@@ -21,4 +21,14 @@ class SaleItem extends Model
     {
         return $this->belongsTo(Sale::class);
     }
+
+    public function stock()
+    {
+        return $this->belongsTo(Stock::class);
+    }
+
+    public function productSize()
+    {
+        return $this->belongsTo(ProductSize::class, 'product_size_id');
+    }
 }

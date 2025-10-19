@@ -1,68 +1,85 @@
 @php
-    $client = $sale->client;
-    $items = $sale->items;
+    /** @var \App\Models\Sale|null $sale */
     $paymentLabel = match($sale->payment_type){
-            'cash' => 'Naqd', 'card' => 'Karta', 'debt' => 'Qarz', 'transfer' => 'O‘tkazma', 'partial' => 'Qisman', 'mixed' => 'Karta + Naqd', default => ($sale->payment_type ?? '-')
-        };
+        'cash' => 'Naqd', 'card' => 'Karta', 'debt' => 'Qarz', 'transfer' => 'O‘tkazma', 'partial' => 'Qisman', 'mixed' => 'Karta + Naqd', default => ($sale->payment_type ?? '-')
+    };
 @endphp
 
 <div class="space-y-4">
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <div>
-            <div class="text-gray-500 dark:text-gray-400">Klient</div>
-            <div class="font-medium">{{ $client?->full_name ?? '-' }}</div>
-            @if($client?->phone)
-                <div class="text-gray-500 dark:text-gray-400">Telefon</div>
-                <div>{{ $client->phone }}</div>
-            @endif
+    @if(!$sale)
+        <div class="text-sm text-gray-500">Sotuv topilmadi.</div>
+    @else
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <div class="text-gray-500">Sale ID</div>
+                <div class="font-medium">{{ $sale->id }}</div>
+            </div>
+            <div>
+                <div class="text-gray-500">Sana</div>
+                <div class="font-medium">{{ optional($sale->created_at)->format('Y-m-d H:i') }}</div>
+            </div>
+            <div>
+                <div class="text-gray-500">Mijoz</div>
+                <div class="font-medium">
+                    {{ $sale->client?->full_name ?? '—' }}
+                    @if($sale->client?->phone)
+                        <span class="text-gray-500"> ({{ $sale->client->phone }})</span>
+                    @endif
+                </div>
+            </div>
+            <div>
+                <div class="text-gray-500">To'lov turi</div>
+                <div class="font-medium">{{ $paymentLabel ?? '—' }}</div>
+            </div>
+            <div>
+                <div class="text-gray-500">Jami summa</div>
+                <div class="font-medium">{{ number_format($sale->total_amount, 2) }}</div>
+            </div>
+            <div>
+                <div class="text-gray-500">To'langan</div>
+                <div class="font-medium">{{ number_format($sale->paid_amount, 2) }}</div>
+            </div>
+            <div>
+                <div class="text-gray-500">Qolgan</div>
+                <div class="font-medium">{{ number_format($sale->remaining_amount, 2) }}</div>
+            </div>
         </div>
-        <div>
-            <div class="text-gray-500 dark:text-gray-400">To‘lov turi</div>
-            <div class="font-medium">{{ $paymentLabel ?? '-' }}</div>
-            <div class="text-gray-500 dark:text-gray-400">Sana</div>
-            <div>{{ $sale->created_at?->format('Y-m-d H:i') }}</div>
-        </div>
-    </div>
 
-    <div class="border rounded-lg overflow-hidden">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-800">
-                <tr>
-                    <th class="px-3 py-2 text-left">Mahsulot</th>
-                    <th class="px-3 py-2 text-center">Sklad</th>
-                    <th class="px-3 py-2 text-center">Razmer</th>
-                    <th class="px-3 py-2 text-right">Miqdor</th>
-                    <th class="px-3 py-2 text-right">Narx</th>
-                    <th class="px-3 py-2 text-right">Jami</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                @foreach($items as $it)
-                    <tr>
-                        <td class="px-3 py-2">{{ $it->product?->name ?? '-' }}</td>
-                        <td class="px-3 py-2 text-center">{{ optional(\App\Models\Stock::find($it->stock_id))->name }}</td>
-                        <td class="px-3 py-2 text-center">{{ optional(\App\Models\ProductSize::find($it->product_size_id))->size }}</td>
-                        <td class="px-3 py-2 text-right">{{ (int) $it->quantity }}</td>
-                        <td class="px-3 py-2 text-right">{{ number_format($it->price, 2, '.', ' ') }}</td>
-                        <td class="px-3 py-2 text-right">{{ number_format($it->total, 2, '.', ' ') }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-        <div></div>
-        <div class="text-right">
-            <div class="text-gray-500 dark:text-gray-400">Jami summa</div>
-            <div class="font-semibold">{{ number_format($sale->total_amount, 2, '.', ' ') }}</div>
+        <div class="pt-4">
+            <div class="text-sm text-gray-600 mb-2">Tovarlar</div>
+            <div class="border rounded-md overflow-hidden">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600">
+                        <tr>
+                            <th class="px-3 py-2 text-left">Mahsulot</th>
+                            <th class="px-3 py-2 text-left">Sklad</th>
+                            <th class="px-3 py-2 text-right">Miqdor</th>
+                            <th class="px-3 py-2 text-right">Narx</th>
+                            <th class="px-3 py-2 text-right">Jami</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($sale->items as $item)
+                        <tr class="border-t">
+                            <td class="px-3 py-2">
+                                {{ $item->product->name ?? ('#'.$item->product_id) }}
+                                @if($item->productSize?->size)
+                                    <span class="text-gray-500"> ({{ $item->productSize->size }})</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-2">{{ $item->stock->name ?? ('#'.$item->stock_id) }}</td>
+                            <td class="px-3 py-2 text-right">{{ $item->quantity }}</td>
+                            <td class="px-3 py-2 text-right">{{ number_format($item->price, 2) }}</td>
+                            <td class="px-3 py-2 text-right">{{ number_format($item->total, 2) }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-3 py-4 text-center text-gray-500">Tovarlar mavjud emas</td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div class="text-right">
-            <div class="text-gray-500 dark:text-gray-400">To‘langan</div>
-            <div class="font-semibold">{{ number_format($sale->paid_amount, 2, '.', ' ') }}</div>
-            <div class="text-gray-500 dark:text-gray-400 mt-1">Qolgan</div>
-            <div class="font-semibold">{{ number_format($sale->remaining_amount, 2, '.', ' ') }}</div>
-        </div>
-    </div>
+    @endif
 </div>
-

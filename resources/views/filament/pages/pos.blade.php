@@ -402,6 +402,25 @@
                         <span>Jami summa:</span>
                         <span>{{ number_format($totals['amount'], 0, '.', ' ') }} so'm</span>
                     </div>
+                    @if($selectedClientId)
+                        <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            Klient: <span class="font-medium text-gray-900 dark:text-gray-200">{{ collect($clients)->firstWhere('id', $selectedClientId)?->full_name ?? \App\Models\Client::find($selectedClientId)?->full_name }}</span>
+                            — To'lov: <span class="font-medium text-gray-900 dark:text-gray-200">
+                                {{ match($paymentType) {
+                                    'cash' => 'Naqd',
+                                    'card' => 'Karta',
+                                    'debt' => 'Qarz',
+                                    'partial' => 'Qisman',
+                                    'mixed' => 'Karta + Naqd',
+                                    'transfer' => "O'tkazma",
+                                    default => 'Tanlanmagan'
+                                } }}
+                            </span>
+                            @if($paymentType === 'partial' && filled($partialPaymentAmount))
+                                — To'langan: <span class="font-medium text-gray-900 dark:text-gray-200">{{ number_format($partialPaymentAmount, 2, '.', ' ') }} so'm</span>
+                            @endif
+                        </div>
+                    @endif
 
                     {{-- Tugmalar satri --}}
                     <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -738,6 +757,23 @@
                                 </div>
                             @endif
 
+                            @if(in_array($paymentType, ['debt','partial']))
+                                <div class="mt-4">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Izoh (majburiy emas)
+                                    </label>
+                                    <textarea
+                                        wire:model.live.debounce.300ms="paymentNote"
+                                        rows="2"
+                                        class="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm py-1.5 px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="Masalan: Qarzga olindi yoki qisman to'lov tafsiloti"
+                                    ></textarea>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Bu izoh qarzdor tarixida saqlanadi.
+                                    </p>
+                                </div>
+                            @endif
+
                             @if($paymentType === 'mixed')
                                 <div class="mt-4 grid gap-3 md:grid-cols-2">
                                     <div>
@@ -775,7 +811,7 @@
                                 <div class="flex items-center justify-between text-sm">
                                     <span class="text-gray-600 dark:text-gray-400">Klient:</span>
                                     <span class="font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $clients->firstWhere('id', $selectedClientId)?->full_name ?? 'Tanlanmagan' }}
+                                        {{ collect($clients)->firstWhere('id', $selectedClientId)?->full_name ?? 'Tanlanmagan' }}
                                     </span>
                                 </div>
                                 <div class="flex items-center justify-between text-sm mt-2">

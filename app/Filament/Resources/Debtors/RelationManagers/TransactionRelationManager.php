@@ -14,7 +14,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 class TransactionRelationManager extends RelationManager
 {
     protected static string $relationship = 'transactions';
-    protected static ?string $title       = 'Qarz/To‘lovlar tarixi';
+    protected static ?string $title       = "Qarz/To'lovlar tarixi";
 
     public function table(Tables\Table $table): Tables\Table
     {
@@ -24,7 +24,23 @@ class TransactionRelationManager extends RelationManager
                     ->label('Turi')
                     ->badge()
                     ->color(fn ($record) => $record->type === 'debt' ? 'danger' : 'success')
-                    ->formatStateUsing(fn ($state) => $state === 'debt' ? 'Qarz' : 'To‘lov'),
+                    ->formatStateUsing(fn ($state) => $state === 'debt' ? 'Qarz' : "To'lov"),
+
+                TextColumn::make('sale_id')
+                    ->label('Sale ID')
+                    ->placeholder('-')
+                    ->extraAttributes(['class' => 'text-blue-600 underline cursor-pointer'])
+                    ->action(
+                        Action::make('view_sale')
+                            ->label("Ko'rish")
+                            ->modalHeading('Sotuv tafsilotlari')
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel('Yopish')
+                            ->hidden(fn ($record) => blank($record->sale_id))
+                            ->modalContent(fn ($record) => view('filament.sales.partials.sale-details', [
+                                'sale' => optional($record->sale)?->load(['client', 'items.product', 'items.productSize', 'items.stock']),
+                            ]))
+                    ),
 
                 TextColumn::make('amount')
                     ->label('Summasi')
@@ -40,8 +56,8 @@ class TransactionRelationManager extends RelationManager
                     ->extraAttributes(['class' => 'text-blue-600 underline cursor-pointer'])
                     ->action(
                         Action::make('view_note')
-                            ->label('Ko‘rish')
-                            ->modalHeading('To‘liq izoh')
+                            ->label("Ko'rish")
+                            ->modalHeading("To'liq izoh")
                             ->modalDescription(fn ($record) => $record->note ?? 'Izoh mavjud emas')
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Yopish')
@@ -54,7 +70,7 @@ class TransactionRelationManager extends RelationManager
     {
         return [
             Action::make('add_debt')
-                ->label('Qarz qo‘shish')
+                ->label("Qarz qo'shish")
                 ->color('danger')
                 ->icon('heroicon-m-plus')
                 ->schema([
@@ -81,16 +97,16 @@ class TransactionRelationManager extends RelationManager
                 }),
 
             Action::make('add_payment')
-                ->label('To‘lov qilish')
+                ->label("To'lov qilish")
                 ->color('success')
                 ->icon('heroicon-m-cash')
                 ->form([
                     TextInput::make('amount')
-                        ->label('To‘lov summasi')
+                        ->label("To'lov summasi")
                         ->numeric()
                         ->required(),
                     DatePicker::make('date')
-                        ->label('To‘lov sanasi')
+                        ->label("To'lov sanasi")
                         ->default(today()),
                     Textarea::make('note')
                         ->label('Izoh')

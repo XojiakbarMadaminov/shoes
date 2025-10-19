@@ -13,4 +13,9 @@ class DebtorTransaction extends Model
     {
         return $this->belongsTo(Debtor::class);
     }
+
+    public function sale()
+    {
+        return $this->belongsTo(Sale::class);
+    }
 }
