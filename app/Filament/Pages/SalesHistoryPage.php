@@ -6,11 +6,10 @@ use Carbon\Carbon;
 use App\Models\Sale;
 use App\Models\Stock;
 use Filament\Pages\Page;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Filament\Actions\Action;
 use Filament\Tables\Filters\Filter;
-use Filament\Forms\Components\Select;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Components\DatePicker;
@@ -30,6 +29,16 @@ class SalesHistoryPage extends Page implements HasTable
 
     protected string $view = 'filament.pages.sales-history-page';
 
+    public string $datePreset   = 'today'; // today, week, month, custom
+    public ?string $customStart = null;
+    public ?string $customEnd   = null;
+
+    public function mount(): void
+    {
+        // Ensure default is always 'today'
+        $this->datePreset = 'today';
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -37,6 +46,26 @@ class SalesHistoryPage extends Page implements HasTable
                 fn (): Builder => Sale::query()
                     ->with(['client', 'items.product'])
             )
+            ->modifyQueryUsing(function (Builder $query) {
+                $preset = $this->datePreset;
+                if ($preset === 'today') {
+                    $query->whereDate('created_at', today());
+                } elseif ($preset === 'week') {
+                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                } elseif ($preset === 'month') {
+                    $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
+                } elseif ($preset === 'custom') {
+                    $start = $this->customStart ? Carbon::parse($this->customStart)->startOfDay() : null;
+                    $end   = $this->customEnd ? Carbon::parse($this->customEnd)->endOfDay() : null;
+                    if ($start && $end) {
+                        $query->whereBetween('created_at', [$start, $end]);
+                    } elseif ($start) {
+                        $query->where('created_at', '>=', $start);
+                    } elseif ($end) {
+                        $query->where('created_at', '<=', $end);
+                    }
+                }
+            })
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -96,53 +125,6 @@ class SalesHistoryPage extends Page implements HasTable
                     ->sortable(),
             ])
             ->filters([
-                // Date period + custom range
-                Filter::make('date_period')
-                    ->label('Sana')
-                    ->schema([
-                        Select::make('period')
-                            ->options([
-                                'today'  => 'Bugun',
-                                'week'   => 'Hafta',
-                                'month'  => 'Oy',
-                                'custom' => 'Oraliq',
-                            ])
-                            ->native(false),
-                        DatePicker::make('start_date')
-                            ->label('Boshlanish sana')
-                            ->native(false),
-                        DatePicker::make('end_date')
-                            ->label('Tugash sana')
-                            ->native(false),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        $period = $data['period'] ?? null;
-                        if ($period === 'today') {
-                            return $query->whereDate('created_at', today());
-                        }
-                        if ($period === 'week') {
-                            return $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
-                        }
-                        if ($period === 'month') {
-                            return $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
-                        }
-                        if ($period === 'custom') {
-                            $start = $data['start_date'] ?? null;
-                            $end   = $data['end_date'] ?? null;
-                            if ($start && $end) {
-                                return $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
-                            }
-                            if ($start) {
-                                return $query->where('created_at', '>=', Carbon::parse($start)->startOfDay());
-                            }
-                            if ($end) {
-                                return $query->where('created_at', '<=', Carbon::parse($end)->endOfDay());
-                            }
-                        }
-
-                        return $query;
-                    }),
-
                 // Stock filter by sale items
                 SelectFilter::make('stock_id')
                     ->label('Sklad')
@@ -154,6 +136,47 @@ class SalesHistoryPage extends Page implements HasTable
                         }
 
                         return $query;
+                    }),
+            ])
+            ->headerActions([
+                Action::make('today')
+                    ->label('Bugun')
+                    ->color(fn (): string => $this->datePreset === 'today' ? 'primary' : 'gray')
+                    ->action(function () {
+                        $this->datePreset  = 'today';
+                        $this->customStart = $this->customEnd = null;
+                    }),
+                Action::make('week')
+                    ->label('Hafta')
+                    ->color(fn (): string => $this->datePreset === 'week' ? 'primary' : 'gray')
+                    ->action(function () {
+                        $this->datePreset  = 'week';
+                        $this->customStart = $this->customEnd = null;
+                    }),
+                Action::make('month')
+                    ->label('Oy')
+                    ->color(fn (): string => $this->datePreset === 'month' ? 'primary' : 'gray')
+                    ->action(function () {
+                        $this->datePreset  = 'month';
+                        $this->customStart = $this->customEnd = null;
+                    }),
+                Action::make('custom')
+                    ->label('Oraliq')
+                    ->color(fn (): string => $this->datePreset === 'custom' ? 'primary' : 'gray')
+                    ->schema([
+                        DatePicker::make('start')
+                            ->label('Boshlanish sana')
+                            ->native(false)
+                            ->required(),
+                        DatePicker::make('end')
+                            ->label('Tugash sana')
+                            ->native(false)
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        $this->datePreset  = 'custom';
+                        $this->customStart = $data['start'] ?? null;
+                        $this->customEnd   = $data['end'] ?? null;
                     }),
             ])
             ->recordActions([
