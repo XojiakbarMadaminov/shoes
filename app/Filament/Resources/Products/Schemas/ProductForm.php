@@ -64,19 +64,6 @@ class ProductForm
                             ->reactive(),
                     ])->columns(3),
 
-                Section::make('Rasm')
-                    ->columnSpanFull()
-                    ->schema([
-                        SpatieMediaLibraryFileUpload::make('images')
-                            ->collection('images')
-                            ->label('Mahsulot rasmlari')
-                            ->multiple()
-                            ->reorderable()
-                            ->conversion('optimized') // WebP konversiyani ishlatadi
-                            ->responsiveImages()
-                            ->visibility('public'),
-                    ]),
-
                 Section::make('Narxlar')
                     ->columnSpanFull()
                     ->schema([
@@ -151,6 +138,18 @@ class ProductForm
                                 }),
                         ];
                     }),
+                Section::make('Rasm')
+                    ->columnSpanFull()
+                    ->schema([
+                        SpatieMediaLibraryFileUpload::make('images')
+                            ->collection('images')
+                            ->label('Mahsulot rasmlari')
+                            ->multiple()
+                            ->reorderable()
+                            ->conversion('optimized') // WebP konversiyani ishlatadi
+                            ->responsiveImages()
+                            ->visibility('public'),
+                    ]),
             ]);
     }
 
