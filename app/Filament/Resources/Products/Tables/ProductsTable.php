@@ -40,6 +40,8 @@ class ProductsTable
                         ->label('Rasm')
                         ->getStateUsing(fn (Product $record) => $record->getFirstMediaUrl('images', 'optimized') ?: $record->getFirstMediaUrl('images'))
                         ->square()
+                        ->height(32)
+                        ->width(32)
                         ->extraAttributes(['class' => 'cursor-zoom-in'])
                         ->action(
                             Action::make('zoom_image')
