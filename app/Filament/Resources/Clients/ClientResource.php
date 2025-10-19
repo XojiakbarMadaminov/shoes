@@ -2,19 +2,19 @@
 
 namespace App\Filament\Resources\Clients;
 
-use App\Filament\Resources\Clients\Pages\CreateClient;
-use App\Filament\Resources\Clients\Pages\EditClient;
-use App\Filament\Resources\Clients\Pages\ListClients;
-use App\Filament\Resources\Clients\Pages\ViewClient;
-use App\Filament\Resources\Clients\Schemas\ClientForm;
-use App\Filament\Resources\Clients\Schemas\ClientInfolist;
-use App\Filament\Resources\Clients\Tables\ClientsTable;
-use App\Models\Client;
 use BackedEnum;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
+use App\Models\Client;
 use Filament\Tables\Table;
+use Filament\Schemas\Schema;
+use Filament\Resources\Resource;
+use Filament\Support\Icons\Heroicon;
+use App\Filament\Resources\Clients\Pages\EditClient;
+use App\Filament\Resources\Clients\Pages\ViewClient;
+use App\Filament\Resources\Clients\Pages\ListClients;
+use App\Filament\Resources\Clients\Pages\CreateClient;
+use App\Filament\Resources\Clients\Schemas\ClientForm;
+use App\Filament\Resources\Clients\Tables\ClientsTable;
+use App\Filament\Resources\Clients\Schemas\ClientInfolist;
 
 class ClientResource extends Resource
 {
@@ -50,7 +50,7 @@ class ClientResource extends Resource
     {
         return [
             'index' => ListClients::route('/'),
-            'create' => CreateClient::route('/create'),
+            //            'create' => CreateClient::route('/create'),
             'view' => ViewClient::route('/{record}'),
             'edit' => EditClient::route('/{record}/edit'),
         ];
