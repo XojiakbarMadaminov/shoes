@@ -106,17 +106,17 @@ class SalesHistoryPage extends Page implements HasTable
 
                 TextColumn::make('total_amount')
                     ->label('Jami')
-                    ->numeric(2)
+                    ->numeric()
                     ->sortable(),
 
                 TextColumn::make('paid_amount')
                     ->label('To‘langan')
-                    ->numeric(2)
+                    ->numeric()
                     ->sortable(),
 
                 TextColumn::make('remaining_amount')
                     ->label('Qolgan')
-                    ->numeric(2)
+                    ->numeric()
                     ->sortable(),
 
                 TextColumn::make('created_at')

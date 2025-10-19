@@ -43,6 +43,7 @@ class DebtorsTable
                     ->label('Telefon nomer'),
                 TextColumn::make('amount')
                     ->sortable()
+                    ->numeric()
                     ->label('Qarz summasi'),
                 TextColumn::make('latestTransaction.date')
                     ->label('Oxirgi operatsiya')

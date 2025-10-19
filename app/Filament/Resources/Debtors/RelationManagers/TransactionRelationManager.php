@@ -44,6 +44,7 @@ class TransactionRelationManager extends RelationManager
 
                 TextColumn::make('amount')
                     ->label('Summasi')
+                    ->numeric()
                     ->sortable(),
 
                 TextColumn::make('date')
