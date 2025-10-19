@@ -3,9 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Debtor;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
-use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class DebtorStatsOverview extends BaseWidget
 {
@@ -19,7 +19,7 @@ class DebtorStatsOverview extends BaseWidget
             ->pluck('total', 'currency');
 
         return [
-            Stat::make("Jami qarz summa", number_format($debts['uzs'] ?? 0, 0, '.', ' ') . " so'm"),
+            Stat::make('Jami qarz summa', number_format($debts['uzs'] ?? 0, 0, '.', ' ') . " so'm"),
         ];
     }
 
