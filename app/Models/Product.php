@@ -2,19 +2,23 @@
 
 namespace App\Models;
 
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Traits\HasCurrentStoreScope;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Product extends Model
+class Product extends Model implements HasMedia
 {
-    use HasCurrentStoreScope, SoftDeletes;
+    use HasCurrentStoreScope, InteractsWithMedia, SoftDeletes;
 
     protected $table   = 'products';
     protected $guarded = [];
 
-    public const TYPE_SIZE = 'size';
+    public const TYPE_SIZE    = 'size';
     public const TYPE_PACKAGE = 'package';
 
     protected $casts = [
@@ -84,5 +88,16 @@ class Product extends Model
     public function isPackageBased(): bool
     {
         return ($this->type ?? self::TYPE_SIZE) === self::TYPE_PACKAGE;
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('optimized')
+            ->performOnCollections('images')
+            ->fit(Fit::Max, 1600, 1600) // faqat kattaroq bo'lsa kichraytiradi, upscaling yo'q
+            ->format('webp')            // hajmni ancha kamaytiradi
+            ->quality(85)               // vizual sifatni saqlagan holda
+            ->optimize()                // spatie/image-optimizer orqali siqish
+            ->nonQueued();              // darhol konvertatsiya
     }
 }

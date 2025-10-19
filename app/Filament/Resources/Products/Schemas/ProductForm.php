@@ -12,6 +12,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 
 class ProductForm
 {
@@ -27,6 +28,7 @@ class ProductForm
                     ->schema([
                         TextInput::make('name')
                             ->label('Nomi')
+                            ->unique()
                             ->required()
                             ->columnSpanFull(),
 
@@ -61,6 +63,19 @@ class ProductForm
                             ->required()
                             ->reactive(),
                     ])->columns(3),
+
+                Section::make('Rasm')
+                    ->columnSpanFull()
+                    ->schema([
+                        SpatieMediaLibraryFileUpload::make('images')
+                            ->collection('images')
+                            ->label('Mahsulot rasmlari')
+                            ->multiple()
+                            ->reorderable()
+                            ->conversion('optimized') // WebP konversiyani ishlatadi
+                            ->responsiveImages()
+                            ->visibility('public'),
+                    ]),
 
                 Section::make('Narxlar')
                     ->columnSpanFull()

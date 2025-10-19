@@ -16,6 +16,7 @@ use Filament\Forms\Components\Select;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Actions\ForceDeleteBulkAction;
 
 class ProductsTable
@@ -35,6 +36,21 @@ class ProductsTable
             ->defaultSort('created_at', 'desc')
             ->columns(array_merge(
                 [
+                    ImageColumn::make('first_image')
+                        ->label('Rasm')
+                        ->getStateUsing(fn (Product $record) => $record->getFirstMediaUrl('images', 'optimized') ?: $record->getFirstMediaUrl('images'))
+                        ->square()
+                        ->extraAttributes(['class' => 'cursor-zoom-in'])
+                        ->action(
+                            Action::make('zoom_image')
+                                ->label("Ko'rish")
+                                ->modalSubmitAction(false)
+                                ->modalHeading(fn (Product $record) => $record->name)
+                                ->modalWidth('5xl')
+                                ->modalContent(fn (Product $record) => view('filament.products.partials.image-zoom', [
+                                    'urls' => $record->getMedia('images')->map(fn ($m) => $m->getUrl('optimized') ?: $m->getUrl())->values()->all(),
+                                ]))
+                        ),
                     TextColumn::make('name')->label('Nomi')->searchable()->sortable(),
                     TextColumn::make('barcode')->label('Bar kod')->searchable(),
                     TextColumn::make('color')->label('Rang')->toggleable(isToggledHiddenByDefault: true),
