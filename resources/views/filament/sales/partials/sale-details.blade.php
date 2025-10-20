@@ -1,7 +1,25 @@
 @php
     /** @var \App\Models\Sale|null $sale */
-    $paymentLabel = match($sale->payment_type){
-        'cash' => 'Naqd', 'card' => 'Karta', 'debt' => 'Qarz', 'transfer' => 'O‘tkazma', 'partial' => 'Qisman', 'mixed' => 'Karta + Naqd', default => ($sale->payment_type ?? '-')
+    $paymentLabel = match($sale->payment_type) {
+        'cash' => 'Naqd',
+        'card' => 'Karta',
+        'debt' => 'Qarz',
+        'transfer' => 'O‘tkazma',
+        'partial' => 'Qisman',
+        'mixed' => 'Karta + Naqd',
+        'preorder' => 'Oldindan buyurtma',
+        default => ($sale->payment_type ?? '-'),
+    };
+    $statusLabel = match($sale->status) {
+        \App\Models\Sale::STATUS_PENDING => 'Kutilmoqda',
+        \App\Models\Sale::STATUS_REJECTED => 'Bekor qilingan',
+        \App\Models\Sale::STATUS_COMPLETED => 'Yakunlangan',
+        default => ucfirst($sale->status ?? '—'),
+    };
+    $statusBadge = match($sale->status) {
+        \App\Models\Sale::STATUS_PENDING => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-300',
+        \App\Models\Sale::STATUS_REJECTED => 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-300',
+        default => 'bg-green-100 text-green-800 dark:bg-green-500/10 dark:text-green-300',
     };
 @endphp
 
@@ -17,6 +35,14 @@
             <div>
                 <div class="text-gray-500">Sana</div>
                 <div class="font-medium">{{ optional($sale->created_at)->format('Y-m-d H:i') }}</div>
+            </div>
+            <div>
+                <div class="text-gray-500">Status</div>
+                <div class="font-medium">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {{ $statusBadge }}">
+                        {{ $statusLabel }}
+                    </span>
+                </div>
             </div>
             <div>
                 <div class="text-gray-500">Mijoz</div>

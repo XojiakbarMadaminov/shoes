@@ -30,12 +30,14 @@ class SalesStatsOverview extends BaseWidget
         $start = Carbon::parse($this->start_date ?? now())->startOfDay();
         $end = Carbon::parse($this->end_date ?? now())->endOfDay();
 
-        $sales = Sale::whereBetween('created_at', [$start, $end])->get();
-        $totalSales = $sales->sum('total');
+        $sales = Sale::whereBetween('created_at', [$start, $end])
+            ->where('status', Sale::STATUS_COMPLETED)
+            ->get();
+        $totalSales = $sales->sum('total_amount');
 
         $totalProfit = SaleItem::whereIn('sale_items.sale_id', $sales->pluck('id'))
             ->join('products', 'products.id', '=', 'sale_items.product_id')
-            ->selectRaw('COALESCE(SUM( (sale_items.price - products.initial_price) * sale_items.qty ), 0) AS profit')
+            ->selectRaw('COALESCE(SUM( (sale_items.price - products.initial_price) * sale_items.quantity ), 0) AS profit')
             ->value('profit');
 
 

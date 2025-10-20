@@ -39,6 +39,7 @@
                                 'transfer' => 'O\'tkazma',
                                 'partial' => 'Qisman',
                                 'mixed' => 'Karta + Naqd',
+                                'preorder' => 'Oldindan buyurtma',
                                 default => 'Noma\'lum'
                             } }}
                         </strong></div>
@@ -427,6 +428,7 @@
                                     'partial' => 'Qisman',
                                     'mixed' => 'Karta + Naqd',
                                     'transfer' => "O'tkazma",
+                                    'preorder' => 'Oldindan buyurtma',
                                     default => 'Tanlanmagan'
                                 } }}
                             </span>
@@ -751,6 +753,19 @@
                                     <div class="text-3xl mb-2">💳+💵</div>
                                     <div class="font-medium text-gray-900 dark:text-gray-100">Karta + Naqd</div>
                                 </button>
+
+                                {{-- Oldindan buyurtma --}}
+                                <button
+                                    wire:click="selectPaymentType('preorder')"
+                                    class="p-4 rounded-lg border-2 transition-all text-center
+                                        {{ $paymentType === 'preorder'
+                                            ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/20'
+                                            : 'border-gray-300 hover:border-sky-400 dark:border-gray-600'
+                                        }}"
+                                >
+                                    <div class="text-3xl mb-2">⏳</div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">Oldindan buyurtma</div>
+                                </button>
                             </div>
 
                             @if($paymentType === 'partial')
@@ -837,6 +852,8 @@
                                             'debt' => '📋 Qarz',
                                             'partial' => '🔀 Qisman',
                                             'mixed' => '💳+💵 Karta + Naqd',
+                                            'transfer' => '🏦 O‘tkazma',
+                                            'preorder' => '⏳ Oldindan buyurtma',
                                             default => 'Tanlanmagan'
                                         } }}
                                     </span>

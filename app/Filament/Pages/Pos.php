@@ -378,7 +378,7 @@ class Pos extends Page
             return false;
         }
 
-        $validPaymentTypes = ['cash', 'card', 'debt', 'transfer', 'partial', 'mixed'];
+        $validPaymentTypes = ['cash', 'card', 'debt', 'transfer', 'partial', 'mixed', 'preorder'];
 
         if (!in_array($this->paymentType, $validPaymentTypes, true)) {
             Notification::make()
@@ -623,15 +623,19 @@ class Pos extends Page
                     throw new \RuntimeException('Foydalanuvchi uchun joriy do‘kon tanlanmagan.');
                 }
                 $paidAmount = match ($paymentType) {
-                    'debt'    => 0.0,
-                    'partial' => $partialAmount ?? 0.0,
-                    'mixed'   => $totalAmount,
-                    default   => $totalAmount,
+                    'debt'      => 0.0,
+                    'partial'   => $partialAmount ?? 0.0,
+                    'mixed'     => $totalAmount,
+                    'preorder'  => 0.0,
+                    default     => $totalAmount,
                 };
 
                 $remainingAmount = round($totalAmount - $paidAmount, 2);
                 $mixedCash       = $paymentType === 'mixed' ? ($mixedAmounts['cash'] ?? 0.0) : 0.0;
                 $mixedCard       = $paymentType === 'mixed' ? ($mixedAmounts['card'] ?? 0.0) : 0.0;
+                $status          = $paymentType === 'preorder'
+                    ? Sale::STATUS_PENDING
+                    : Sale::STATUS_COMPLETED;
 
                 $sale = Sale::create([
                     'cart_id'           => $this->activeCartId,
@@ -643,6 +647,7 @@ class Pos extends Page
                     'mixed_cash_amount' => $mixedCash,
                     'mixed_card_amount' => $mixedCard,
                     'store_id'          => $storeId,
+                    'status'            => $status,
                 ]);
 
                 foreach ($preparedItems as $prepared) {
@@ -670,7 +675,7 @@ class Pos extends Page
                     }
                 }
 
-                if ($remainingAmount > 0) {
+                if ($remainingAmount > 0 && $paymentType !== 'preorder') {
                     $debtor = Debtor::firstOrCreate(
                         [
                             'store_id'  => $storeId,
@@ -1109,7 +1114,7 @@ class Pos extends Page
     /* === To'lov turini tanlash === */
     public function selectPaymentType(string $type): void
     {
-        if (!in_array($type, ['cash', 'card', 'debt', 'transfer', 'partial', 'mixed'])) {
+        if (!in_array($type, ['cash', 'card', 'debt', 'transfer', 'partial', 'mixed', 'preorder'])) {
             Notification::make()
                 ->title('Noto\'g\'ri to\'lov turi')
                 ->danger()
@@ -1144,7 +1149,7 @@ class Pos extends Page
                 $this->cartPartialPayments[$this->activeCartId],
                 $this->cartMixedPayments[$this->activeCartId]
             );
-            if (!in_array($type, ['debt', 'partial'])) {
+            if (!in_array($type, ['debt', 'partial', 'preorder'])) {
                 $this->paymentNote = null;
             }
         }
