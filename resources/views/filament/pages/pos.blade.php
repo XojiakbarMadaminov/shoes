@@ -31,6 +31,9 @@
                     <div style="margin-top:8px; font-size:12px;">
                         <div>ID: <strong>{{ $receiptData['meta']['sale_id'] ?? '—' }}</strong></div>
                         <div>Klient: <strong>{{ $receiptData['meta']['client_name'] ?? 'Tanlanmagan' }}</strong></div>
+                        @if(!empty($receiptData['meta']['cashier_name']))
+                            <div>Kassir: <strong>{{ $receiptData['meta']['cashier_name'] }}</strong></div>
+                        @endif
                         <div>To'lov turi: <strong>
                             {{ match($receiptData['meta']['payment_type'] ?? null) {
                                 'cash' => 'Naqd',

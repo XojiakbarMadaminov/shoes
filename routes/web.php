@@ -37,7 +37,7 @@ Route::get('/switch-store/{store}', function (Store $store) {
 
 // Sales receipt PDF (same layout intent as POS receipt)
 Route::get('/sales/{sale}/receipt-pdf', function (Sale $sale) {
-    $sale->load(['client', 'items.product']);
+    $sale->load(['client', 'items.product', 'createdBy']);
 
     $itemsCount = $sale->items->count();
     $base       = 320; // base height

@@ -14,7 +14,14 @@
     </style>
     @php
         $paymentLabel = match($sale->payment_type){
-            'cash' => 'Naqd', 'card' => 'Karta', 'debt' => 'Qarz', 'transfer' => 'O‘tkazma', 'partial' => 'Qisman', 'mixed' => 'Karta + Naqd', default => ($sale->payment_type ?? '-')
+            'cash' => 'Naqd',
+            'card' => 'Karta',
+            'debt' => 'Qarz',
+            'transfer' => 'O‘tkazma',
+            'partial' => 'Qisman',
+            'mixed' => 'Karta + Naqd',
+            'preorder' => 'Oldindan buyurtma',
+            default => ($sale->payment_type ?? '-')
         };
         $items = $sale->items ?? collect();
     @endphp
@@ -32,6 +39,7 @@
     @if($sale->client?->phone)
         <div>Telefon: <strong>{{ $sale->client->phone }}</strong></div>
     @endif
+    <div>Kassir: <strong>{{ $sale->createdBy?->name ?? '-' }}</strong></div>
     <div>To‘lov turi: <strong>{{ $paymentLabel }}</strong></div>
 </div>
 @if((float) $sale->paid_amount)
@@ -84,4 +92,3 @@
     </div>
 </body>
 </html>
-

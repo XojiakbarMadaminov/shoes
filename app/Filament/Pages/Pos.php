@@ -648,6 +648,7 @@ class Pos extends Page
                     'mixed_card_amount' => $mixedCard,
                     'store_id'          => $storeId,
                     'status'            => $status,
+                    'created_by'        => $user?->id,
                 ]);
 
                 foreach ($preparedItems as $prepared) {
@@ -716,7 +717,7 @@ class Pos extends Page
         }
 
         if ($sale) {
-            $sale->loadMissing('client');
+            $sale->loadMissing(['client', 'createdBy']);
 
             $this->prepareReceipt(
                 $this->activeCartId,
@@ -728,6 +729,7 @@ class Pos extends Page
                     'payment_type'     => $paymentType,
                     'paid_amount'      => $sale->paid_amount,
                     'remaining_amount' => $remainingAmountForReceipt,
+                    'cashier_name'     => $sale->createdBy?->name,
                 ]
             );
         }

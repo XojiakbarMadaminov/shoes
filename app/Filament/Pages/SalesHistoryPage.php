@@ -2,8 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use Closure;
-use Filament\Schemas\Components\Utilities\Get;
 use Throwable;
 use Carbon\Carbon;
 use App\Models\Sale;
@@ -26,6 +24,7 @@ use Filament\Notifications\Notification;
 use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Validation\ValidationException;
 use Filament\Tables\Concerns\InteractsWithTable;
 
@@ -56,7 +55,7 @@ class SalesHistoryPage extends Page implements HasTable
         return $table
             ->query(
                 fn (): Builder => Sale::query()
-                    ->with(['client', 'items.product'])
+                    ->with(['client', 'items.product', 'createdBy'])
             )
             ->modifyQueryUsing(function (Builder $query) {
                 $preset = $this->datePreset;
@@ -96,6 +95,13 @@ class SalesHistoryPage extends Page implements HasTable
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable()
                     ->searchable(),
+
+                TextColumn::make('createdBy.name')
+                    ->label('Kassir')
+                    ->badge()
+                    ->color('primary')
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('payment_type')
                     ->label('To‘lov turi')
@@ -224,7 +230,7 @@ class SalesHistoryPage extends Page implements HasTable
                     ->modalSubmitAction(false)
                     ->modalWidth('4xl')
                     ->modalContent(function (Sale $record) {
-                        $record->loadMissing(['client', 'items.product']);
+                        $record->loadMissing(['client', 'items.product', 'createdBy']);
 
                         return view('filament.sales.partials.sale-details', [
                             'sale' => $record,

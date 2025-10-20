@@ -45,6 +45,10 @@
                 </div>
             </div>
             <div>
+                <div class="text-gray-500">Kassir</div>
+                <div class="font-medium">{{ $sale->createdBy?->name ?? '—' }}</div>
+            </div>
+            <div>
                 <div class="text-gray-500">Mijoz</div>
                 <div class="font-medium">
                     {{ $sale->client?->full_name ?? '—' }}
@@ -73,8 +77,8 @@
 
         <div class="pt-4">
             <div class="text-sm text-gray-600 mb-2">Tovarlar</div>
-            <div class="border rounded-md overflow-hidden">
-                <table class="min-w-full text-sm">
+            <div class="border rounded-md overflow-x-auto">
+                <table class="min-w-[640px] w-full text-sm">
                     <thead class="bg-gray-50 text-gray-600">
                         <tr>
                             <th class="px-3 py-2 text-left">Mahsulot</th>
