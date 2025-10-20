@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Product;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Event;
 use Spatie\MediaLibrary\Conversions\Events\ConversionHasBeenCompletedEvent;
@@ -25,11 +26,11 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ConversionHasBeenCompletedEvent::class, function (ConversionHasBeenCompletedEvent $event) {
             $media = $event->media;
 
-            if ($media->collection_name !== 'images') {
+            if ($media->collection_name !== Product::IMAGE_COLLECTION) {
                 return;
             }
 
-            if ($event->conversion->getName() !== 'optimized') {
+            if ($event->conversion->getName() !== Product::OPTIMIZED_CONVERSION) {
                 return;
             }
 

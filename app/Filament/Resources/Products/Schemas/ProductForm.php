@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Models\Product;
 use App\Models\Stock;
 use Filament\Actions\Action;
 use Filament\Schemas\Schema;
@@ -140,17 +141,25 @@ class ProductForm
                     }),
                 Section::make('Rasm')
                     ->columnSpanFull()
-                    ->schema([
-                        SpatieMediaLibraryFileUpload::make('images')
-                            ->collection('images')
+                    ->schema(function () {
+                        $upload = SpatieMediaLibraryFileUpload::make('images')
+                            ->collection(Product::IMAGE_COLLECTION)
                             ->label('Mahsulot rasmlari')
+                            ->maxSize(10240)
                             ->multiple()
                             ->reorderable()
-                            ->conversion('optimized') // WebP konversiyani ishlatadi
                             ->responsiveImages()
                             ->extraAttributes(['class' => 'cursor-zoom-in', 'capture' => 'environment'])
-                            ->visibility('public'),
-                    ]),
+                            ->visibility('public');
+
+                        if (Product::canOptimizeImages()) {
+                            $upload->conversion(Product::OPTIMIZED_CONVERSION); // WebP konversiyani ishlatadi
+                        } else {
+                            $upload->helperText('Diqqat: GD yoki Imagick PHP kengaytmasi yoqilmagan. Rasm optimizatsiyasi vaqtincha o\'chirildi.');
+                        }
+
+                        return [$upload];
+                    }),
             ]);
     }
 

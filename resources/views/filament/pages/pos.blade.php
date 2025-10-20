@@ -194,8 +194,8 @@
                              class="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-200">
                             <td class="px-2 py-1">
                                 @php
-                                    $thumb = $p->getFirstMediaUrl('images', 'optimized') ?: $p->getFirstMediaUrl('images');
-                                    $urls = $p->getMedia('images')->map(function ($m) { return $m->getUrl('optimized') ?: $m->getUrl(); })->values()->all();
+                                    $thumb = $p->getPrimaryImageUrl();
+                                    $urls = $p->getImageUrls();
                                 @endphp
                                 @if($thumb)
                                     <img src="{{ $thumb }}"

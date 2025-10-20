@@ -36,9 +36,10 @@ class ProductsTable
             ->defaultSort('created_at', 'desc')
             ->columns(array_merge(
                 [
+                    TextColumn::make('id')->label('ID'),
                     ImageColumn::make('first_image')
                         ->label('Rasm')
-                        ->getStateUsing(fn (Product $record) => $record->getFirstMediaUrl('images', 'optimized') ?: $record->getFirstMediaUrl('images'))
+                        ->getStateUsing(fn (Product $record) => $record->getPrimaryImageUrl())
                         ->square()
                         ->height(32)
                         ->width(32)
@@ -50,7 +51,7 @@ class ProductsTable
                                 ->modalHeading(fn (Product $record) => $record->name)
                                 ->modalWidth('5xl')
                                 ->modalContent(fn (Product $record) => view('filament.products.partials.image-zoom', [
-                                    'urls' => $record->getMedia('images')->map(fn ($m) => $m->getUrl('optimized') ?: $m->getUrl())->values()->all(),
+                                    'urls' => $record->getImageUrls(),
                                 ]))
                         ),
                     TextColumn::make('name')->label('Nomi')->searchable()->sortable(),

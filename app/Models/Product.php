@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Spatie\Image\Enums\Fit;
-use Spatie\MediaLibrary\HasMedia;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Traits\HasCurrentStoreScope;
-use Spatie\MediaLibrary\InteractsWithMedia;
+use Illuminate\Support\Facades\Log;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -18,8 +19,12 @@ class Product extends Model implements HasMedia
     protected $table   = 'products';
     protected $guarded = [];
 
-    public const TYPE_SIZE    = 'size';
-    public const TYPE_PACKAGE = 'package';
+    public const TYPE_SIZE              = 'size';
+    public const TYPE_PACKAGE           = 'package';
+    public const IMAGE_COLLECTION       = 'images';
+    public const OPTIMIZED_CONVERSION   = 'optimized';
+
+    protected static bool $missingImageDriverLogged = false;
 
     protected $casts = [
         'type' => 'string',
@@ -92,6 +97,12 @@ class Product extends Model implements HasMedia
 
     public function registerMediaConversions(?Media $media = null): void
     {
+        if (! self::canOptimizeImages()) {
+            $this->logMissingImageDriver();
+
+            return;
+        }
+
         $this->addMediaConversion('optimized')
             ->performOnCollections('images')
             ->fit(Fit::Max, 1600, 1600) // faqat kattaroq bo'lsa kichraytiradi, upscaling yo'q
@@ -99,5 +110,59 @@ class Product extends Model implements HasMedia
             ->quality(85)               // vizual sifatni saqlagan holda
             ->optimize()                // spatie/image-optimizer orqali siqish
             ->nonQueued();              // darhol konvertatsiya
+    }
+
+    public static function canOptimizeImages(): bool
+    {
+        static $supportsOptimization = null;
+
+        if ($supportsOptimization === null) {
+            $supportsOptimization = extension_loaded('gd') || extension_loaded('imagick');
+        }
+
+        return $supportsOptimization;
+    }
+
+    public function getPrimaryImageUrl(): ?string
+    {
+        $media = $this->getFirstMedia(self::IMAGE_COLLECTION);
+
+        if (! $media) {
+            return null;
+        }
+
+        if ($media->hasGeneratedConversion(self::OPTIMIZED_CONVERSION)) {
+            return $media->getUrl(self::OPTIMIZED_CONVERSION);
+        }
+
+        return $media->getUrl();
+    }
+
+    public function getImageUrls(): array
+    {
+        return $this->getMedia(self::IMAGE_COLLECTION)
+            ->map(function (Media $media) {
+                if ($media->hasGeneratedConversion(self::OPTIMIZED_CONVERSION)) {
+                    return $media->getUrl(self::OPTIMIZED_CONVERSION);
+                }
+
+                return $media->getUrl();
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    protected function logMissingImageDriver(): void
+    {
+        if (self::$missingImageDriverLogged) {
+            return;
+        }
+
+        Log::warning(
+            'Skipping optimized product image conversions because neither the GD nor Imagick PHP extensions are loaded.'
+        );
+
+        self::$missingImageDriverLogged = true;
     }
 }

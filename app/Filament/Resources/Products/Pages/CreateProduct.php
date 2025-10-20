@@ -13,7 +13,7 @@ class CreateProduct extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $this->sizesData = $data['sizes'] ?? [];
+        $this->sizesData        = $data['sizes'] ?? [];
         $this->packageStockData = collect($data)
             ->filter(fn ($v, $k) => str_starts_with($k, 'pkg_stock_'))
             ->all();
