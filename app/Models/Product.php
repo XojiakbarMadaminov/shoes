@@ -72,6 +72,19 @@ class Product extends Model implements HasMedia
         return $this->belongsTo(Category::class);
     }
 
+    public function getDisplayLabelAttribute(): string
+    {
+        $parts = [];
+
+        if (filled($this->barcode)) {
+            $parts[] = $this->barcode;
+        }
+
+        $parts[] = $this->name;
+
+        return implode(' — ', array_filter($parts));
+    }
+
     public function getTotalQuantityAttribute(): int
     {
         // Prefer new unified product_stocks table when available
