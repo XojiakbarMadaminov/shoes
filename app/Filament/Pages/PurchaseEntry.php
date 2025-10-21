@@ -25,11 +25,12 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Validation\ValidationException;
 use Filament\Forms\Concerns\InteractsWithForms;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 
 class PurchaseEntry extends Page implements HasForms
 {
-    use InteractsWithForms, WithFileUploads;
+    use HasPageShield, InteractsWithForms, WithFileUploads;
 
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-truck';
     protected static ?string $navigationLabel                = 'Ta’minotchidan xarid';

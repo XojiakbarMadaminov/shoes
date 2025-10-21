@@ -27,10 +27,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Validation\ValidationException;
 use Filament\Tables\Concerns\InteractsWithTable;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class SalesHistoryPage extends Page implements HasTable
 {
-    use InteractsWithTable;
+    use HasPageShield, InteractsWithTable;
 
     protected static ?string $navigationLabel                = 'Sotuv tarixi';
     protected static ?string $title                          = 'Sotuv tarixi';

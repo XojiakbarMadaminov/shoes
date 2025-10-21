@@ -14,10 +14,11 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Concerns\InteractsWithTable;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class PurchaseHistoryPage extends Page implements HasTable
 {
-    use InteractsWithTable;
+    use HasPageShield, InteractsWithTable;
 
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-clipboard-document-list';
     protected static ?string $title                          = 'Xaridlar tarixi';
