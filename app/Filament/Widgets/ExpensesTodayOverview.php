@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Filament\Widgets;
+
+use App\Models\Expense;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+
+class ExpensesTodayOverview extends BaseWidget
+{
+    protected function getCards(): array
+    {
+        $total = (float) Expense::query()
+            ->whereDate('date', today())
+            ->sum('amount');
+
+        $formatted = number_format($total, 2) . " so'm";
+
+        return [
+            Stat::make('Bugungi xarajatlar', $formatted)
+                ->color('danger'),
+        ];
+    }
+}
+
