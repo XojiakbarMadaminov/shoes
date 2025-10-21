@@ -307,7 +307,7 @@
                                             $currentStockId = (int) ($row['stock_id'] ?? 0);
                                             $availablePkg = $this->getPackageAvailable((int) $row['id'], $currentStockId);
                                         @endphp
-                                        <div x-data="{ maxQty: {{ (int) $availablePkg }} }">
+                                        <div x-data="{ maxQty: {{ (int) $availablePkg }} }" wire:key="qty-input-{{ $activeCartId }}-{{ $row['id'] }}">
                                             <input type="number"
                                                    min="0"
                                                    max="{{ (int) $availablePkg }}"

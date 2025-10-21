@@ -62,8 +62,7 @@ class SupplierTransactionsRelationManager extends RelationManager
                             ->modalDescription(fn ($record) => $record->note ?? 'Izoh mavjud emas')
                             ->modalSubmitAction(false)
                     ),
-            ])
-            ->defaultSort('date', 'desc');
+            ]);
     }
 
 }

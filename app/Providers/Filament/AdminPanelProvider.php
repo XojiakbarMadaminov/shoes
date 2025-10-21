@@ -2,24 +2,24 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Pages\Dashboard;
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
-use Filament\Actions\Action;
-use Filament\Forms\Components\Select;
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
-use Filament\Http\Middleware\DisableBladeIconComponents;
-use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Notifications\Notification;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Actions\Action;
+use App\Filament\Pages\Dashboard;
 use Filament\Support\Colors\Color;
-use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
-use Illuminate\Routing\Middleware\SubstituteBindings;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
+use Filament\Http\Middleware\Authenticate;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Filament\Http\Middleware\AuthenticateSession;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Http\Middleware\DisableBladeIconComponents;
+use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -63,7 +63,7 @@ class AdminPanelProvider extends PanelProvider
             ->resourceEditPageRedirect('index')
             ->userMenuItems([
                 Action::make('currentStore')
-                    ->label(fn() => auth()->user()?->currentStore?->name ?? 'magazin tanlanmagan')
+                    ->label(fn () => auth()->user()?->currentStore?->name ?? 'magazin tanlanmagan')
                     ->color(Color::hex('#484ab5'))
                     ->disabled(),
                 Action::make('switchStore')
@@ -72,14 +72,14 @@ class AdminPanelProvider extends PanelProvider
                     ->schema([
                         Select::make('store_id')
                             ->label('Store')
-                            ->options(fn() => auth()->user()?->stores()->pluck('stores.name', 'stores.id') ?? [])
+                            ->options(fn () => auth()->user()?->stores()->pluck('stores.name', 'stores.id') ?? [])
                             ->required(),
                     ])
                     ->action(function (array $data) {
                         $user = auth()->user();
                         if ($user && $user->stores->contains($data['store_id'])) {
-
                             $user->update(['current_store_id' => $data['store_id']]);
+                            cache()->forget('active_stocks_for_store_' . auth()->id());
                             Notification::make()
                                 ->title('Store yangilandi')
                                 ->body('Hozirgi store: ' . $user->currentStore?->name)
@@ -88,7 +88,7 @@ class AdminPanelProvider extends PanelProvider
 
                             return redirect(request()->header('Referer'));
                         }
-                    })
+                    }),
             ])
             ->authMiddleware([
                 Authenticate::class,
