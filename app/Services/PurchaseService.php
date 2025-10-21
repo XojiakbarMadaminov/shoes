@@ -164,7 +164,7 @@ class PurchaseService
                     'purchase_id'      => $purchase->id,
                     'type'             => 'debt',
                     'amount'           => $purchase->remaining_amount,
-                    'date'             => Carbon::parse($purchase->purchase_date)->endOfDay(),
+                    'date'             => now(),
                     'note'             => $data['note'] ?? null,
                 ]);
             }

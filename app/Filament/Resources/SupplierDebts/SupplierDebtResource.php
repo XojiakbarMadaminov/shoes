@@ -2,6 +2,13 @@
 
 namespace App\Filament\Resources\SupplierDebts;
 
+use App\Models\Debtor;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Tables\Table;
 use App\Models\SupplierDebt;
 use Filament\Resources\Resource;
@@ -52,7 +59,49 @@ class SupplierDebtResource extends Resource
                     ->dateTime('Y-m-d H:i')
                     ->sortable(),
             ])
-            ->recordUrl(fn (SupplierDebt $record) => static::getUrl('view', ['record' => $record]));
+            ->recordUrl(fn (SupplierDebt $record) => static::getUrl('view', ['record' => $record]))
+            ->recordActions([
+                Action::make('add_payment')
+                    ->label('To‘lov qilish')
+                    ->color('success')
+                    ->schema(fn (SupplierDebt $record) => [
+                        TextInput::make('amount')
+                            ->label('To‘lov summasi')
+                            ->prefix($record->currency)
+                            ->numeric()
+                            ->required()
+                            ->rule('lte:' . $record->amount) // `amount` dan katta bo‘lmasin
+                            ->helperText('Maksimum: ' . $record->amount . ' ' . $record->currency),
+
+                        DateTimePicker::make('date')
+                            ->label('To‘lov sanasi')
+                            ->default(now())
+                            ->required(),
+
+                        Textarea::make('note')
+                            ->label('Izoh')
+                            ->nullable(),
+                    ])
+                    ->action(function (array $data, SupplierDebt $record) {
+                        if ($data['amount'] > $record->amount) {
+                            Notification::make()
+                                ->title('To‘lov summasi mavjud qarzdan katta bo‘lishi mumkin emas')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        $record->transactions()->create([
+                            'type'   => 'payment',
+                            'amount' => $data['amount'],
+                            'date'   => $data['date'],
+                            'note'   => $data['note'] ?? null,
+                        ]);
+
+                        $record->decrement('amount', $data['amount']);
+                    }),
+            ]);
     }
 
     public static function getRelations(): array

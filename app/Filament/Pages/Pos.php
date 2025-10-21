@@ -198,7 +198,7 @@ class Pos extends Page
                     ->orWhere('name', 'ILIKE', "%{$this->search}%")
             )
             ->orderBy('name')
-            ->limit(15)
+            ->limit(10)
             ->get();
     }
 
@@ -1087,11 +1087,10 @@ class Pos extends Page
     {
         $this->validate([
             'newClient.full_name' => 'required|string|min:3',
-            'newClient.phone'     => 'nullable|string|min:7',
+            'newClient.phone'     => 'nullable|string',
         ], [
             'newClient.full_name.required' => 'To\'liq ismni kiriting',
             'newClient.full_name.min'      => 'Ism kamida 3 ta belgidan iborat bo\'lishi kerak',
-            'newClient.phone.min'          => 'Telefon raqam kamida 7 ta raqamdan iborat bo\'lishi kerak',
         ]);
 
         $client = Client::create([
