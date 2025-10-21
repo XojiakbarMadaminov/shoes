@@ -3,16 +3,16 @@
 namespace App\Services;
 
 use App\Models\Product;
-use App\Models\ProductSize;
-use App\Models\ProductStock;
 use App\Models\Purchase;
+use App\Models\ProductSize;
+use Illuminate\Support\Arr;
+use App\Models\ProductStock;
 use App\Models\PurchaseItem;
 use App\Models\SupplierDebt;
-use App\Models\SupplierDebtTransaction;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use App\Models\SupplierDebtTransaction;
 use Illuminate\Validation\ValidationException;
 
 class PurchaseService
@@ -50,13 +50,13 @@ class PurchaseService
 
         return DB::transaction(function () use ($data, $itemsData, $storeId, $stockId, $user) {
             $purchase = Purchase::create([
-                'supplier_id'      => $data['supplier_id'],
-                'store_id'         => $storeId,
-                'stock_id'         => $stockId,
-                'created_by'       => $user?->id,
-                'purchase_date'    => $data['purchase_date'],
-                'payment_type'     => $data['payment_type'],
-                'note'             => $data['note'] ?? null,
+                'supplier_id'   => $data['supplier_id'],
+                'store_id'      => $storeId,
+                'stock_id'      => $stockId,
+                'created_by'    => $user?->id,
+                'purchase_date' => $data['purchase_date'],
+                'payment_type'  => $data['payment_type'],
+                'note'          => $data['note'] ?? null,
             ]);
 
             $totalAmount = 0;
@@ -80,7 +80,7 @@ class PurchaseService
                         ]);
                     }
 
-                    $lineTotal    = round($unit * $quantity, 2);
+                    $lineTotal = round($unit * $quantity, 2);
                     $totalAmount += $lineTotal;
 
                     PurchaseItem::create([
@@ -120,7 +120,7 @@ class PurchaseService
                             ]);
                         }
 
-                        $quantity = $sizeRow['quantity'];
+                        $quantity  = $sizeRow['quantity'];
                         $lineTotal = round($unit * $quantity, 2);
                         $totalAmount += $lineTotal;
 
@@ -165,7 +165,7 @@ class PurchaseService
                     'type'             => 'debt',
                     'amount'           => $purchase->remaining_amount,
                     'date'             => Carbon::parse($purchase->purchase_date)->endOfDay(),
-                    'note'             => "Purchase #{$purchase->id}",
+                    'note'             => $data['note'] ?? null,
                 ]);
             }
 
@@ -177,9 +177,9 @@ class PurchaseService
     {
         return match ($paymentType) {
             'cash', 'card' => $total,
-            'debt'         => 0.0,
-            'partial'      => $this->validatePartialAmount($partial, $total),
-            default        => $total,
+            'debt'    => 0.0,
+            'partial' => $this->validatePartialAmount($partial, $total),
+            default   => $total,
         };
     }
 

@@ -3,13 +3,14 @@
 namespace App\Filament\Pages;
 
 use App\Models\Stock;
+use App\Helpers\Helper;
 use App\Models\Product;
 use App\Models\Supplier;
+use Filament\Pages\Page;
 use App\Models\ProductSize;
 use App\Models\ProductStock;
-use Filament\Pages\Page;
+use Filament\Actions\Action;
 use Filament\Schemas\Schema;
-use Illuminate\Validation\Rule;
 use App\Services\PurchaseService;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -24,10 +25,11 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Validation\ValidationException;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Livewire\Features\SupportFileUploads\WithFileUploads;
 
 class PurchaseEntry extends Page implements HasForms
 {
-    use InteractsWithForms;
+    use InteractsWithForms, WithFileUploads;
 
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-truck';
     protected static ?string $navigationLabel                = 'Ta’minotchidan xarid';
@@ -135,9 +137,9 @@ class PurchaseEntry extends Page implements HasForms
                                     ->required()
                                     ->createOptionForm($this->productCreateForm())
                                     ->createOptionUsing(function (array $data) {
-                                        $stockId = data_get($this->form->getState(), 'stock_id');
+                                        $stockId = data_get($this->data, 'stock_id');
 
-                                        if (! $stockId) {
+                                        if (!$stockId) {
                                             throw ValidationException::withMessages([
                                                 'stock_id' => 'Mahsulot yaratishdan oldin skladni tanlang.',
                                             ]);
@@ -250,13 +252,6 @@ class PurchaseEntry extends Page implements HasForms
                                             ->default(0),
                                     ])
                                     ->columns(3),
-
-                                Textarea::make('item_note')
-                                    ->label('Izoh')
-                                    ->rows(1)
-                                    ->columnSpan(12)
-                                    ->maxLength(300)
-                                    ->placeholder('Ixtiyoriy izoh'),
                             ])
                             ->addActionLabel('Mahsulot qo‘shish'),
                     ]),
@@ -269,34 +264,51 @@ class PurchaseEntry extends Page implements HasForms
         return [
             TextInput::make('name')
                 ->label('Mahsulot nomi')
-                ->required(),
+                ->required()
+                ->columnSpanFull(),
+            Section::make()
+                ->columns()
+                ->schema([
+                    TextInput::make('barcode')
+                        ->label('Bar kod')
+                        ->unique('products', 'barcode', ignoreRecord: true)
+                        ->numeric()
+                        ->required()
+                        ->autofocus()
+                        ->suffixAction(
+                            Action::make('generateBarcode')
+                                ->icon('heroicon-m-sparkles')
+                                ->tooltip('EAN-13 Bar kod yaratish')
+                                ->action(function (Set $set) {
+                                    $set('barcode', Helper::generateEAN13Barcode());
+                                })
+                        ),
 
-            TextInput::make('barcode')
-                ->label('Bar kod')
-                ->nullable()
-                ->rule(fn () => Rule::unique('products', 'barcode')),
+                    Select::make('type')
+                        ->label('Turi')
+                        ->options([
+                            Product::TYPE_PACKAGE => 'Paketli',
+                            Product::TYPE_SIZE    => 'Razmerli',
+                        ])
+                        ->default(Product::TYPE_PACKAGE)
+                        ->live()
+                        ->required(),
+                ]),
+            Section::make()
+                ->columns()
+                ->schema([
+                    TextInput::make('initial_price')
+                        ->label('Kelgan narxi')
+                        ->numeric()
+                        ->minValue(0)
+                        ->default(0),
 
-            Select::make('type')
-                ->label('Turi')
-                ->options([
-                    Product::TYPE_PACKAGE => 'Paketli',
-                    Product::TYPE_SIZE    => 'Razmerli',
-                ])
-                ->default(Product::TYPE_PACKAGE)
-                ->live()
-                ->required(),
-
-            TextInput::make('initial_price')
-                ->label('Kelgan narxi')
-                ->numeric()
-                ->minValue(0)
-                ->default(0),
-
-            TextInput::make('price')
-                ->label('Sotish narxi')
-                ->numeric()
-                ->minValue(0)
-                ->default(0),
+                    TextInput::make('price')
+                        ->label('Sotish narxi')
+                        ->numeric()
+                        ->minValue(0)
+                        ->default(0),
+                ]),
 
             Repeater::make('sizes')
                 ->label('Razmerlar')
@@ -321,7 +333,7 @@ class PurchaseEntry extends Page implements HasForms
             ->map(function (array $item) use ($stockId) {
                 $productId = $item['product_id'] ?? null;
 
-                if (! $productId) {
+                if (!$productId) {
                     return $item;
                 }
 
@@ -329,7 +341,7 @@ class PurchaseEntry extends Page implements HasForms
                     ->with('sizes')
                     ->find($productId);
 
-                if (! $product || ($item['product_type'] ?? Product::TYPE_PACKAGE) !== Product::TYPE_SIZE) {
+                if (!$product || ($item['product_type'] ?? Product::TYPE_PACKAGE) !== Product::TYPE_SIZE) {
                     return $item;
                 }
 
@@ -338,8 +350,8 @@ class PurchaseEntry extends Page implements HasForms
                         $sizeId    = $row['product_size_id'] ?? null;
                         $sizeLabel = trim((string) ($row['size_label'] ?? ''));
 
-                        if (! $sizeId && $sizeLabel !== '') {
-                            $size = $product->sizes()->firstOrCreate(['size' => $sizeLabel]);
+                        if (!$sizeId && $sizeLabel !== '') {
+                            $size                   = $product->sizes()->firstOrCreate(['size' => $sizeLabel]);
                             $row['product_size_id'] = $size->id;
 
                             if ($stockId) {

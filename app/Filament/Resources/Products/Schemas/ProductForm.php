@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Helpers\Helper;
 use App\Models\Product;
 use App\Models\Stock;
 use Filament\Actions\Action;
@@ -44,7 +45,7 @@ class ProductForm
                                     ->icon('heroicon-m-sparkles')
                                     ->tooltip('EAN-13 Bar kod yaratish')
                                     ->action(function (Set $set) {
-                                        $set('barcode', self::generateEAN13Barcode());
+                                        $set('barcode', Helper::generateEAN13Barcode());
                                     })
                             ),
 
@@ -171,23 +172,5 @@ class ProductForm
         }
 
         return $cached;
-    }
-
-    private static function generateEAN13Barcode(): string
-    {
-        $code = '';
-        for ($i = 0; $i < 12; $i++) {
-            $code .= random_int(0, 9);
-        }
-
-        $sum = 0;
-        for ($i = 0; $i < 12; $i++) {
-            $digit = (int) $code[$i];
-            $sum += ($i % 2 === 0) ? $digit : $digit * 3;
-        }
-
-        $checksum = (10 - ($sum % 10)) % 10;
-
-        return $code . $checksum;
     }
 }
