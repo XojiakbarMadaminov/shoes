@@ -14,7 +14,7 @@ class ExpensesTodayOverview extends BaseWidget
             ->whereDate('date', today())
             ->sum('amount');
 
-        $formatted = number_format($total, 2) . " so'm";
+        $formatted = number_format($total) . " so'm";
 
         return [
             Stat::make('Bugungi xarajatlar', $formatted)

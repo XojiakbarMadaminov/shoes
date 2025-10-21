@@ -2,9 +2,7 @@
 
 namespace App\Filament\Resources\Expenses\Pages;
 
-use App\Models\Debtor;
 use Filament\Actions\Action;
-use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Support\Carbon;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\DatePicker;
@@ -36,6 +34,10 @@ class ListExpenses extends ListRecords
                 ->action(function () {
                     $this->datePreset  = 'today';
                     $this->customStart = $this->customEnd = null;
+                    session()->put('expenses_range', [
+                        'start' => today()->toDateString(),
+                        'end'   => today()->toDateString(),
+                    ]);
                 }),
             Action::make('week')
                 ->label('Hafta')
@@ -43,6 +45,10 @@ class ListExpenses extends ListRecords
                 ->action(function () {
                     $this->datePreset  = 'week';
                     $this->customStart = $this->customEnd = null;
+                    session()->put('expenses_range', [
+                        'start' => now()->startOfWeek()->toDateString(),
+                        'end'   => now()->endOfWeek()->toDateString(),
+                    ]);
                 }),
             Action::make('month')
                 ->label('Oy')
@@ -50,6 +56,10 @@ class ListExpenses extends ListRecords
                 ->action(function () {
                     $this->datePreset  = 'month';
                     $this->customStart = $this->customEnd = null;
+                    session()->put('expenses_range', [
+                        'start' => now()->startOfMonth()->toDateString(),
+                        'end'   => now()->endOfMonth()->toDateString(),
+                    ]);
                 }),
             Action::make('custom')
                 ->label('Oraliq')
@@ -68,9 +78,14 @@ class ListExpenses extends ListRecords
                     $this->datePreset  = 'custom';
                     $this->customStart = $data['start'] ?? null;
                     $this->customEnd   = $data['end'] ?? null;
+                    session()->put('expenses_range', [
+                        'start' => $this->customStart,
+                        'end'   => $this->customEnd,
+                    ]);
                 }),
         ];
     }
+
     protected function getHeaderWidgets(): array
     {
         return [
