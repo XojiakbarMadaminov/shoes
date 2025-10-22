@@ -385,7 +385,7 @@ class PurchaseEntry extends Page implements HasForms
                 ->success()
                 ->send();
 
-            $this->redirect(PurchaseHistoryPage::getUrl());
+            $this->redirect(PurchaseEntry::getUrl());
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (\Throwable $throwable) {

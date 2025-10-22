@@ -2,16 +2,14 @@
 
 namespace App\Filament\Pages;
 
-use App\Enums\NavigationGroup;
 use UnitEnum;
+use App\Enums\NavigationGroup;
 use Filament\Support\Icons\Heroicon;
 use Filament\Schemas\Components\Form;
 use Filament\Forms\Components\DatePicker;
 use App\Filament\Widgets\SalesStatsOverview;
-use App\Filament\Widgets\UnsoldProductsList;
 use Filament\Pages\Dashboard as BaseDashboard;
 use App\Filament\Widgets\TopSellingProductsChart;
-use App\Filament\Widgets\LeastSellingProductsChart;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class Dashboard extends BaseDashboard
@@ -32,8 +30,6 @@ class Dashboard extends BaseDashboard
         return [
             SalesStatsOverview::class,
             TopSellingProductsChart::class,
-            LeastSellingProductsChart::class,
-            UnsoldProductsList::class,
         ];
     }
 
