@@ -1,3 +1,4 @@
+@php use App\Support\ReceiptData; @endphp
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -41,7 +42,7 @@
 </head>
 <body>
     @php
-        $receiptData = \App\Support\ReceiptData::fromSale($sale);
+        $receiptData = ReceiptData::fromSale($sale);
     @endphp
     <div class="receipt" id="sale-receipt">
         @include('receipts.partials.default', [

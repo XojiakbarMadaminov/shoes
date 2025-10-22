@@ -45,7 +45,7 @@
 @endonce
 
 <div class="center" style="margin-bottom:10px; margin-top:5px;">
-    <h3 style="margin:0;">Traktor ehtiyot qismlari</h3>
+    <h3 style="margin:0;">** Mir obuv 9494 **</h3>
 </div>
 <div class="center bold" style="font-size:18px; margin-bottom:6px;">SAVDO CHEKI</div>
 <div class="center" style="margin-bottom:4px;">{{ $data['receipt_number'] ?? '' }}</div>

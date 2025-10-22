@@ -8,9 +8,9 @@ class ReceiptData
 {
     public static function fromSale(Sale $sale, array $metaOverrides = []): array
     {
-        $items   = $sale->items ?? collect();
-        $cartId  = $sale->cart_id ?? $sale->id;
-        $created = $sale->created_at ?? now();
+        $items     = $sale->items ?? collect();
+        $cartId    = $sale->cart_id ?? $sale->id;
+        $created   = $sale->created_at ?? now();
         $timestamp = $created instanceof \DateTimeInterface
             ? $created->getTimestamp()
             : now()->timestamp;
@@ -18,19 +18,19 @@ class ReceiptData
         $receiptNumber = 'R' . str_pad((string) $cartId, 4, '0', STR_PAD_LEFT) . $timestamp;
 
         return [
-            'cart_id'        => $cartId,
-            'items'          => $items->map(function ($item) {
+            'cart_id' => $cartId,
+            'items'   => $items->map(function ($item) {
                 return [
                     'name'  => $item->product?->name ?? 'Mahsulot',
                     'qty'   => (float) $item->quantity,
                     'price' => (float) $item->price,
                 ];
             })->toArray(),
-            'totals'         => [
+            'totals' => [
                 'qty'    => (float) $items->sum('quantity'),
                 'amount' => (float) $sale->total_amount,
             ],
-            'date'           => $created instanceof \DateTimeInterface
+            'date' => $created instanceof \DateTimeInterface
                 ? $created->format('d.m.Y H:i:s')
                 : now()->format('d.m.Y H:i:s'),
             'receipt_number' => $receiptNumber,
