@@ -246,19 +246,21 @@
                                             $currentStockId = (int) ($row['stock_id'] ?? 0);
                                             $availablePkg = $this->getPackageAvailable((int) $row['id'], $currentStockId);
                                         @endphp
-                                        <div x-data="{ maxQty: {{ (int) $availablePkg }} }" wire:key="qty-input-{{ $activeCartId }}-{{ $row['id'] }}">
-                                            <input type="number"
-                                                   min="0"
-                                                   max="{{ (int) $availablePkg }}"
-                                                   value="{{ (int) ($row['qty'] ?? 0) }}"
-                                                   class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-primary-500 focus:border-primary-500 rounded-md shadow-sm text-right py-1.5 px-2 text-sm"
-                                                   x-on:change="
-                                                        let v = parseInt($event.target.value || 0);
-                                                        if (isNaN(v) || v < 0) v = 0;
-                                                        if (v > maxQty) v = maxQty;
-                                                        $event.target.value = v;
-                                                        $wire.updatePackageQty({{ (int) $row['id'] }}, v);
-                                                   "
+                                        <div wire:key="qty-input-{{ $activeCartId }}-{{ $row['id'] }}">
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="{{ (int) $availablePkg }}"
+                                                value="{{ (int) ($row['qty'] ?? 0) }}"
+                                                class="w-24 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-primary-500 focus:border-primary-500 rounded-md shadow-sm text-right py-1.5 px-2 text-sm"
+                                                x-on:change="
+                                                    let v   = parseInt($event.target.value || 0, 10);
+                                                    const max = parseInt($event.target.max || 0, 10);
+                                                    if (isNaN(v) || v < 0) v = 0;
+                                                    if (!isNaN(max) && v > max) v = max;
+                                                    $event.target.value = v;
+                                                    $wire.updatePackageQty({{ (int) $row['id'] }}, v);
+                                                "
                                             />
                                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                 Mavjud: {{ (int) $availablePkg }} dona
