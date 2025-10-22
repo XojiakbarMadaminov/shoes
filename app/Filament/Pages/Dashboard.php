@@ -31,6 +31,7 @@ class Dashboard extends BaseDashboard
         return [
             SalesStatsOverview::class,
             TopSellingProductsChart::class,
+            \App\Filament\Widgets\TopPurchasedProductsChart::class,
         ];
     }
 
