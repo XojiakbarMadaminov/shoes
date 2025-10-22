@@ -9,6 +9,7 @@ use Filament\Schemas\Components\Form;
 use Filament\Forms\Components\DatePicker;
 use App\Filament\Widgets\SalesStatsOverview;
 use Filament\Pages\Dashboard as BaseDashboard;
+use App\Filament\Widgets\DashboardDebtsOverview;
 use App\Filament\Widgets\TopSellingProductsChart;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
@@ -40,8 +41,8 @@ class Dashboard extends BaseDashboard
 
     public function mount()
     {
-        $this->start_date = now()->subDay()->format('Y-m-d');
-        $this->end_date   = now()->format('Y-m-d');
+        $this->start_date = now()->startOfDay()->format('Y-m-d');
+        $this->end_date   = now()->endOfDay()->format('Y-m-d');
     }
 
     public function updateStats()

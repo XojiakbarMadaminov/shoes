@@ -2,14 +2,16 @@
 
 namespace App\Filament\Widgets;
 
+use Livewire\Attributes\On;
+use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Carbon;
+use App\Models\Expense;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use Livewire\Attributes\On;
-use Illuminate\Support\Carbon;
-use Filament\Widgets\StatsOverviewWidget\Stat;
 use Filament\Forms\Concerns\InteractsWithForms;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use PHPUnit\Util\Color;
 
 class SalesStatsOverview extends BaseWidget
 {
@@ -35,14 +37,36 @@ class SalesStatsOverview extends BaseWidget
             ->get();
         $totalSales = $sales->sum('total_amount');
 
+        $totalExpenses = Expense::query()
+            ->whereBetween('date', [$start, $end])
+            ->sum('amount');
+
+        $debtSales = $sales
+            ->where('payment_type', 'debt')
+            ->sum('total_amount');
+
         $totalProfit = SaleItem::whereIn('sale_items.sale_id', $sales->pluck('id'))
             ->join('products', 'products.id', '=', 'sale_items.product_id')
             ->selectRaw('COALESCE(SUM( (sale_items.price - products.initial_price) * sale_items.quantity ), 0) AS profit')
             ->value('profit');
 
         return [
-            Stat::make('Umumiy Sotuvlar', number_format($totalSales, 2) . " so'm"),
-            Stat::make('Foyda', number_format($totalProfit, 2) . " so'm"),
+            Stat::make('Umumiy sotuvlar', number_format($totalSales) . " so'm")
+                ->description('Tanlangan davr uchun umumiy sotuvlar')
+                ->icon('heroicon-o-wallet')
+                ->color('success'),
+            Stat::make('Foyda', number_format($totalProfit) . " so'm")
+                ->description('Tanlangan davr uchun foyda')
+                ->icon('heroicon-o-wallet')
+                ->color('primary'),
+            Stat::make('Xarajatlar', number_format($totalExpenses) . " so'm")
+                ->description('Tanlangan davr uchun xarajatlar')
+                ->icon('heroicon-o-wallet')
+                ->color('danger'),
+            Stat::make('Qarzga sotuvlar', number_format($debtSales) . " so'm")
+                ->icon('heroicon-o-wallet')
+                ->description('Tanlangan davr uchun qarzga sotuvlar')
+                ->color('warning'),
         ];
     }
 }
