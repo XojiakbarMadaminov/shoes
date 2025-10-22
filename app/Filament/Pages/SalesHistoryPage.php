@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\NavigationGroup;
 use Throwable;
 use Carbon\Carbon;
 use App\Models\Sale;
@@ -33,11 +34,12 @@ class SalesHistoryPage extends Page implements HasTable
 {
     use HasPageShield, InteractsWithTable;
 
+    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::Finance;
     protected static ?string $navigationLabel                = 'Sotuv tarixi';
     protected static ?string $title                          = 'Sotuv tarixi';
     protected static ?string $slug                           = 'sales-history';
     protected static string|null|\BackedEnum $navigationIcon = Heroicon::ListBullet;
-    protected static ?int $navigationSort                    = 5;
+    protected static ?int $navigationSort                    = 2;
 
     protected string $view = 'filament.pages.sales-history-page';
 

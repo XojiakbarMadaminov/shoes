@@ -8,6 +8,7 @@ use App\Models\Purchase;
 use Filament\Pages\Page;
 use Filament\Tables\Table;
 use Filament\Actions\Action;
+use App\Enums\NavigationGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Components\DatePicker;
@@ -20,9 +21,10 @@ class PurchaseHistoryPage extends Page implements HasTable
 {
     use HasPageShield, InteractsWithTable;
 
+    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::SupplierActions;
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-clipboard-document-list';
-    protected static ?string $title                          = 'Xaridlar tarixi';
-    protected static ?string $navigationLabel                = 'Xaridlar tarixi';
+    protected static ?string $title                          = 'Ta\'minotchidan xaridlar tarixi';
+    protected static ?string $navigationLabel                = 'Ta\'minotchidan xaridlar tarixi';
     protected static ?string $slug                           = 'purchases/history';
     protected static ?int $navigationSort                    = 3;
     protected string $view                                   = 'filament.pages.purchase-history-page';

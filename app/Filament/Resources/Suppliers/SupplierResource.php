@@ -6,6 +6,7 @@ use BackedEnum;
 use App\Models\Supplier;
 use Filament\Tables\Table;
 use Filament\Schemas\Schema;
+use App\Enums\NavigationGroup;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use App\Filament\Resources\Suppliers\Pages\EditSupplier;
@@ -20,9 +21,10 @@ class SupplierResource extends Resource
 {
     protected static ?string $model = Supplier::class;
 
+    protected static string|null|\UnitEnum $navigationGroup = NavigationGroup::SupplierActions;
+    protected static ?string $navigationLabel               = 'Ta\'minotchilar';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static ?string $recordTitleAttribute = 'supplier';
+    protected static ?string $label                         = 'Ta\'minotchilar';
 
     public static function form(Schema $schema): Schema
     {
@@ -49,10 +51,10 @@ class SupplierResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListSuppliers::route('/'),
-//            'create' => CreateSupplier::route('/create'),
-            'view'   => ViewSupplier::route('/{record}'),
-            'edit'   => EditSupplier::route('/{record}/edit'),
+            'index' => ListSuppliers::route('/'),
+            //            'create' => CreateSupplier::route('/create'),
+            'view' => ViewSupplier::route('/{record}'),
+            'edit' => EditSupplier::route('/{record}/edit'),
         ];
     }
 }

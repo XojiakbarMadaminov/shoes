@@ -6,6 +6,7 @@ use BackedEnum;
 use App\Models\Category;
 use Filament\Tables\Table;
 use Filament\Schemas\Schema;
+use App\Enums\NavigationGroup;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use App\Filament\Resources\Categories\Pages\EditCategory;
@@ -20,6 +21,7 @@ class CategoryResource extends Resource
 {
     protected static ?string $model = Category::class;
 
+    protected static string|null|\UnitEnum $navigationGroup = NavigationGroup::ProductsAndCategories;
     protected static ?string $navigationLabel               = 'Kategoriyalar';
     protected static ?string $label                         = 'Kategoriya';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Tag;

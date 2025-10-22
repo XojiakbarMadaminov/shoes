@@ -2,19 +2,18 @@
 
 namespace App\Filament\Resources\SupplierDebts;
 
-use App\Models\Debtor;
-use Filament\Actions\Action;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
 use Filament\Tables\Table;
 use App\Models\SupplierDebt;
+use Filament\Actions\Action;
+use App\Enums\NavigationGroup;
 use Filament\Resources\Resource;
 use App\Models\SupplierDebtTransaction;
+use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\DateTimePicker;
 use App\Filament\Resources\SupplierDebts\Pages\ViewSupplierDebt;
 use App\Filament\Resources\SupplierDebts\Pages\ListSupplierDebts;
 use App\Filament\Resources\SupplierDebts\RelationManagers\SupplierTransactionsRelationManager;
@@ -23,10 +22,11 @@ class SupplierDebtResource extends Resource
 {
     protected static ?string $model = SupplierDebt::class;
 
-    protected static ?string $navigationLabel                = 'Ta’minotchilar qarzlari';
+    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::SupplierActions;
+    protected static ?string $navigationLabel                = 'Ta’minotchilardan qarz';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-banknotes';
-    protected static ?string $label                          = 'Ta’minotchilar qarzi';
-    protected static ?string $pluralLabel                    = 'Ta’minotchilar qarzlari';
+    protected static ?string $label                          = 'Ta’minotchilardan qarz';
+    protected static ?string $pluralLabel                    = 'Ta’minotchilardan qarz';
     protected static ?int $navigationSort                    = 4;
 
     public static function table(Table $table): Table

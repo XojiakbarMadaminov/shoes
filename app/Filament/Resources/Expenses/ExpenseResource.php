@@ -6,6 +6,7 @@ use BackedEnum;
 use App\Models\Expense;
 use Filament\Tables\Table;
 use Filament\Schemas\Schema;
+use App\Enums\NavigationGroup;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use App\Filament\Resources\Expenses\Pages\EditExpense;
@@ -20,9 +21,11 @@ class ExpenseResource extends Resource
 {
     protected static ?string $model = Expense::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static ?string $recordTitleAttribute = 'expense';
+    protected static string|null|\UnitEnum $navigationGroup = NavigationGroup::Finance;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
+    protected static ?int $navigationSort                   = 3;
+    protected static ?string $label                         = 'Chiqimlar';
+    protected static ?string $navigationLabel               = 'Chiqimlar';
 
     public static function form(Schema $schema): Schema
     {

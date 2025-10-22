@@ -6,6 +6,7 @@ use BackedEnum;
 use App\Models\Debtor;
 use Filament\Tables\Table;
 use Filament\Schemas\Schema;
+use App\Enums\NavigationGroup;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use App\Filament\Resources\Debtors\Pages\EditDebtor;
@@ -21,9 +22,10 @@ class DebtorResource extends Resource
 {
     protected static ?string $model = Debtor::class;
 
+    protected static string|null|\UnitEnum $navigationGroup = NavigationGroup::Finance;
     protected static ?string $label                         = 'Qarzdorlar';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::CreditCard;
-    protected static ?int $navigationSort                   = 3;
+    protected static ?int $navigationSort                   = 1;
 
     public static function form(Schema $schema): Schema
     {

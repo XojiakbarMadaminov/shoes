@@ -3,38 +3,23 @@
 namespace App\Providers\Filament;
 
 use Filament\Panel;
-use App\Filament\Pages\Pos;
 use Filament\PanelProvider;
 use Filament\Actions\Action;
 use App\Filament\Pages\Dashboard;
 use Filament\Support\Colors\Color;
-use App\Filament\Pages\MoveProduct;
-use App\Filament\Pages\PurchaseEntry;
 use Filament\Forms\Components\Select;
-use Filament\Navigation\NavigationItem;
-use App\Filament\Pages\SalesHistoryPage;
-use Filament\Navigation\NavigationGroup;
 use Filament\Notifications\Notification;
 use Filament\Http\Middleware\Authenticate;
-use Filament\Navigation\NavigationBuilder;
-use App\Filament\Pages\PurchaseHistoryPage;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Filament\Http\Middleware\AuthenticateSession;
-use App\Filament\Resources\Clients\ClientResource;
-use App\Filament\Resources\Debtors\DebtorResource;
-use App\Filament\Resources\Expenses\ExpenseResource;
-use App\Filament\Resources\Products\ProductResource;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Illuminate\Routing\Middleware\SubstituteBindings;
-use App\Filament\Resources\Suppliers\SupplierResource;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use App\Filament\Resources\Categories\CategoryResource;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use App\Filament\Resources\SupplierDebts\SupplierDebtResource;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -69,83 +54,12 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->plugins([
-                FilamentShieldPlugin::make(),
+                FilamentShieldPlugin::make()
+                    ->navigationGroup(\App\Enums\NavigationGroup::Settings),
             ])
             ->maxContentWidth('screen-2xl')
             ->topNavigation()
             ->brandName('Agropos')
-            ->navigation(function (NavigationBuilder $nav): NavigationBuilder {
-                return $nav->groups([
-                    // 1) Asosiy amallar
-                    NavigationGroup::make()
-                        ->label('Asosiy amallar')
-                        ->items([
-                            NavigationItem::make('Sotuv')
-                                ->icon('heroicon-o-shopping-cart')
-                                ->url(Pos::getUrl()),
-                            NavigationItem::make('Ta’minotchidan xarid')
-                                ->icon('heroicon-o-truck')
-                                ->url(PurchaseEntry::getUrl()),
-                            NavigationItem::make('Tovarlarni ko‘chirish')
-                                ->icon('heroicon-o-arrows-right-left')
-                                ->url(MoveProduct::getUrl()),
-                        ]),
-
-                    // 2) Tovarlar va katalog
-                    NavigationGroup::make()
-                        ->label('Tovarlar va katalog')
-                        ->items([
-                            NavigationItem::make('Tovarlar')
-                                ->icon('heroicon-o-rectangle-stack')
-                                ->url(ProductResource::getUrl()),
-                            NavigationItem::make('Kategoriyalar')
-                                ->icon('heroicon-o-tag')
-                                ->url(CategoryResource::getUrl()),
-                            NavigationItem::make('Sotuv tarixi')
-                                ->icon('heroicon-o-clock')
-                                ->url(SalesHistoryPage::getUrl()),
-                            NavigationItem::make('Xaridlar tarixi')
-                                ->icon('heroicon-o-clipboard-document-list')
-                                ->url(PurchaseHistoryPage::getUrl()),
-                        ]),
-
-                    // 3) Moliya
-                    NavigationGroup::make()
-                        ->label('Moliya')
-                        ->items([
-                            NavigationItem::make('Qarzdorlar')
-                                ->icon('heroicon-o-users')
-                                ->url(DebtorResource::getUrl()),
-                            NavigationItem::make('Ta’minotchilar qarzlari')
-                                ->icon('heroicon-o-receipt-percent')
-                                ->url(SupplierDebtResource::getUrl()),
-                            NavigationItem::make('Expense')
-                                ->icon('heroicon-o-arrow-trending-down')
-                                ->url(ExpenseResource::getUrl()),
-                        ]),
-
-                    // 4) Mijozlar va ta’minotchilar
-                    NavigationGroup::make()
-                        ->label('Mijozlar va ta’minotchilar')
-                        ->items([
-                            NavigationItem::make('Client')
-                                ->icon('heroicon-o-user')
-                                ->url(ClientResource::getUrl()),
-                            NavigationItem::make('Supplier')
-                                ->icon('heroicon-o-truck')
-                                ->url(SupplierResource::getUrl()),
-                        ]),
-
-                    // 5) Hisobot va tahlil
-                    NavigationGroup::make()
-                        ->label('Hisobot va tahlil')
-                        ->items([
-                            NavigationItem::make('Statistika')
-                                ->icon('heroicon-o-chart-bar')
-                                ->url(Dashboard::getUrl()),
-                        ]),
-                ]);
-            })
             ->resourceCreatePageRedirect('index')
             ->resourceEditPageRedirect('index')
             ->userMenuItems([

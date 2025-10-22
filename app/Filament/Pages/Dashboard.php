@@ -2,28 +2,30 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\LeastSellingProductsChart;
-use App\Filament\Widgets\SalesStatsOverview;
-use App\Filament\Widgets\TopSellingProductsChart;
-use App\Filament\Widgets\UnsoldProductsList;
-use BezhanSalleh\FilamentShield\Traits\HasPageShield;
-use Filament\Forms\Components\DatePicker;
-use Filament\Pages\Dashboard as BaseDashboard;
-use Filament\Schemas\Components\Form;
+use App\Enums\NavigationGroup;
+use UnitEnum;
 use Filament\Support\Icons\Heroicon;
+use Filament\Schemas\Components\Form;
+use Filament\Forms\Components\DatePicker;
+use App\Filament\Widgets\SalesStatsOverview;
+use App\Filament\Widgets\UnsoldProductsList;
+use Filament\Pages\Dashboard as BaseDashboard;
+use App\Filament\Widgets\TopSellingProductsChart;
+use App\Filament\Widgets\LeastSellingProductsChart;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class Dashboard extends BaseDashboard
 {
     use HasPageShield;
 
-    protected static ?string $navigationLabel = 'Statistika';
-    protected static string|null|\BackedEnum $navigationIcon = Heroicon::ChartPie;
-    protected static ?int $navigationSort = 5;
+    protected static string|UnitEnum|null $navigationGroup   = NavigationGroup::Statistics;
+    protected static ?string $navigationLabel                = 'Statistika';
+    protected static string|null|\BackedEnum $navigationIcon = Heroicon::ChartBar;
+    protected static ?int $navigationSort                    = 5;
 
-    protected string $view = 'filament.pages.dashboard';
+    protected string $view     = 'filament.pages.dashboard';
     public ?string $start_date = null;
-    public ?string $end_date = null;
-
+    public ?string $end_date   = null;
 
     public function getFooterWidgets(): array
     {
@@ -43,7 +45,7 @@ class Dashboard extends BaseDashboard
     public function mount()
     {
         $this->start_date = now()->subDay()->format('Y-m-d');
-        $this->end_date = now()->format('Y-m-d');
+        $this->end_date   = now()->format('Y-m-d');
     }
 
     public function updateStats()
@@ -58,13 +60,13 @@ class Dashboard extends BaseDashboard
                 ->label('Boshlanish sanasi')
                 ->default(now()->subDay()->format('Y-m-d'))
                 ->reactive()
-                ->afterStateUpdated(fn($state) => $this->updateStats()),
+                ->afterStateUpdated(fn ($state) => $this->updateStats()),
 
             DatePicker::make('end_date')
                 ->label('Tugash sanasi')
                 ->default(now()->format('Y-m-d'))
                 ->reactive()
-                ->afterStateUpdated(fn($state) => $this->updateStats()),
+                ->afterStateUpdated(fn ($state) => $this->updateStats()),
         ]);
     }
 }

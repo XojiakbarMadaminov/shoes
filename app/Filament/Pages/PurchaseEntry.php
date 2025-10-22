@@ -11,6 +11,7 @@ use App\Models\ProductSize;
 use App\Models\ProductStock;
 use Filament\Actions\Action;
 use Filament\Schemas\Schema;
+use App\Enums\NavigationGroup;
 use App\Services\PurchaseService;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -32,6 +33,7 @@ class PurchaseEntry extends Page implements HasForms
 {
     use HasPageShield, InteractsWithForms, WithFileUploads;
 
+    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::BaseActions;
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-truck';
     protected static ?string $navigationLabel                = 'Ta’minotchidan xarid';
     protected static ?string $title                          = 'Ta’minotchidan xarid qilish';

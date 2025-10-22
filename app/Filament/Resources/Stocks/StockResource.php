@@ -2,31 +2,33 @@
 
 namespace App\Filament\Resources\Stocks;
 
-use App\Filament\Resources\Stocks\Pages\CreateStock;
-use App\Filament\Resources\Stocks\Pages\EditStock;
-use App\Filament\Resources\Stocks\Pages\ListStocks;
-use App\Filament\Resources\Stocks\Pages\ViewStock;
-use App\Filament\Resources\Stocks\Schemas\StockForm;
-use App\Filament\Resources\Stocks\Schemas\StockInfolist;
-use App\Filament\Resources\Stocks\Tables\StocksTable;
-use App\Models\Stock;
 use BackedEnum;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
+use App\Models\Stock;
 use Filament\Tables\Table;
+use Filament\Schemas\Schema;
+use App\Enums\NavigationGroup;
+use Filament\Resources\Resource;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\Stocks\Pages\EditStock;
+use App\Filament\Resources\Stocks\Pages\ViewStock;
+use App\Filament\Resources\Stocks\Pages\ListStocks;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\Stocks\Pages\CreateStock;
+use App\Filament\Resources\Stocks\Schemas\StockForm;
+use App\Filament\Resources\Stocks\Tables\StocksTable;
+use App\Filament\Resources\Stocks\Schemas\StockInfolist;
 
 class StockResource extends Resource
 {
     protected static ?string $model = Stock::class;
 
-    protected static ?string $navigationLabel = 'Sklad';
-    protected static ?string $label = 'Sklad';
+    protected static string|null|\UnitEnum $navigationGroup = NavigationGroup::Settings;
+    protected static ?string $navigationLabel               = 'Sklad';
+    protected static ?string $label                         = 'Sklad';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHome;
-    protected static ?string $recordTitleAttribute = 'Sklad';
-    protected static ?int $navigationSort = 7;
+    protected static ?string $recordTitleAttribute          = 'Sklad';
+    protected static ?int $navigationSort                   = 2;
 
     public static function form(Schema $schema): Schema
     {
@@ -53,10 +55,10 @@ class StockResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListStocks::route('/'),
+            'index'  => ListStocks::route('/'),
             'create' => CreateStock::route('/create'),
-            'view' => ViewStock::route('/{record}'),
-            'edit' => EditStock::route('/{record}/edit'),
+            'view'   => ViewStock::route('/{record}'),
+            'edit'   => EditStock::route('/{record}/edit'),
         ];
     }
 

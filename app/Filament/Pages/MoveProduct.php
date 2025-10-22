@@ -7,6 +7,7 @@ use App\Models\Product;
 use Filament\Pages\Page;
 use App\Models\ProductStock;
 use Filament\Schemas\Schema;
+use App\Enums\NavigationGroup;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -23,6 +24,7 @@ class MoveProduct extends Page implements HasForms
 {
     use HasPageShield, InteractsWithForms;
 
+    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::BaseActions;
     protected static ?string $navigationLabel                = 'Tovarlarni ko‘chirish';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-arrow-path';
     protected static ?string $title                          = 'Tovarlarni ko‘chirish';

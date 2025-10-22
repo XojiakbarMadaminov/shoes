@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\NavigationGroup;
 use App\Models\Sale;
 use App\Models\Client;
 use App\Models\Debtor;
@@ -22,6 +23,7 @@ class Pos extends Page
 {
     use HasNotifications, HasPageShield;
 
+    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::BaseActions;
     protected static ?string $title                          = 'Sotuv';
     protected string $view                                   = 'filament.pages.pos';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-shopping-cart';
@@ -623,11 +625,11 @@ class Pos extends Page
                     throw new \RuntimeException('Foydalanuvchi uchun joriy do‘kon tanlanmagan.');
                 }
                 $paidAmount = match ($paymentType) {
-                    'debt'      => 0.0,
-                    'partial'   => $partialAmount ?? 0.0,
-                    'mixed'     => $totalAmount,
-                    'preorder'  => 0.0,
-                    default     => $totalAmount,
+                    'debt'     => 0.0,
+                    'partial'  => $partialAmount ?? 0.0,
+                    'mixed'    => $totalAmount,
+                    'preorder' => 0.0,
+                    default    => $totalAmount,
                 };
 
                 $remainingAmount = round($totalAmount - $paidAmount, 2);

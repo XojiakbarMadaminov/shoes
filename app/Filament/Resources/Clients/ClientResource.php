@@ -6,6 +6,7 @@ use BackedEnum;
 use App\Models\Client;
 use Filament\Tables\Table;
 use Filament\Schemas\Schema;
+use App\Enums\NavigationGroup;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use App\Filament\Resources\Clients\Pages\EditClient;
@@ -20,9 +21,12 @@ class ClientResource extends Resource
 {
     protected static ?string $model = Client::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
-    protected static ?string $recordTitleAttribute = 'client';
+    protected static string|null|\UnitEnum $navigationGroup = NavigationGroup::Finance;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserCircle;
+    protected static ?string $recordTitleAttribute          = 'client';
+    protected static ?int $navigationSort                   = 4;
+    protected static ?string $label                         = 'Mijozlar';
+    protected static ?string $navigationLabel               = 'Mijozlar';
 
     public static function form(Schema $schema): Schema
     {
