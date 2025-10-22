@@ -18,10 +18,22 @@ class ListExpenses extends ListRecords
     public ?string $customStart       = null;
     public ?string $customEnd         = null;
 
+    public ?string $start_date = null;
+    public ?string $end_date   = null;
+
     public function mount(): void
     {
         parent::mount();
         $this->datePreset = 'today';
+        session()->put('expenses_range', [
+            'start' => today()->toDateString(),
+            'end'   => today()->toDateString(),
+        ]);
+    }
+
+    public function updateStats()
+    {
+        $this->dispatch('refreshStats', start_date: $this->start_date, end_date: $this->end_date);
     }
 
     protected function getHeaderActions(): array
@@ -34,10 +46,9 @@ class ListExpenses extends ListRecords
                 ->action(function () {
                     $this->datePreset  = 'today';
                     $this->customStart = $this->customEnd = null;
-                    session()->put('expenses_range', [
-                        'start' => today()->toDateString(),
-                        'end'   => today()->toDateString(),
-                    ]);
+                    $this->start_date  = today()->toDateString();
+                    $this->end_date    = today()->toDateString();
+                    $this->updateStats();
                 }),
             Action::make('week')
                 ->label('Hafta')
@@ -45,10 +56,9 @@ class ListExpenses extends ListRecords
                 ->action(function () {
                     $this->datePreset  = 'week';
                     $this->customStart = $this->customEnd = null;
-                    session()->put('expenses_range', [
-                        'start' => now()->startOfWeek()->toDateString(),
-                        'end'   => now()->endOfWeek()->toDateString(),
-                    ]);
+                    $this->start_date  = now()->startOfWeek()->toDateString();
+                    $this->end_date    = now()->endOfWeek()->toDateString();
+                    $this->updateStats();
                 }),
             Action::make('month')
                 ->label('Oy')
@@ -56,10 +66,9 @@ class ListExpenses extends ListRecords
                 ->action(function () {
                     $this->datePreset  = 'month';
                     $this->customStart = $this->customEnd = null;
-                    session()->put('expenses_range', [
-                        'start' => now()->startOfMonth()->toDateString(),
-                        'end'   => now()->endOfMonth()->toDateString(),
-                    ]);
+                    $this->start_date  = now()->startOfMonth()->toDateString();
+                    $this->end_date    = now()->endOfMonth()->toDateString();
+                    $this->updateStats();
                 }),
             Action::make('custom')
                 ->label('Oraliq')
@@ -78,10 +87,9 @@ class ListExpenses extends ListRecords
                     $this->datePreset  = 'custom';
                     $this->customStart = $data['start'] ?? null;
                     $this->customEnd   = $data['end'] ?? null;
-                    session()->put('expenses_range', [
-                        'start' => $this->customStart,
-                        'end'   => $this->customEnd,
-                    ]);
+                    $this->start_date  = $this->customStart;
+                    $this->end_date    = $this->customEnd;
+                    $this->updateStats();
                 }),
         ];
     }
