@@ -20,71 +20,10 @@
                 </div>
 
                 <div id="receipt-content" class="receipt-content">
-                    <div class="center" style="margin-bottom:10px; margin-top:5px;">
-                        <h3>Traktor ehtiyot qismlari</h3>
-                    </div>
-                    <div class="center bold" style="font-size:18px; margin-bottom:6px;">SAVDO CHEKI</div>
-                    <div style="text-align:center; margin-bottom:4px;">{{ $receiptData['receipt_number'] ?? '' }}</div>
-                    <div style="text-align:center; margin-bottom:8px;">{{ $receiptData['date'] ?? '' }}</div>
-
-                    <div>Savat: #{{ $receiptData['cart_id'] ?? '' }}</div>
-                    <div style="margin-top:8px; font-size:12px;">
-                        <div>ID: <strong>{{ $receiptData['meta']['sale_id'] ?? '—' }}</strong></div>
-                        <div>Klient: <strong>{{ $receiptData['meta']['client_name'] ?? 'Tanlanmagan' }}</strong></div>
-                        @if(!empty($receiptData['meta']['cashier_name']))
-                            <div>Kassir: <strong>{{ $receiptData['meta']['cashier_name'] }}</strong></div>
-                        @endif
-                        <div>To'lov turi: <strong>
-                            {{ match($receiptData['meta']['payment_type'] ?? null) {
-                                'cash' => 'Naqd',
-                                'card' => 'Karta',
-                                'debt' => 'Qarz',
-                                'transfer' => 'O\'tkazma',
-                                'partial' => 'Qisman',
-                                'mixed' => 'Karta + Naqd',
-                                'preorder' => 'Oldindan buyurtma',
-                                default => 'Noma\'lum'
-                            } }}
-                        </strong></div>
-                        @if(($receiptData['meta']['payment_type'] ?? null) === 'partial')
-                            <div>To'langan summa: <strong>{{ number_format($receiptData['meta']['paid_amount'] ?? 0, 2, '.', ' ') }} so'm</strong></div>
-                        @endif
-                        @if(($receiptData['meta']['remaining_amount'] ?? 0) > 0)
-                            <div>Qolgan qarz: <strong>{{ number_format($receiptData['meta']['remaining_amount'], 2, '.', ' ') }} so'm</strong></div>
-                        @endif
-                    </div>
-
-                    <div class="line"></div>
-
-                    @if(isset($receiptData['items']))
-                        @foreach($receiptData['items'] as $item)
-                            <div class="item-row">
-                <span class="item-name">
-                    {{ $item['name'] }}<br>
-                    <span
-                        style="font-size:11px;">{{ $item['qty'] }} x {{ number_format($item['price'], 0, '.', ' ') }}</span>
-                </span>
-                                <span class="item-total bold">{{ number_format($item['qty'] * $item['price'], 0, '.', ' ') }} so'm</span>
-                            </div>
-                        @endforeach
-                    @endif
-
-                    <div class="line"></div>
-                    <div class="item-row">
-                        <span>Jami mahsulotlar:</span>
-                        <span>{{ $receiptData['totals']['qty'] ?? 0 }} dona</span>
-                    </div>
-                    <div class="item-row bold" style="font-size:15px;">
-                        <span>JAMI SUMMA:</span>
-                        <span>{{ number_format($receiptData['totals']['amount'] ?? 0, 0, '.', ' ') }} so'm</span>
-                    </div>
-                    <div class="center" style="margin-top:18px; font-size:12px;">
-                        Xaridingiz uchun rahmat!<br>
-                        Yana tashrifingizni kutamiz
-                    </div>
-                    <div class="receipt-footer-printonly">
-                        <img src="{{ asset('images/traktor-qr.png') }}" alt="QR code" style="max-width:32mm; max-height:32mm;">
-                    </div>
+                    @include('receipts.partials.default', [
+                        'receiptData' => $receiptData,
+                        'qrPath' => asset('images/traktor-qr.png'),
+                    ])
                 </div>
 
 

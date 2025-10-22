@@ -304,7 +304,7 @@ class SalesHistoryPage extends Page implements HasTable
                     ->label('Chek')
                     ->icon('heroicon-o-printer')
                     ->visible(fn (Sale $record) => $record->isCompleted())
-                    ->url(fn (Sale $record) => route('sale.receipt.pdf', $record))
+                    ->url(fn (Sale $record) => route('sale.receipt.print', $record))
                     ->openUrlInNewTab(),
             ])
             ->emptyStateHeading('Sotuvlar topilmadi')

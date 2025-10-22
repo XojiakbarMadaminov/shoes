@@ -36,6 +36,14 @@ Route::get('/switch-store/{store}', function (Store $store) {
 })->name('switch-store');
 
 // Sales receipt PDF (same layout intent as POS receipt)
+Route::get('/sales/{sale}/receipt', function (Sale $sale) {
+    $sale->load(['client', 'items.product', 'createdBy']);
+
+    return view('sales-receipt-print', [
+        'sale' => $sale,
+    ]);
+})->name('sale.receipt.print');
+
 Route::get('/sales/{sale}/receipt-pdf', function (Sale $sale) {
     $sale->load(['client', 'items.product', 'createdBy']);
 
