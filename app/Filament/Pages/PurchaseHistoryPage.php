@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\SupplierDebtsOverview;
 use Carbon\Carbon;
 use App\Models\Stock;
 use App\Models\Purchase;
