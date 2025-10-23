@@ -59,7 +59,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->maxContentWidth('screen-2xl')
             ->topNavigation()
-            ->brandName('Agropos')
+            ->brandName('Oson-POS')
             ->resourceCreatePageRedirect('index')
             ->resourceEditPageRedirect('index')
             ->userMenuItems([

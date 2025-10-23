@@ -84,7 +84,7 @@ class SalesStatsOverview extends BaseWidget
                 ->description('Tanlangan davr uchun xaridlar')
                 ->icon('heroicon-o-wallet')
                 ->color('success'),
-            Stat::make('Qarzga xaridlar', number_format($debtPurchases) . " so'm")
+            Stat::make('Ta\'minotchidan qarzga xaridlar', number_format($debtPurchases) . " so'm")
                 ->description('Tanlangan davr uchun qarzga xaridlar')
                 ->icon('heroicon-o-wallet')
                 ->color('warning'),

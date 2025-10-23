@@ -27,9 +27,9 @@ class SaleReport extends Page
     public function getFooterWidgets(): array
     {
         return [
-            MonthlySalesTrendChart::class,
             SalesByCashierChart::class,
             SalesByClientChart::class,
+            MonthlySalesTrendChart::class,
             SupplierPurchasesChart::class,
         ];
     }

@@ -14,6 +14,9 @@ class SupplierPurchasesChart extends ChartWidget
 {
     use HasWidgetShield, InteractsWithForms;
 
+    protected static bool $isLazy      = true;
+    protected ?string $pollingInterval = null;
+
     public ?string $start_date = null;
     public ?string $end_date   = null;
 
