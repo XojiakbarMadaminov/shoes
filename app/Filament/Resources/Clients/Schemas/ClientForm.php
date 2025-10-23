@@ -31,6 +31,7 @@ class ClientForm
                                 $phone = '+998' . preg_replace('/\D/', '', $state);
 
                                 $exists = Client::where('phone', $phone)
+                                    ->withTrashed()
                                     ->exists();
 
                                 if ($exists) {

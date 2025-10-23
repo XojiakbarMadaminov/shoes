@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('phone')->nullable()->unique();
             $table->boolean('send_sms')->default(true);
             $table->integer('send_sms_interval')->default(5);
+            $table->softDeletes();
             $table->timestamps();
         });
     }

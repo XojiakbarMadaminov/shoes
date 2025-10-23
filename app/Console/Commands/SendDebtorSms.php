@@ -30,6 +30,7 @@ class SendDebtorSms extends Command
                 continue;
             }
 
+            dd($this->shouldSendSms($debtor));
             if (!$this->shouldSendSms($debtor)) {
                 continue;
             }
