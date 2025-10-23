@@ -2,42 +2,30 @@
 
 namespace App\Filament\Pages;
 
-use UnitEnum;
+use Filament\Pages\Page;
 use App\Enums\NavigationGroup;
 use Filament\Support\Icons\Heroicon;
 use Filament\Schemas\Components\Form;
 use Filament\Forms\Components\DatePicker;
-use App\Filament\Widgets\SalesStatsOverview;
-use Filament\Pages\Dashboard as BaseDashboard;
-use App\Filament\Widgets\TopSellingProductsChart;
-use App\Filament\Widgets\TopPurchasedProductsChart;
-use BezhanSalleh\FilamentShield\Traits\HasPageShield;
+use App\Filament\Widgets\MonthlySalesTrendChart;
 
-class Dashboard extends BaseDashboard
+class SaleReport extends Page
 {
-    use HasPageShield;
+    protected string $view = 'filament.pages.sale-report';
 
-    protected static string|UnitEnum|null $navigationGroup   = NavigationGroup::Statistics;
-    protected static ?string $navigationLabel                = 'Statistika';
-    protected static string|null|\BackedEnum $navigationIcon = Heroicon::ChartBar;
-    protected static ?int $navigationSort                    = 1;
+    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::Statistics;
+    protected static ?string $navigationLabel                = 'Savdo tahlili';
+    protected static string|null|\BackedEnum $navigationIcon = Heroicon::ChartPie;
+    protected static ?int $navigationSort                    = 2;
 
-    protected string $view     = 'filament.pages.dashboard';
     public ?string $start_date = null;
     public ?string $end_date   = null;
 
     public function getFooterWidgets(): array
     {
         return [
-            SalesStatsOverview::class,
-            TopSellingProductsChart::class,
-            TopPurchasedProductsChart::class,
+            MonthlySalesTrendChart::class,
         ];
-    }
-
-    protected function getHeaderWidgets(): array
-    {
-        return [];
     }
 
     public function mount()
@@ -56,13 +44,11 @@ class Dashboard extends BaseDashboard
         return $form->schema([
             DatePicker::make('start_date')
                 ->label('Boshlanish sanasi')
-                ->default(now()->subDay()->format('Y-m-d'))
                 ->reactive()
                 ->afterStateUpdated(fn ($state) => $this->updateStats()),
 
             DatePicker::make('end_date')
                 ->label('Tugash sanasi')
-                ->default(now()->format('Y-m-d'))
                 ->reactive()
                 ->afterStateUpdated(fn ($state) => $this->updateStats()),
         ]);

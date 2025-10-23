@@ -80,7 +80,7 @@ return [
 
     'locale' => 'uz',
 
-    'store_name' => 'Tractor',
+    'store_name' => 'Mir obuv 9494',
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
