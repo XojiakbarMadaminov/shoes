@@ -2,20 +2,21 @@
 
 namespace App\Filament\Widgets;
 
-use Livewire\Attributes\On;
-use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Carbon;
-use App\Models\Expense;
 use App\Models\Sale;
+use App\Models\Expense;
 use App\Models\SaleItem;
+use Livewire\Attributes\On;
+use Illuminate\Support\Carbon;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 use Filament\Forms\Concerns\InteractsWithForms;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
-use PHPUnit\Util\Color;
 
 class SalesStatsOverview extends BaseWidget
 {
     use HasWidgetShield, InteractsWithForms;
+
+    protected ?string $pollingInterval = '30s';
 
     public ?string $start_date = null;
     public ?string $end_date   = null;

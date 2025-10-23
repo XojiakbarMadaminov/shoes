@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Models\Sale;
 use Carbon\CarbonPeriod;
 use Livewire\Attributes\On;
-use Illuminate\Support\Carbon;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -14,6 +13,9 @@ use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 class MonthlySalesTrendChart extends ChartWidget
 {
     use HasWidgetShield, InteractsWithForms;
+
+    protected static bool $isLazy      = true;
+    protected ?string $pollingInterval = null;
 
     public ?string $start_date = null;
     public ?string $end_date   = null;
@@ -34,16 +36,8 @@ class MonthlySalesTrendChart extends ChartWidget
 
     protected function getData(): array
     {
-        $end   = Carbon::parse($this->end_date ?? now())->endOfMonth();
+        $end   = now()->endOfMonth();
         $start = $end->copy()->subMonthsNoOverflow(11)->startOfMonth();
-
-        if ($this->start_date) {
-            $requestedStart = Carbon::parse($this->start_date)->startOfMonth();
-
-            if ($requestedStart->greaterThan($start)) {
-                $start = $requestedStart;
-            }
-        }
 
         $driver     = DB::getDriverName();
         $formatExpr = $driver === 'pgsql'

@@ -13,6 +13,8 @@ class TopSellingProductsChart extends ChartWidget
 {
     use HasWidgetShield, InteractsWithForms;
 
+    protected ?string $pollingInterval = '30s';
+
     public ?string $start_date = null;
     public ?string $end_date   = null;
 

@@ -7,6 +7,7 @@ use App\Enums\NavigationGroup;
 use Filament\Support\Icons\Heroicon;
 use Filament\Schemas\Components\Form;
 use Filament\Forms\Components\DatePicker;
+use App\Filament\Widgets\SalesByCashierChart;
 use App\Filament\Widgets\MonthlySalesTrendChart;
 
 class SaleReport extends Page
@@ -24,6 +25,7 @@ class SaleReport extends Page
     public function getFooterWidgets(): array
     {
         return [
+            SalesByCashierChart::class,
             MonthlySalesTrendChart::class,
         ];
     }
