@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Clients\Schemas;
 
 use App\Models\Client;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -45,6 +46,7 @@ class ClientForm
                     ->formatStateUsing(fn ($state) => $state && $state !== '0'
                         ? ltrim(preg_replace('/^\+998/', '', $state), '0')
                         : $state),
+                Toggle::make('send_sms')->label('SMS yuborishga ruhsat')->default(true),
 
             ]);
     }

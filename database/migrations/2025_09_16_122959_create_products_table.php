@@ -18,7 +18,6 @@ return new class extends Migration
             $table->bigInteger('initial_price')->nullable();
             $table->bigInteger('price')->nullable();
             $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
-            $table->foreignId('color_id')->nullable()->constrained('colors')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
         });

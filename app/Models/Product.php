@@ -36,11 +36,6 @@ class Product extends Model implements HasMedia
         return $this->hasMany(ProductSize::class);
     }
 
-    public function color()
-    {
-        return $this->belongsTo(Color::class);
-    }
-
     public function sizeStocks()
     {
         return $this->hasManyThrough(

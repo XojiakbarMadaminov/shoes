@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Stores\Tables;
 
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Table;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\BulkActionGroup;
+use Filament\Forms\Components\Toggle;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
@@ -22,6 +24,7 @@ class StoresTable
                 TextColumn::make('name')->label('Nomi'),
                 TextColumn::make('address')->label('Manzil'),
                 TextColumn::make('phone')->label('Telefon'),
+                IconColumn::make('send_sms')->label('SMS yuborishga ruhsat')->boolean(),
             ])
             ->filters([
                 TrashedFilter::make(),

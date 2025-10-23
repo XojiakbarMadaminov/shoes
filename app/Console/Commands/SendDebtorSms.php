@@ -2,15 +2,15 @@
 
 namespace App\Console\Commands;
 
-use App\Services\SmsService;
 use Carbon\Carbon;
+use App\Services\SmsService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SendDebtorSms extends Command
 {
-    protected $signature = 'debtors:send-sms';
+    protected $signature   = 'debtors:send-sms';
     protected $description = 'Qarzdorlik muddati o‘tganlarga har 5 kunda SMS yuborish';
 
     public function handle()
@@ -26,10 +26,14 @@ class SendDebtorSms extends Command
                             ->where('d.amount', '>', 0);
                     });
             })
+            ->leftJoin('clients as c', 'd.client_id', 'c.id')
+            ->leftJoin('stores as s', 'd.store_id', 's.id')
+            ->where('s.send_sms', true)
+            ->where('c.send_sms', true)
             ->orderBy('d.id')
-            ->select('d.id', 'd.full_name', 'd.phone', 'd.amount', 'd.currency', 'd.date', 'd.store_id')
+            ->select('d.id', 'c.full_name', 'c.phone', 'd.amount', 'd.currency', 'd.date', 'd.store_id')
             ->chunk(100, function ($debtors) use ($today) {
-                $smsService = new SmsService();
+                $smsService = new SmsService;
 
                 foreach ($debtors as $debtor) {
                     // 1. Telefon raqam 12 xonali (998XXXXXXXXX) bo‘lishini tekshir
@@ -38,11 +42,14 @@ class SendDebtorSms extends Command
                         $this->warn("Telefon raqam noto‘g‘ri formatda: {$debtor->phone} (id:{$debtor->id})");
                         continue;
                     }
-                    $debtDate = Carbon::parse($debtor->date);
+                    $debtDate      = Carbon::parse($debtor->date);
                     $daysSinceDebt = $debtDate->diffInDays($today);
+                    dd($debtor);
 
                     // 2. Qarzdorlik kamida 15 kun bo‘lishi kerak
-                    if ($daysSinceDebt < 15) continue;
+                    if ($daysSinceDebt < 15) {
+                        continue;
+                    }
 
                     // 3. Oxirgi SMS yuborilgan vaqtni tekshir
                     $lastSms = DB::table('debtor_sms_logs')
@@ -54,17 +61,22 @@ class SendDebtorSms extends Command
 
                     if (!$lastSms) {
                         // Birinchi SMS 15-kuni yoki oshgan bo‘lsa yuboriladi
-                        if ($daysSinceDebt >= 15) $shouldSend = true;
+                        if ($daysSinceDebt >= 15) {
+                            $shouldSend = true;
+                        }
                     } else {
                         $lastSent = Carbon::parse($lastSms->sent_at);
                         // Har 5 kun o‘tganda yana yuboriladi
-                        if ($lastSent->diffInDays($today) >= 5) $shouldSend = true;
+                        if ($lastSent->diffInDays($today) >= 5) {
+                            $shouldSend = true;
+                        }
                     }
 
                     if ($shouldSend) {
-                        $store = DB::table('stores')->where('id', $debtor->store_id)->first();
+                        $store   = DB::table('stores')->where('id', $debtor->store_id)->first();
                         $message = "Sizda {$store->address}da joylashgan {$store->name} do'konidan {$debtor->amount} {$debtor->currency} qarzdorlik mavjud. Tez orada to'lang yoki {$store->phone} raqamiga murojaat qiling.";
                         $this->info($message);
+
                         return;
                         $result = $smsService->sendSms($phone, $message);
 
@@ -74,7 +86,7 @@ class SendDebtorSms extends Command
                             // SMS logga yoziladi
                             DB::table('debtor_sms_logs')->insert([
                                 'debtor_id' => $debtor->id,
-                                'sent_at' => now(),
+                                'sent_at'   => now(),
                             ]);
                         } else {
                             Log::error("SMS yuborilmadi: {$phone}. Sabab: {$result['error']}");
@@ -91,6 +103,7 @@ class SendDebtorSms extends Command
         if (strlen($phone) == 9) {
             $phone = '998' . $phone;
         }
+
         return $phone;
     }
 }

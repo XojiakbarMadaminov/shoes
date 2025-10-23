@@ -56,7 +56,6 @@ class ProductsTable
                         ),
                     TextColumn::make('name')->label('Nomi')->searchable()->sortable(),
                     TextColumn::make('barcode')->label('Bar kod')->searchable(),
-                    TextColumn::make('color')->label('Rang')->toggleable(isToggledHiddenByDefault: true),
                     TextColumn::make('initial_price')->label('Kelgan narxi')->numeric(),
                     TextColumn::make('price')->label('Sotish narxi')->numeric(),
                     TextColumn::make('category.name')->label('Kategoriyasi')->sortable()->searchable(),

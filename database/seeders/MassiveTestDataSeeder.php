@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use App\Models\Sale;
 use App\Models\User;
 use Faker\Generator;
-use App\Models\Color;
 use App\Models\Stock;
 use App\Models\Store;
 use App\Models\Client;
@@ -35,7 +34,6 @@ class MassiveTestDataSeeder extends Seeder
     private array $clientIds            = [];
     private array $supplierIds          = [];
     private array $categoryIds          = [];
-    private array $colorIds             = [];
     private array $productIds           = [];
     private array $productPrices        = [];
     private array $productInitialPrices = [];
@@ -51,7 +49,6 @@ class MassiveTestDataSeeder extends Seeder
         $this->faker->unique(true);
 
         $this->seedStoresAndStocks();
-        $this->seedColors();
         $this->seedCategories();
         $this->seedUsers();
         $this->seedClients();
@@ -117,27 +114,6 @@ class MassiveTestDataSeeder extends Seeder
 
             $store->stocks()->syncWithoutDetaching([$stock->id]);
         }
-    }
-
-    private function seedColors(): void
-    {
-        $target = 12;
-
-        while (Color::count() < $target) {
-            $title = Str::title($this->faker->unique()->safeColorName());
-
-            Color::query()->firstOrCreate(
-                ['title' => $title],
-                [
-                    'status'     => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
-        }
-
-        $this->colorIds = Color::pluck('id')->all();
-        $this->faker->unique(true);
     }
 
     private function seedCategories(): void
@@ -281,7 +257,7 @@ class MassiveTestDataSeeder extends Seeder
 
     private function seedProductsAndStocks(): void
     {
-        if (empty($this->categoryIds) || empty($this->colorIds)) {
+        if (empty($this->categoryIds)) {
             return;
         }
 
@@ -290,14 +266,12 @@ class MassiveTestDataSeeder extends Seeder
 
         if ($needed > 0) {
             $categoryIds = $this->categoryIds;
-            $colorIds    = $this->colorIds;
 
             $this->faker->unique(true);
             Product::factory()
                 ->count($needed)
                 ->state(fn () => [
                     'category_id' => Arr::random($categoryIds),
-                    'color_id'    => Arr::random($colorIds),
                     'type'        => 'package',
                 ])
                 ->create();

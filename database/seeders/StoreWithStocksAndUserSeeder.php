@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Color;
 use App\Models\Stock;
 use App\Models\Store;
 use Illuminate\Database\Seeder;
@@ -15,32 +14,26 @@ class StoreWithStocksAndUserSeeder extends Seeder
      */
     public function run(): void
     {
-        $colors = [
-            ['title' => 'Qora', 'created_at' => now(), 'updated_at' => now()],
-            ['title' => 'Oq', 'created_at' => now(), 'updated_at' => now()],
-            ['title' => 'Qizil', 'created_at' => now(), 'updated_at' => now()],
-        ];
-
-        Color::query()->upsert($colors, ['title'], ['updated_at']);
-
         $store = Store::query()->updateOrCreate(
             ['name' => 'Main Store'],
             [
-                'address' => 'Toshkent, Chilonzor',
-                'phone'   => '+998901234567',
+                'address'  => 'Toshkent, Chilonzor',
+                'phone'    => '+998901234567',
+                'send_sms' => true,
             ]
         );
 
         // 2️⃣ 2 ta stock yaratish
         $stocks = [
-            ['name' => 'Asosiy Ombor'],
-            ['name' => 'Filial Ombori'],
+            ['name' => 'Asosiy Ombor', 'is_main' => true],
+            ['name' => 'Filial Ombori', 'is_main' => false],
         ];
 
         $stockIds = [];
         foreach ($stocks as $stock) {
             $created = Stock::query()->updateOrCreate(
                 ['name' => $stock['name']],
+                ['is_main'   => $stock['is_main']],
                 ['is_active' => true]
             );
             $stockIds[] = $created->id;
