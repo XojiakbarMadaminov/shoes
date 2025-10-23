@@ -18,20 +18,34 @@ class SendDebtorSms extends Command
         $today = Carbon::today();
 
         DB::table('debtors as d')
+            ->leftJoin('clients as c', 'd.client_id', '=', 'c.id')
+            ->leftJoin('stores as s', 'd.store_id', '=', 's.id')
+            ->where('s.send_sms', true)
+            ->where('c.send_sms', true)
             ->where(function ($query) {
-                $query->where('d.currency', 'uzs')
-                    ->where('d.amount', '>', 10000)
+                $query->where(function ($q) {
+                    $q->where('d.currency', 'uzs')
+                        ->where('d.amount', '>', 10000);
+                })
                     ->orWhere(function ($q) {
                         $q->where('d.currency', '!=', 'uzs')
                             ->where('d.amount', '>', 0);
                     });
             })
-            ->leftJoin('clients as c', 'd.client_id', 'c.id')
-            ->leftJoin('stores as s', 'd.store_id', 's.id')
-            ->where('s.send_sms', true)
-            ->where('c.send_sms', true)
             ->orderBy('d.id')
-            ->select('d.id', 'c.full_name', 'c.phone', 'd.amount', 'd.currency', 'd.date', 'd.store_id')
+            ->select(
+                'd.id',
+                'c.full_name',
+                'c.phone',
+                'd.amount',
+                'd.currency',
+                'd.date',
+                'd.store_id',
+                'c.send_sms_interval',
+                's.address as store_address',
+                's.phone as store_phone',
+                's.name as store_name'
+            )
             ->chunk(100, function ($debtors) use ($today) {
                 $smsService = new SmsService;
 
@@ -44,10 +58,9 @@ class SendDebtorSms extends Command
                     }
                     $debtDate      = Carbon::parse($debtor->date);
                     $daysSinceDebt = $debtDate->diffInDays($today);
-                    dd($debtor);
 
                     // 2. Qarzdorlik kamida 15 kun bo‘lishi kerak
-                    if ($daysSinceDebt < 15) {
+                    if ($daysSinceDebt < $debtor->send_sms_interval) {
                         continue;
                     }
 
@@ -60,8 +73,7 @@ class SendDebtorSms extends Command
                     $shouldSend = false;
 
                     if (!$lastSms) {
-                        // Birinchi SMS 15-kuni yoki oshgan bo‘lsa yuboriladi
-                        if ($daysSinceDebt >= 15) {
+                        if ($daysSinceDebt >= $debtor->send_sms_interval) {
                             $shouldSend = true;
                         }
                     } else {
@@ -73,11 +85,9 @@ class SendDebtorSms extends Command
                     }
 
                     if ($shouldSend) {
-                        $store   = DB::table('stores')->where('id', $debtor->store_id)->first();
-                        $message = "Sizda {$store->address}da joylashgan {$store->name} do'konidan {$debtor->amount} {$debtor->currency} qarzdorlik mavjud. Tez orada to'lang yoki {$store->phone} raqamiga murojaat qiling.";
+                        $message = "Sizda {$debtor->store_address}da joylashgan {$debtor->store_name} do'konidan {$debtor->amount} {$debtor->currency} qarzdorlik mavjud. Tez orada to'lang yoki {$debtor->store_phone} raqamiga murojaat qiling.";
                         $this->info($message);
 
-                        return;
                         $result = $smsService->sendSms($phone, $message);
 
                         if ($result['success']) {

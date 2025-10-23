@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 class SmsService
 {
@@ -14,9 +14,9 @@ class SmsService
 
     public function __construct()
     {
-        $this->email = config('sms.eskiz.email');
+        $this->email    = config('sms.eskiz.email');
         $this->password = config('sms.eskiz.password');
-        $this->from = '4546';
+        $this->from     = '4546';
     }
 
     /**
@@ -34,7 +34,7 @@ class SmsService
 
         // Login orqali token olamiz
         $response = Http::asForm()->post('https://notify.eskiz.uz/api/auth/login', [
-            'email' => $this->email,
+            'email'    => $this->email,
             'password' => $this->password,
         ]);
 
@@ -42,6 +42,7 @@ class SmsService
             $token = $response['data']['token'];
             // Cachega 29 kun saqlaymiz (Eskiz token 30 kun ishlaydi)
             Cache::put($cacheKey, $token, now()->addDays(29));
+
             return $token;
         }
 
@@ -49,6 +50,7 @@ class SmsService
         Log::error('Eskiz token olishda xatolik', [
             'response' => $response->json(),
         ]);
+
         return null;
     }
 
@@ -79,7 +81,6 @@ class SmsService
             ->asForm()
             ->post('https://notify.eskiz.uz/api/message/sms/send', $data);
 
-
         if ($response->ok() && isset($response['status']) && $response['status'] === 'waiting') {
             return [
                 'success' => true,
@@ -88,10 +89,11 @@ class SmsService
             ];
         } else {
             Log::error('Eskiz SMS xatolik', [
-                'phone'   => $phone,
-                'message' => $message,
-                'response'=> $response->json(),
+                'phone'    => $phone,
+                'message'  => $message,
+                'response' => $response->json(),
             ]);
+
             return [
                 'success' => false,
                 'data'    => $response->json(),
@@ -109,6 +111,7 @@ class SmsService
         if (strlen($phone) == 9) {
             $phone = '998' . $phone;
         }
+
         return $phone;
     }
 }

@@ -54,10 +54,10 @@ class StoreResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListStores::route('/'),
-            'create' => CreateStore::route('/create'),
-            'view'   => ViewStore::route('/{record}'),
-            'edit'   => EditStore::route('/{record}/edit'),
+            'index' => ListStores::route('/'),
+            //            'create' => CreateStore::route('/create'),
+            'view' => ViewStore::route('/{record}'),
+            'edit' => EditStore::route('/{record}/edit'),
         ];
     }
 

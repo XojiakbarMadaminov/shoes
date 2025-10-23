@@ -15,7 +15,6 @@ class StoreForm
             ->components([
                 Section::make()
                     ->columnSpanFull()
-                    ->columns(3)
                     ->components([
                         TextInput::make('name')->label('Nomi')->required(),
                         TextInput::make('address')->label('Manzil')->nullable(),
