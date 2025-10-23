@@ -50,6 +50,7 @@ class DebtorForm
 
                     DatePicker::make('date')
                         ->label('Qarz sanasi')
+                        ->format('Y-m-d')
                         ->default(today())
                         ->required(),
                 ])->columnSpanFull(),
