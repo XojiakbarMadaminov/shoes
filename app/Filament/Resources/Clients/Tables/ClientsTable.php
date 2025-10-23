@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\Clients\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use Filament\Tables\Table;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
 
 class ClientsTable
 {
@@ -15,6 +15,7 @@ class ClientsTable
     {
         return $table
             ->columns([
+                TextColumn::make('id')->label('ID'),
                 TextColumn::make('full_name')
                     ->searchable(),
                 TextColumn::make('phone')

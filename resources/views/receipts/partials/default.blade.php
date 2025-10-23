@@ -17,6 +17,7 @@
     $totals = $data['totals'] ?? ['qty' => 0, 'amount' => 0];
 
     $cartIdFormatted = $data['cart_id'] ?? null;
+    $storeIdFormatted = $data['store_id'] ?? null;
     $showQr          = $showQr ?? true;
     $qrPath          = $qrPath ?? null;
 @endphp
@@ -51,7 +52,7 @@
 <div class="center" style="margin-bottom:4px;">{{ $data['receipt_number'] ?? '' }}</div>
 <div class="center" style="margin-bottom:8px;">{{ $data['date'] ?? '' }}</div>
 
-<div>Savat: #{{ $cartIdFormatted !== null ? $cartIdFormatted : '—' }}</div>
+<div>Store: #{{ $storeIdFormatted !== null ? $storeIdFormatted : '—' }}</div>
 <div style="margin-top:8px; font-size:12px;">
     <div>ID: <strong>{{ $meta['sale_id'] ?? '—' }}</strong></div>
     <div>Klient: <strong>{{ $meta['client_name'] ?? 'Tanlanmagan' }}</strong></div>

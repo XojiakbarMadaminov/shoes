@@ -2,17 +2,16 @@
 
 namespace App\Filament\Resources\Stocks\Tables;
 
+use Filament\Tables\Table;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\RestoreAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ForceDeleteBulkAction;
-use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
-use Filament\Tables\Table;
 
 class StocksTable
 {
@@ -20,6 +19,7 @@ class StocksTable
     {
         return $table
             ->columns([
+                TextColumn::make('id')->label('ID'),
                 TextColumn::make('name')->label('Nomi'),
                 TextColumn::make('stores.name')
                     ->label('Magazinlar')

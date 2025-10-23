@@ -722,6 +722,7 @@ class Pos extends Page
             $sale->loadMissing(['client', 'createdBy']);
 
             $this->prepareReceipt(
+                $sale->store_id,
                 $this->activeCartId,
                 $receiptItems,
                 $totals,
@@ -762,9 +763,10 @@ class Pos extends Page
     }
 
     /* ---------- Chek funksiyalari ---------- */
-    public function prepareReceipt(int $cartId, array $items, array $totals, array $meta = []): void
+    public function prepareReceipt(int $storeId, int $cartId, array $items, array $totals, array $meta = []): void
     {
         $this->receiptData = [
+            'store_id'       => $storeId,
             'cart_id'        => $cartId,
             'items'          => $items,
             'totals'         => $totals,
