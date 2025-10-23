@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasCurrentStoreScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PurchaseItem extends Model
 {
+    use HasCurrentStoreScope;
     protected $table   = 'purchase_items';
     protected $guarded = [];
 

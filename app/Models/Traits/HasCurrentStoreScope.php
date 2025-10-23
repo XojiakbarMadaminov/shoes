@@ -83,6 +83,15 @@ trait HasCurrentStoreScope
 
                 return;
             }
+
+            // ✅ 6. PurchaseItemsd – tegishli store orqali filter
+            if ($table === 'purchase_items') {
+                $builder->whereHas('purchase', function ($q) use ($user) {
+                    $q->where('store_id', $user->current_store_id);
+                });
+
+                return;
+            }
         });
     }
 }
