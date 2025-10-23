@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use App\Models\Traits\HasCurrentStoreScope;
-use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Category extends Model
 {
-    protected $table = 'categories';
+    use HasFactory;
+
+    protected $table   = 'categories';
     protected $guarded = [];
 
     public function products()

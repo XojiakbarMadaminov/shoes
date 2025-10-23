@@ -18,7 +18,7 @@ class SalesByClientChart extends ChartWidget
     public ?string $end_date   = null;
     protected int $maxRecords  = 10;
 
-    protected ?string $heading = 'Top 10 mijozlar';
+    protected ?string $heading = 'Top mijozlar';
 
     public function getColumnSpan(): int|string|array
     {
