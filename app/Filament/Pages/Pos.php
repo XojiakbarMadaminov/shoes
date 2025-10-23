@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Enums\NavigationGroup;
 use App\Models\Sale;
 use App\Models\Client;
 use App\Models\Debtor;
@@ -12,6 +11,7 @@ use Filament\Pages\Page;
 use Livewire\Attributes\On;
 use App\Models\ProductStock;
 use App\Services\CartService;
+use App\Enums\NavigationGroup;
 use App\Models\DebtorTransaction;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
@@ -1091,10 +1091,11 @@ class Pos extends Page
     {
         $this->validate([
             'newClient.full_name' => 'required|string|min:3',
-            'newClient.phone'     => 'nullable|string',
+            'newClient.phone'     => 'nullable|string|unique:clients,phone',
         ], [
             'newClient.full_name.required' => 'To\'liq ismni kiriting',
             'newClient.full_name.min'      => 'Ism kamida 3 ta belgidan iborat bo\'lishi kerak',
+            'newClient.phone.unique'       => 'Ushbu telefon raqami allaqachon mavjud.',
         ]);
 
         $client = Client::create([

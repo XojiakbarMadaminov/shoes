@@ -550,6 +550,9 @@
                                         placeholder="Masalan: Aliyev Ali"
                                         required
                                     />
+                                    @error('newClient.full_name')
+                                        <p class="mt-1 text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>
+                                    @enderror
                                 </div>
 
                                 <div>
@@ -560,6 +563,9 @@
                                         wire:model="newClient.phone"
                                         placeholder="+998 XX XXX XX XX"
                                     />
+                                    @error('newClient.phone')
+                                        <p class="mt-1 text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>
+                                    @enderror
                                 </div>
 
                                 <div class="flex gap-2 mt-4">
