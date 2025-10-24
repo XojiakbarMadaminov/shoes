@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Enums\NavigationGroup;
 use Throwable;
 use Carbon\Carbon;
 use App\Models\Sale;
@@ -12,11 +11,12 @@ use Filament\Pages\Page;
 use Filament\Tables\Table;
 use App\Models\ProductStock;
 use Filament\Actions\Action;
+use App\Enums\NavigationGroup;
 use App\Models\DebtorTransaction;
 use Illuminate\Support\Facades\DB;
-use Filament\Tables\Filters\Filter;
 use Filament\Support\Icons\Heroicon;
 use Filament\Forms\Components\Select;
+use App\Services\TelegramSaleNotifier;
 use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
@@ -423,6 +423,10 @@ class SalesHistoryPage extends Page implements HasTable
             return;
         }
 
+        $sale->refresh();
+
+        app(TelegramSaleNotifier::class)->notify($sale, 'completed');
+
         Notification::make()
             ->title("Sotuv #{$sale->id} yakunlandi")
             ->success()
@@ -466,6 +470,10 @@ class SalesHistoryPage extends Page implements HasTable
 
             return;
         }
+
+        $sale->refresh();
+
+        app(TelegramSaleNotifier::class)->notify($sale, 'canceled');
 
         Notification::make()
             ->title("Sotuv #{$sale->id} bekor qilindi")

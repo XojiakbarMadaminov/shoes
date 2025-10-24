@@ -2,12 +2,10 @@
 
 namespace App\Models;
 
-use App\Models\Traits\HasCurrentStoreScope;
-use App\Models\DebtorTransaction;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Traits\HasCurrentStoreScope;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Sale extends Model
 {
@@ -37,6 +35,11 @@ class Sale extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
     }
 
     public function createdBy(): BelongsTo

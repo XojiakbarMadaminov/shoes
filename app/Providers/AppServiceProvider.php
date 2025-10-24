@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Sale;
 use App\Models\Product;
-use Illuminate\Support\ServiceProvider;
+use App\Observers\SaleObserver;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\ServiceProvider;
 use Spatie\MediaLibrary\Conversions\Events\ConversionHasBeenCompletedEvent;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        URL::forceScheme('https');
+        Sale::observe(SaleObserver::class);
+
         // Remove original product images after the optimized conversion is generated
         Event::listen(ConversionHasBeenCompletedEvent::class, function (ConversionHasBeenCompletedEvent $event) {
             $media = $event->media;
