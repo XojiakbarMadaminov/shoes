@@ -26,7 +26,7 @@
     </style>
     @php
         $receiptData  = \App\Support\ReceiptData::fromSale($sale);
-        $qrPublicPath = public_path('images/traktor-qr.png');
+        $qrPublicPath = public_path('images/taplink.png');
         $qrPath       = is_file($qrPublicPath) ? ('file://' . $qrPublicPath) : null;
     @endphp
 </head>

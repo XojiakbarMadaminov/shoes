@@ -47,7 +47,7 @@
     <div class="receipt" id="sale-receipt">
         @include('receipts.partials.default', [
             'receiptData' => $receiptData,
-            'qrPath' => asset('images/traktor-qr.png'),
+            'qrPath' => asset('images/taplink.png'),
         ])
     </div>
 
