@@ -92,10 +92,7 @@
                     @forelse($sale->items as $item)
                         <tr class="border-t">
                             <td class="px-3 py-2">
-                                {{ $item->product->name ?? ('#'.$item->product_id) }}
-                                @if($item->productSize?->size)
-                                    <span class="text-gray-500"> ({{ $item->productSize->size }})</span>
-                                @endif
+                                {{ $item->product->name ?? ('#'.$item->product_id) }}@if($item->productSize?->size)<span class="text-gray-500">({{ $item->productSize->size }})</span>@endif
                             </td>
                             <td class="px-3 py-2">{{ $item->stock->name ?? ('#'.$item->stock_id) }}</td>
                             <td class="px-3 py-2 text-right">{{ $item->quantity }}</td>

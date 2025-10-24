@@ -8,7 +8,7 @@ class ReceiptData
 {
     public static function fromSale(Sale $sale, array $metaOverrides = []): array
     {
-        $items     = $sale->items ?? collect();
+        $items     = $sale->items()->with(['product', 'productSize'])->get();
         $storeId   = $sale->store_id;
         $cartId    = $sale->cart_id ?? $sale->id;
         $created   = $sale->created_at ?? now();
@@ -24,6 +24,7 @@ class ReceiptData
             'items'    => $items->map(function ($item) {
                 return [
                     'name'  => $item->product?->name ?? 'Mahsulot',
+                    'size'  => $item->productSize?->size,
                     'qty'   => (float) $item->quantity,
                     'price' => (float) $item->price,
                 ];

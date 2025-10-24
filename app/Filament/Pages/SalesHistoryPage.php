@@ -58,7 +58,7 @@ class SalesHistoryPage extends Page implements HasTable
         return $table
             ->query(
                 fn (): Builder => Sale::query()
-                    ->with(['client', 'items.product', 'createdBy'])
+                    ->with(['client', 'items.product', 'items.productSize', 'createdBy'])
             )
             ->modifyQueryUsing(function (Builder $query) {
                 $preset = $this->datePreset;
@@ -233,7 +233,7 @@ class SalesHistoryPage extends Page implements HasTable
                     ->modalSubmitAction(false)
                     ->modalWidth('4xl')
                     ->modalContent(function (Sale $record) {
-                        $record->loadMissing(['client', 'items.product', 'createdBy']);
+                        $record->loadMissing(['client', 'items.product', 'items.productSize', 'createdBy']);
 
                         return view('filament.sales.partials.sale-details', [
                             'sale' => $record,

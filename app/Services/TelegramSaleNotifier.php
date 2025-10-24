@@ -49,7 +49,7 @@ class TelegramSaleNotifier
 
     private function buildMessage(Sale $sale, string $event): string
     {
-        $sale->loadMissing(['client', 'items.product', 'store', 'createdBy']);
+        $sale->loadMissing(['client', 'items.product', 'items.productSize', 'store', 'createdBy']);
 
         $title       = $this->messageTitle($event);
         $storeName   = $sale->store?->name ?? "Noma'lum do'kon";
@@ -63,7 +63,12 @@ class TelegramSaleNotifier
         $itemLines = $sale->items
             ->map(function ($item) {
                 $name     = $item->product?->name ?? 'Mahsulot';
+                $size     = $item->productSize?->size;
                 $quantity = $item->quantity ?? 0;
+
+                if (filled($size)) {
+                    $name .= sprintf('(%s)', $size);
+                }
 
                 return sprintf('- %s x %s', $name, $quantity);
             })

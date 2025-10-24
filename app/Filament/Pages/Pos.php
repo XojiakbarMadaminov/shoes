@@ -609,9 +609,30 @@ class Pos extends Page
             return false;
         }
 
-        $receiptItems = array_values($cart);
-        $paymentType  = $this->paymentType;
-        $clientId     = $this->selectedClientId;
+        $sizeIds = array_values(array_unique(array_filter(array_map(
+            function ($item) {
+                return $item['product_size_id'] ?? null;
+            },
+            $preparedItems
+        ))));
+
+        $sizeNames = [];
+        if (!empty($sizeIds)) {
+            $sizeNames = \App\Models\ProductSize::whereIn('id', $sizeIds)->pluck('size', 'id')->toArray();
+        }
+
+        $receiptItems = array_map(function (array $prepared) use ($sizeNames) {
+            $sizeId = $prepared['product_size_id'] ?? null;
+
+            return [
+                'name'  => $prepared['name'] ?? 'Mahsulot',
+                'size'  => $sizeId ? ($sizeNames[$sizeId] ?? null) : null,
+                'qty'   => (float) $prepared['quantity'],
+                'price' => (float) $prepared['price'],
+            ];
+        }, $preparedItems);
+        $paymentType = $this->paymentType;
+        $clientId    = $this->selectedClientId;
 
         $sale                      = null;
         $remainingAmountForReceipt = 0.0;

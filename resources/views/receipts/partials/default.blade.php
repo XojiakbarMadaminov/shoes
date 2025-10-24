@@ -73,6 +73,8 @@
 @foreach($items as $item)
     @php
         $itemName  = $item['name'] ?? 'Mahsulot';
+        $size      = $item['size'] ?? null;
+        $itemName  = $size ? $itemName . '(' . $size . ')' : $itemName;
         $qty       = (float) ($item['qty'] ?? 0);
         $price     = (float) ($item['price'] ?? 0);
         $lineTotal = $qty * $price;
