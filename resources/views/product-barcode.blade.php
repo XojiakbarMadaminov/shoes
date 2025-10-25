@@ -60,20 +60,72 @@
 {{-- DomPDF ba'zida birinchi bo‘sh sahifa chiqarib yubormasligi uchun hiyla --}}
 <div style="display:none">&nbsp;</div>
 
-@foreach($products as $product)
-    <div class="label">
-        <div class="product-name"
-             style="font-size: {{ strlen($product->name) > 40 ? '6px' : (strlen($product->name) > 20 ? '8px' : '10px') }}">
-            {{ $product->name }}
-        </div>
+@php
+    $labelSize = $size ?? '30x20';
 
+    // Sizing presets per label
+    $presets = [
+        '30x20' => [
+            'name_font' => function (int $len): string {
+                if ($len <= 18) { return '9px'; }
+                if ($len <= 30) { return '8px'; }
+                return '7px';
+            },
+            'name_max'   => 40,
+            'barcode'    => ['scale' => 1.0, 'height' => 22],
+            'code_font'  => '8px',
+        ],
+        '57x30' => [
+            'name_font' => function (int $len): string {
+                if ($len <= 30) { return '12px'; }
+                if ($len <= 45) { return '10px'; }
+                return '9px';
+            },
+            'name_max'   => 60,
+            'barcode'    => ['scale' => 1.3, 'height' => 34],
+            'code_font'  => '10px',
+        ],
+        '85x65' => [
+            'name_font' => function (int $len): string {
+                if ($len <= 40) { return '18px'; }
+                if ($len <= 60) { return '16px'; }
+                return '14px';
+            },
+            'name_max'   => 90,
+            'barcode'    => ['scale' => 2.0, 'height' => 50],
+            'code_font'  => '12px',
+        ],
+    ];
+
+    $cfg = $presets[$labelSize] ?? $presets['30x20'];
+@endphp
+
+@foreach($products as $product)
+    @php
+        $name = (string) ($product->name ?? '');
+        $len  = function_exists('mb_strlen') ? mb_strlen($name) : strlen($name);
+        $max  = $cfg['name_max'];
+        if ($len > $max) {
+            $name = (function_exists('mb_substr') ? mb_substr($name, 0, $max) : substr($name, 0, $max)) . '…';
+            $len  = function_exists('mb_strlen') ? mb_strlen($name) : strlen($name);
+        }
+
+        $nameFont   = ($cfg['name_font'])($len);
+        $scale      = $cfg['barcode']['scale'];
+        $barHeight  = $cfg['barcode']['height'];
+        $codeFont   = $cfg['code_font'];
+    @endphp
+
+    <div class="label">
+        <div class="product-name" style="font-size: {{ $nameFont }}">{{ $name }}</div>
 
         <div class="barcode">
             <div style="display:inline-block;">
-                {!! DNS1D::getBarcodeHTML($product->barcode, 'EAN13', 1.2, 28) !!}
+                {!! DNS1D::getBarcodeHTML($product->barcode, 'EAN13', $scale, $barHeight) !!}
             </div>
         </div>
-        <div class="product-name" style="font-size: 10px">{{ $product->barcode }}</div>
+
+        <div class="product-name" style="font-size: {{ $codeFont }}">{{ $product->barcode }}</div>
     </div>
 @endforeach
 </body>
