@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Products\Tables;
 
 use App\Models\Stock;
 use App\Models\Product;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use App\Models\ProductStock;
 use Filament\Actions\Action;
@@ -70,6 +71,14 @@ class ProductsTable
                         ->disabled(fn (Product $record) => ($record->type ?? 'size') === 'package');
                 })->all()
             ))
+            ->filters([
+                SelectFilter::make('category_id')
+                    ->label('Kategoriya')
+                    ->relationship('category', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('Barcha kategoriyalar'),
+            ])
             ->recordActions([
                 Action::make('sizes_breakdown')
                     ->label('Razmerlar')

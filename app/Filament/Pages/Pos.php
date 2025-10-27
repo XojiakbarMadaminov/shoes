@@ -200,7 +200,7 @@ class Pos extends Page
                     ->orWhere('name', 'ILIKE', "%{$this->search}%")
             )
             ->orderBy('name')
-            ->limit(10)
+            ->limit(5)
             ->get();
     }
 
