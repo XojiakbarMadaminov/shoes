@@ -147,6 +147,7 @@ class ProductForm
                             ->disk(config('filesystems.default'))
                             ->collection(Product::IMAGE_COLLECTION)
                             ->label('Mahsulot rasmlari')
+                            ->imageEditor()
                             ->maxSize(10240)
                             ->multiple()
                             ->reorderable()

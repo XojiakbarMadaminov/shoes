@@ -14,12 +14,6 @@ class Category extends Model implements HasMedia
     protected $table   = 'categories';
     protected $guarded = [];
 
-    public function registerMediaCollections(): void
-    {
-        $this->addMediaCollection('image')
-            ->singleFile();
-    }
-
     public function products()
     {
         return $this->hasMany(Product::class);
