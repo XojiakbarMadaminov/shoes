@@ -144,6 +144,7 @@ class ProductForm
                     ->columnSpanFull()
                     ->schema(function () {
                         $upload = SpatieMediaLibraryFileUpload::make('images')
+                            ->disk(config('filesystems.default'))
                             ->collection(Product::IMAGE_COLLECTION)
                             ->label('Mahsulot rasmlari')
                             ->maxSize(10240)
