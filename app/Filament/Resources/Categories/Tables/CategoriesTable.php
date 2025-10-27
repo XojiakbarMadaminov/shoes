@@ -2,14 +2,14 @@
 
 namespace App\Filament\Resources\Categories\Tables;
 
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use Filament\Tables\Table;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\BooleanColumn;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 
 class CategoriesTable
 {
@@ -19,6 +19,10 @@ class CategoriesTable
             ->columns([
                 TextColumn::make('name')->label('Nomi'),
                 IconColumn::make('is_active')->label('Aktiv')->boolean(),
+                SpatieMediaLibraryImageColumn::make('image')
+                    ->label('Rasm')
+                    ->collection('image')
+                    ->disk('public'),
             ])
             ->filters([
                 //
