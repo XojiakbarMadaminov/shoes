@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
             ShieldSeeder::class,
             UserSeeder::class,
             StoreWithStocksAndUserSeeder::class,
-            //            MassiveTestDataSeeder::class,
+                        MassiveTestDataSeeder::class,
         ]);
     }
 }

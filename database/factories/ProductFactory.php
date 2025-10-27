@@ -23,7 +23,6 @@ class ProductFactory extends Factory
             'initial_price' => $initialPrice,
             'price'         => $price,
             'category_id'   => null,
-            'color_id'      => null,
             'type'          => 'package',
             'created_at'    => $createdAt,
             'updated_at'    => $createdAt,

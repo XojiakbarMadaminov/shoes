@@ -62,33 +62,11 @@ class ProductsTable
                     TextColumn::make('type')->label('Turi')->badge()->formatStateUsing(fn ($state) => $state === 'package' ? 'Paket' : 'Razmer'),
                 ],
                 $stocks->map(function ($stock) {
-                    return TextColumn::make("stock_{$stock->id}")
+                    return TextColumn::make("stock_{$stock->id}_qty")
                         ->label($stock->name)
                         ->alignCenter()
-                        ->getStateUsing(function (Product $record) use ($stock) {
-                            static $cache = [];
-
-                            $pid = $record->id;
-                            if (!isset($cache[$pid])) {
-                                $sizeIds = $record->relationLoaded('sizes')
-                                    ? $record->sizes->pluck('id')->all()
-                                    : $record->sizes()->pluck('id')->all();
-
-                                $rows = ProductStock::selectRaw('stock_id, SUM(quantity) as qty')
-                                    ->where(function ($q) use ($pid, $sizeIds) {
-                                        $q->where('product_id', $pid);
-                                        if (!empty($sizeIds)) {
-                                            $q->orWhereIn('product_size_id', $sizeIds);
-                                        }
-                                    })
-                                    ->groupBy('stock_id')
-                                    ->get();
-
-                                $cache[$pid] = $rows->pluck('qty', 'stock_id')->map(fn ($v) => (int) $v)->all();
-                            }
-
-                            return (int) ($cache[$pid][$stock->id] ?? 0);
-                        })
+                        ->formatStateUsing(fn ($state) => (int) ($state ?? 0))
+                        ->default(0)
                         ->disabled(fn (Product $record) => ($record->type ?? 'size') === 'package');
                 })->all()
             ))
@@ -178,6 +156,24 @@ class ProductsTable
                         ->deselectRecordsAfterCompletion(),
                 ]),
             ])
-            ->modifyQueryUsing(fn ($query) => $query->with(['category', 'sizes:id,product_id']));
+            ->modifyQueryUsing(function ($query) use ($stocks) {
+                $query->with(['category', 'sizes:id,product_id']);
+
+                foreach ($stocks as $stock) {
+                    $alias = "stock_{$stock->id}_qty";
+
+                    $query->addSelect([
+                        $alias => ProductStock::query()
+                            ->selectRaw('COALESCE(SUM(product_stocks.quantity), 0)')
+                            ->leftJoin('product_sizes', 'product_sizes.id', '=', 'product_stocks.product_size_id')
+                            ->where('product_stocks.stock_id', $stock->id)
+                            ->where(function ($subQuery) {
+                                $subQuery
+                                    ->whereColumn('product_stocks.product_id', 'products.id')
+                                    ->orWhereColumn('product_sizes.product_id', 'products.id');
+                            }),
+                    ]);
+                }
+            });
     }
 }
