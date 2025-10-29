@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Panel;
 use App\Models\Sale;
 use App\Models\Client;
 use App\Models\Debtor;
@@ -28,6 +29,11 @@ class Pos extends Page
     protected string $view                                   = 'filament.pages.pos';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-shopping-cart';
     protected static ?int $navigationSort                    = 1;
+
+    public static function getRoutePath(Panel $panel): string
+    {
+        return '/';
+    }
 
     public function getHeading(): string
     {

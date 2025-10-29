@@ -21,6 +21,7 @@ class Dashboard extends BaseDashboard
     protected static ?string $navigationLabel                = 'Statistika';
     protected static string|null|\BackedEnum $navigationIcon = Heroicon::ChartBar;
     protected static ?int $navigationSort                    = 1;
+    protected static string $routePath                       = '/dashboard';
 
     protected string $view     = 'filament.pages.dashboard';
     public ?string $start_date = null;
