@@ -32,6 +32,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
 //            ->profile()
             ->globalSearch(false)
+            ->favicon(asset('images/oson-pos-logo.png'))
             ->colors([
                 'primary' => Color::hex('#484ab5'), // Color::hex('#b5972d') // Color::Amber,
             ])
