@@ -45,8 +45,8 @@
 
 <div class="line">Do`kon: {{ config('app.store_name') }}</div>
 <div class="line">Sana:   {{ now()->format('d.m.Y') }}</div>
-<div class="line">Ism:    {{ $debtor->full_name }}</div>
-<div class="line">Tel:    {{ $debtor->phone }}</div>
+<div class="line">Ism:    {{ $debtor->client?->full_name }}</div>
+<div class="line">Tel:    {{ $debtor->client?->phone }}</div>
 <div class="line">Valyuta: {{ strtoupper($debtor->currency) }}</div>
 <div class="line">Joriy qarz:  {{ number_format($debtor->amount, 0, '.', ' ') }}</div>
 
