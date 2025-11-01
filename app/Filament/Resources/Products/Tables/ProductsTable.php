@@ -12,12 +12,15 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Illuminate\Support\Collection;
+use Filament\Actions\RestoreAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Forms\Components\Select;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Actions\ForceDeleteBulkAction;
 
 class ProductsTable
@@ -135,11 +138,18 @@ class ProductsTable
 
                 ViewAction::make(),
                 EditAction::make(),
+                RestoreAction::make(),
+            ])
+            ->filters([
+                TrashedFilter::make(),
+                SelectFilter::make('category_id')
+                    ->relationship('category', 'name')
+                    ->label('Kategoriya'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
+                    //                    ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
                     BulkAction::make('bulk_print_barcode')
                         ->label('Barcodeni chop etish')
