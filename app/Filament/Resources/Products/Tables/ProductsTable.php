@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Products\Tables;
 
 use App\Models\Stock;
 use App\Models\Product;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use App\Models\ProductStock;
 use Filament\Actions\Action;
@@ -21,7 +20,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
-use Filament\Actions\ForceDeleteBulkAction;
 
 class ProductsTable
 {
@@ -74,14 +72,6 @@ class ProductsTable
                         ->disabled(fn (Product $record) => ($record->type ?? 'size') === 'package');
                 })->all()
             ))
-            ->filters([
-                SelectFilter::make('category_id')
-                    ->label('Kategoriya')
-                    ->relationship('category', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->placeholder('Barcha kategoriyalar'),
-            ])
             ->recordActions([
                 Action::make('sizes_breakdown')
                     ->label('Razmerlar')
@@ -141,10 +131,13 @@ class ProductsTable
                 RestoreAction::make(),
             ])
             ->filters([
-                TrashedFilter::make(),
                 SelectFilter::make('category_id')
+                    ->label('Kategoriya')
                     ->relationship('category', 'name')
-                    ->label('Kategoriya'),
+                    ->searchable()
+                    ->preload()
+                    ->placeholder('Barcha kategoriyalar'),
+                TrashedFilter::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
