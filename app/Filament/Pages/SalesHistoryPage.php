@@ -253,7 +253,6 @@ class SalesHistoryPage extends Page implements HasTable
                             ->options([
                                 'cash'     => 'Naqd',
                                 'card'     => 'Karta',
-                                'transfer' => 'O‘tkazma',
                                 'debt'     => 'Qarz',
                                 'partial'  => 'Qisman',
                                 'mixed'    => 'Karta + Naqd',
