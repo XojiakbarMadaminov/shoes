@@ -55,25 +55,31 @@ class TelegramSaleNotifier
         $storeName   = $sale->store?->name ?? "Noma'lum do'kon";
         $clientName  = $sale->client?->full_name ?? 'Tanlanmagan mijoz';
         $cashierName = $sale->createdBy?->name ?? "Noma'lum kassir";
-        $total       = number_format((float) $sale->total_amount, 2, '.', ' ');
+        $total       = number_format((float) $sale->total_amount, 0, '.', ' ');
         $currency    = $this->resolveCurrency($sale);
         $payment     = $this->paymentTypeLabel($sale->payment_type);
         $date        = optional($sale->created_at)->format('d.m.Y H:i') ?? now()->format('d.m.Y H:i');
+        $hr          = str_repeat('-', 50);
 
         $itemLines = $sale->items
             ->map(function ($item) {
-                $name     = $item->product?->name ?? 'Mahsulot';
-                $size     = $item->productSize?->size;
-                $quantity = $item->quantity ?? 0;
+                $name       = $item->product?->name ?? 'Mahsulot';
+                $size       = $item->productSize?->size;
+                $quantity   = $item->quantity ?? 0;
+                $price      = (float) $item->price ?? 0;
+                $totalPrice = $quantity * $price;
 
                 if (filled($size)) {
-                    $name .= sprintf('(%s)', $size);
+                    $name .= sprintf(' (%s)', $size);
                 }
 
-                return sprintf('- %s x %s', $name, $quantity);
+                $priceStr      = number_format($price, 0, '.', ' ');
+                $totalPriceStr = number_format($totalPrice, 0, '.', ' ');
+
+                return sprintf("%s\n%s x %s = %s", $name, $quantity, $priceStr, $totalPriceStr);
             })
             ->filter()
-            ->implode(PHP_EOL);
+            ->implode(PHP_EOL . PHP_EOL);
 
         if (blank($itemLines)) {
             $itemLines = '- Mahsulotlar mavjud emas';
@@ -88,16 +94,18 @@ class TelegramSaleNotifier
             "💰 Summasi: {$total} {$currency}",
             "💳 To'lov turi: {$payment}",
             '📦 Mahsulotlar:',
+            $hr,
             $itemLines,
+            $hr,
         ];
 
         if ($sale->payment_type === 'partial' || (float) $sale->paid_amount > 0) {
-            $paid    = number_format((float) $sale->paid_amount, 2, '.', ' ');
+            $paid    = number_format((float) $sale->paid_amount, 0, '.', ' ');
             $lines[] = "💵 To'langan: {$paid} {$currency}";
         }
 
         if ((float) $sale->remaining_amount > 0) {
-            $remaining = number_format((float) $sale->remaining_amount, 2, '.', ' ');
+            $remaining = number_format((float) $sale->remaining_amount, 0, '.', ' ');
             $lines[]   = "📉 Qolgan qarz: {$remaining} {$currency}";
         }
 
