@@ -3,31 +3,34 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <title>Savdo Cheki #{{ $sale->id }}</title>
+    <title>Savdo Cheki print #{{ $sale->id }}</title>
     <style>
-        @page { size: 80mm auto; margin: 0; }
+        @page {margin: 0; }
+        @font-face {
+            font-family: 'DejaVu Sans';
+            src: url("{{ public_path('fonts/DejaVuSans.ttf') }}") format('truetype');
+        }
         body {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-family: 'DejaVu Sans', monospace;
+            font-size: 13px;
             margin: 0;
-            padding: 0;
-            background: #fff;
+            padding: 8px;
         }
         .receipt {
-            width: 76mm;
+            width: 60mm;
             margin: 0 auto;
             padding-left: 2mm;
             padding-right: 2mm;
             page-break-inside: avoid;
         }
         .center { text-align: center; }
-        .bold { font-weight: 700; }
+        .bold { font-weight: bold; }
         .line { border-bottom: 1px dashed #000; margin: 2mm 0; }
         .item-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            margin: 1mm 0;
+            margin: 2px 0;
             page-break-inside: avoid;
         }
         .item-name { flex: 1; }

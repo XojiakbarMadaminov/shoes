@@ -24,6 +24,18 @@
 
 @once
     <style>
+        @font-face {
+            font-family: 'DejaVu Sans';
+            src: url("{{ public_path('fonts/DejaVuSans.ttf') }}") format('truetype');
+        }
+        body {
+            font-family: 'DejaVu Sans', monospace;
+            font-size: 13px;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            color: #0a0a0a;
+        }
         .center { text-align: center; }
         .bold { font-weight: 700; }
         .line { border-bottom: 1px dashed #000; margin: 2mm 0; }
@@ -61,10 +73,10 @@
     @endif
     <div>To'lov turi: <strong>{{ $paymentLabel }}</strong></div>
     @if(($paymentType) === 'partial')
-        <div>To'langan summa: <strong>{{ number_format((float) ($meta['paid_amount'] ?? 0), 2, '.', ' ') }} so'm</strong></div>
+        <div>To'langan summa: <strong>{{ number_format((float) ($meta['paid_amount'] ?? 0), 0, '.', ' ') }} so'm</strong></div>
     @endif
     @if(($meta['remaining_amount'] ?? 0) > 0)
-        <div>Qolgan qarz: <strong>{{ number_format((float) ($meta['remaining_amount'] ?? 0), 2, '.', ' ') }} so'm</strong></div>
+        <div>Qolgan qarz: <strong>{{ number_format((float) ($meta['remaining_amount'] ?? 0), 0, '.', ' ') }} so'm</strong></div>
     @endif
 </div>
 
