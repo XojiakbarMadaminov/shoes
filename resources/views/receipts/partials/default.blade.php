@@ -61,11 +61,11 @@
     <h3 style="margin:0;">** Mir obuv 9494 **</h3>
 </div>
 <div class="center bold" style="font-size:18px; margin-bottom:6px;">SAVDO CHEKI</div>
-<div class="center" style="margin-bottom:4px;">{{ $data['receipt_number'] ?? '' }}</div>
-<div class="center" style="margin-bottom:8px;">{{ $data['date'] ?? '' }}</div>
+<div class="center bold" style="margin-bottom:4px;">{{ $data['receipt_number'] ?? '' }}</div>
+<div class="center bold" style="margin-bottom:8px;">{{ $data['date'] ?? '' }}</div>
 
-<div>Store: #{{ $storeIdFormatted !== null ? $storeIdFormatted : '—' }}</div>
-<div style="margin-top:8px; font-size:12px;">
+<div class="bold">Store: #{{ $storeIdFormatted !== null ? $storeIdFormatted : '—' }}</div>
+<div style="margin-top:8px; font-size:12px;" class="bold">
     <div>ID: <strong>{{ $meta['sale_id'] ?? '—' }}</strong></div>
     <div>Klient: <strong>{{ $meta['client_name'] ?? 'Tanlanmagan' }}</strong></div>
     @if(!empty($meta['cashier_name']))
@@ -91,7 +91,7 @@
         $price     = (float) ($item['price'] ?? 0);
         $lineTotal = $qty * $price;
     @endphp
-    <div class="item-row">
+    <div class="item-row bold">
         <span class="item-name">
             {{ $itemName }}<br>
             <span style="font-size:11px;">{{ rtrim(rtrim(number_format($qty, 2, '.', ''), '0'), '.') }} x {{ number_format($price, 0, '.', ' ') }}</span>
@@ -102,7 +102,7 @@
 
 <div class="line"></div>
 
-<div class="item-row">
+<div class="item-row bold">
     <span>Jami mahsulotlar:</span>
     <span>{{ rtrim(rtrim(number_format((float) ($totals['qty'] ?? 0), 2, '.', ''), '0'), '.') }} dona</span>
 </div>
@@ -110,7 +110,7 @@
     <span>JAMI SUMMA:</span>
     <span>{{ number_format((float) ($totals['amount'] ?? 0), 0, '.', ' ') }} so'm</span>
 </div>
-<div class="center" style="margin-top:18px; font-size:12px;">
+<div class="center bold" style="margin-top:18px; font-size:12px;">
     Xaridingiz uchun rahmat!<br>
     Yana tashrifingizni kutamiz
 </div>
