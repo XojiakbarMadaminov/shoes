@@ -2,10 +2,11 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Models\User;
+use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
 
 class UserForm
 {
@@ -24,17 +25,29 @@ class UserForm
                             ->label('Email')
                             ->email()
                             ->unique(ignoreRecord: true)
-                            ->disabledOn('edit')
+                            ->disabled(fn (?User $record): bool => $record !== null && auth()->user()?->email !== 'super@gmail.com')
                             ->required()
                             ->maxLength(255),
 
                         TextInput::make('password')
                             ->label('Parol')
                             ->password()
-                            ->dehydrateStateUsing(fn($state) => !empty($state) ? bcrypt($state) : null)
-                            ->dehydrated(fn($state) => filled($state))
+                            ->dehydrateStateUsing(fn ($state) => !empty($state) ? bcrypt($state) : null)
+                            ->dehydrated(fn ($state) => filled($state))
                             ->maxLength(255)
-                            ->hiddenOn('edit'),
+                            ->hidden(function (?User $record): bool {
+                                if ($record === null) {
+                                    return false; // create page: always show
+                                }
+
+                                // Super's password: only editable by themselves
+                                if ($record->email === 'super@gmail.com') {
+                                    return auth()->id() !== $record->id;
+                                }
+
+                                // Everyone else: editable by any user
+                                return false;
+                            }),
                     ])->columns(2),
 
                 Section::make('Stores')

@@ -9,6 +9,7 @@ use Filament\Schemas\Schema;
 use App\Enums\NavigationGroup;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Model;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ViewUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
@@ -56,5 +57,14 @@ class UserResource extends Resource
             'view'   => ViewUser::route('/{record}'),
             'edit'   => EditUser::route('/{record}/edit'),
         ];
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        if ($record instanceof User && $record->email === 'super@gmail.com') {
+            return false;
+        }
+
+        return parent::canDelete($record);
     }
 }
