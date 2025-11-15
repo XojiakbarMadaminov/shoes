@@ -64,7 +64,9 @@ class UserForm
                             ->relationship('roles', 'name')
                             ->multiple()
                             ->preload()
-                            ->searchable(),
+                            ->searchable()
+                            ->disabled(fn (?User $record): bool => $record !== null && $record->email === 'super@gmail.com' && auth()->id() !== $record->id)
+                            ->dehydrated(fn (?User $record): bool => !($record !== null && $record->email === 'super@gmail.com' && auth()->id() !== $record->id)),
                     ]),
             ]);
     }
