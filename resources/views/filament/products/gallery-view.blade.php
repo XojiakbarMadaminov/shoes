@@ -25,6 +25,7 @@
                     @php
                         $mediaItems = $product->getMedia('images');
                         $mediaCount = $mediaItems->count();
+                        $imageUrls = $mediaItems->map(fn($m) => $m->getUrl())->toArray();
                     @endphp
 
                     <div class="mb-3 h-36 w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 sm:h-40 md:h-48">
@@ -37,8 +38,8 @@
                                     next() { this.activeSlide = (this.activeSlide === this.slidesCount - 1) ? 0 : this.activeSlide + 1 },
                                     prev() { this.activeSlide = (this.activeSlide === 0) ? this.slidesCount - 1 : this.activeSlide - 1 },
                                     openZoom() {
-                                        const images = {{ json_encode($mediaItems->map(fn($m) => $m->getUrl())->toArray()) }};
-                                        $dispatch('open-zoom', { images: images, activeIndex: this.activeSlide });
+                                        window.zoomModal = { urls: @js($imageUrls), i: this.activeSlide };
+                                        $dispatch('open-zoom');
                                     }
                                 }"
                                 class="relative h-full w-full"
@@ -88,7 +89,8 @@
                             <div
                                 x-data="{
                                     openZoom() {
-                                        $dispatch('open-zoom', { images: ['{{ $mediaItems[0]->getUrl() }}'], activeIndex: 0 });
+                                        window.zoomModal = { urls: @js($imageUrls), i: 0 };
+                                        $dispatch('open-zoom');
                                     }
                                 }"
                                 class="h-full w-full"
@@ -130,63 +132,60 @@
         </div>
     </div>
 
-    {{-- GLOBAL ZOOM MODAL --}}
+    {{-- ZOOM MODAL - Sizning kodingiz asosida --}}
     <div
         x-data="{
             show: false,
-            images: [],
-            activeIndex: 0,
-            next() { this.activeIndex = (this.activeIndex === this.images.length - 1) ? 0 : this.activeIndex + 1 },
-            prev() { this.activeIndex = (this.activeIndex === 0) ? this.images.length - 1 : this.activeIndex - 1 }
+            i: 0,
+            urls: []
         }"
-        @open-zoom.window="show = true; images = $event.detail.images; activeIndex = $event.detail.activeIndex"
+        @open-zoom.window="show = true; urls = window.zoomModal.urls; i = window.zoomModal.i"
         @keydown.escape.window="show = false"
         x-show="show"
         x-cloak
         @click="show = false"
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 p-4"
         style="display: none;"
     >
-        <div class="relative w-full h-full flex items-center justify-center p-4">
-            <template x-for="(image, index) in images" :key="index">
-                <img
-                    x-show="activeIndex === index"
-                    :src="image"
-                    alt="Zoom"
-                    class="max-h-[90vh] max-w-[95vw] w-auto h-auto object-contain"
-                    @click.stop
-                >
+        <div class="relative w-full h-full flex items-center justify-center" @click.stop>
+            <template x-if="urls.length > 0">
+                <div class="relative">
+                    <img :src="urls[i]" alt="Zoom" class="max-w-full max-h-[90vh] h-auto mx-auto object-contain">
+
+                    {{-- Navigation tugmalari --}}
+                    <template x-if="urls.length > 1">
+                        <div>
+                            <button type="button"
+                                    @click.stop="i = (i - 1 + urls.length) % urls.length"
+                                    class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center hover:bg-white shadow-lg transition md:w-12 md:h-12">
+                                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    @click.stop="i = (i + 1) % urls.length"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center hover:bg-white shadow-lg transition md:w-12 md:h-12">
+                                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </template>
+
+                    {{-- Counter --}}
+                    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm" x-show="urls.length > 1" x-text="(i+1) + ' / ' + urls.length"></div>
+                </div>
             </template>
 
             {{-- X tugmasi --}}
             <button
                 @click.stop="show = false"
-                class="absolute top-4 right-4 z-10 rounded-full bg-white p-2 text-gray-800 shadow-lg hover:bg-gray-100 transition"
+                type="button"
+                class="absolute top-4 right-4 z-10 bg-white text-gray-800 rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-gray-100 transition md:w-12 md:h-12"
                 title="Yopish (ESC)"
             >
                 <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-
-            {{-- Navigation tugmalari --}}
-            <button
-                x-show="images.length > 1"
-                @click.stop="prev()"
-                class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 text-gray-800 shadow-lg hover:bg-white transition"
-            >
-                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-                </svg>
-            </button>
-
-            <button
-                x-show="images.length > 1"
-                @click.stop="next()"
-                class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 text-gray-800 shadow-lg hover:bg-white transition"
-            >
-                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
                 </svg>
             </button>
         </div>
