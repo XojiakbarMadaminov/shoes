@@ -38,7 +38,7 @@
                                     next() { this.activeSlide = (this.activeSlide === this.slidesCount - 1) ? 0 : this.activeSlide + 1 },
                                     prev() { this.activeSlide = (this.activeSlide === 0) ? this.slidesCount - 1 : this.activeSlide - 1 },
                                     openZoom() {
-                                        $dispatch('open-zoom', {
+                                        this.$dispatch('open-zoom', {
                                             urls: @js($imageUrls),
                                             index: this.activeSlide,
                                         });
@@ -91,7 +91,7 @@
                             <div
                                 x-data="{
                                     openZoom() {
-                                        $dispatch('open-zoom', {
+                                        this.$dispatch('open-zoom', {
                                             urls: @js($imageUrls),
                                             index: 0,
                                         });

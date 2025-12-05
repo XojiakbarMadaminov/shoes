@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Products\Pages;
 
 use App\Models\Product;
 use App\Models\Category;
+use Illuminate\Support\Str;
 use Filament\Actions\Action;
 use Livewire\Attributes\Url;
 use Livewire\WithPagination;
@@ -64,10 +65,12 @@ class GalleryProducts extends Page
     {
         return Product::query()
             ->when($this->search, function (Builder $query, string $search) {
-                $query->where(function (Builder $subQuery) use ($search) {
+                $normalized = Str::lower($search);
+
+                $query->where(function (Builder $subQuery) use ($normalized) {
                     $subQuery
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('barcode', 'like', "%{$search}%");
+                        ->whereRaw('LOWER(name) LIKE ?', ['%' . $normalized . '%'])
+                        ->orWhereRaw('LOWER(barcode) LIKE ?', ['%' . $normalized . '%']);
                 });
             })
             ->when(filled($this->categoryId), function (Builder $query) {
