@@ -38,8 +38,10 @@
                                     next() { this.activeSlide = (this.activeSlide === this.slidesCount - 1) ? 0 : this.activeSlide + 1 },
                                     prev() { this.activeSlide = (this.activeSlide === 0) ? this.slidesCount - 1 : this.activeSlide - 1 },
                                     openZoom() {
-                                        window.zoomModal = { urls: @js($imageUrls), i: this.activeSlide };
-                                        $dispatch('open-zoom');
+                                        $dispatch('open-zoom', {
+                                            urls: @js($imageUrls),
+                                            index: this.activeSlide,
+                                        });
                                     }
                                 }"
                                 class="relative h-full w-full"
@@ -89,8 +91,10 @@
                             <div
                                 x-data="{
                                     openZoom() {
-                                        window.zoomModal = { urls: @js($imageUrls), i: 0 };
-                                        $dispatch('open-zoom');
+                                        $dispatch('open-zoom', {
+                                            urls: @js($imageUrls),
+                                            index: 0,
+                                        });
                                     }
                                 }"
                                 class="h-full w-full"
@@ -139,7 +143,7 @@
             i: 0,
             urls: []
         }"
-        @open-zoom.window="show = true; urls = window.zoomModal.urls; i = window.zoomModal.i"
+        @open-zoom.window="show = true; urls = $event.detail?.urls ?? []; i = $event.detail?.index ?? 0"
         @keydown.escape.window="show = false"
         x-show="show"
         x-cloak
