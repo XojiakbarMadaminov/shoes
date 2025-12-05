@@ -17,12 +17,11 @@
             </label>
         </div>
 
-        {{-- RESPONSIVE GRID: telefon 2ta, tablet 3ta, katta ekran 5-6ta --}}
+        {{-- RESPONSIVE GRID --}}
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5 xl:grid-cols-6">
             @forelse ($products as $product)
                 <div class="group relative flex flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg dark:border-gray-700 dark:bg-gray-900 md:p-4">
 
-                    {{-- Rasm Mantiqi --}}
                     @php
                         $mediaItems = $product->getMedia('images');
                         $mediaCount = $mediaItems->count();
@@ -35,16 +34,19 @@
                                 x-data="{
                                     activeSlide: 0,
                                     slidesCount: {{ $mediaCount }},
-                                    showModal: false,
                                     next() { this.activeSlide = (this.activeSlide === this.slidesCount - 1) ? 0 : this.activeSlide + 1 },
-                                    prev() { this.activeSlide = (this.activeSlide === 0) ? this.slidesCount - 1 : this.activeSlide - 1 }
+                                    prev() { this.activeSlide = (this.activeSlide === 0) ? this.slidesCount - 1 : this.activeSlide - 1 },
+                                    openZoom() {
+                                        const images = {{ json_encode($mediaItems->map(fn($m) => $m->getUrl())->toArray()) }};
+                                        $dispatch('open-zoom', { images: images, activeIndex: this.activeSlide });
+                                    }
                                 }"
                                 class="relative h-full w-full"
                             >
                                 @foreach ($mediaItems as $index => $media)
                                     <img
                                         x-show="activeSlide === {{ $index }}"
-                                        @click="showModal = true"
+                                        @click="openZoom()"
                                         x-cloak
                                         x-transition:enter="transition ease-out duration-300"
                                         x-transition:enter-start="opacity-0"
@@ -79,107 +81,24 @@
                                         ></div>
                                     @endforeach
                                 </div>
-
-                                {{-- ZOOM MODAL - Karusel uchun --}}
-                                <template x-teleport="body">
-                                    <div
-                                        x-show="showModal"
-                                        @click="showModal = false"
-                                        @keydown.escape.window="showModal = false"
-                                        x-cloak
-                                        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95"
-                                        x-transition:enter="transition ease-out duration-200"
-                                        x-transition:enter-start="opacity-0"
-                                        x-transition:enter-end="opacity-100"
-                                    >
-                                        <div class="relative w-full h-full flex items-center justify-center p-4">
-                                            @foreach ($mediaItems as $index => $media)
-                                                <img
-                                                    x-show="activeSlide === {{ $index }}"
-                                                    src="{{ $media->getUrl() }}"
-                                                    alt="{{ $product->name }}"
-                                                    class="max-h-[90vh] max-w-[95vw] w-auto h-auto object-contain"
-                                                    @click.stop
-                                                >
-                                            @endforeach
-
-                                            <button
-                                                @click.stop="showModal = false"
-                                                class="absolute top-4 right-4 z-10 rounded-full bg-white p-2 text-gray-800 shadow-lg hover:bg-gray-100 transition"
-                                                title="Yopish (ESC)"
-                                            >
-                                                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                                                </svg>
-                                            </button>
-
-                                            {{-- Navigation tugmalari modal ichida --}}
-                                            <button
-                                                @click.stop="prev()"
-                                                class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-3 text-white hover:bg-white/30 transition backdrop-blur-sm"
-                                            >
-                                                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                                                </svg>
-                                            </button>
-
-                                            <button
-                                                @click.stop="next()"
-                                                class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-3 text-white hover:bg-white/30 transition backdrop-blur-sm"
-                                            >
-                                                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </template>
                             </div>
 
                         @elseif ($mediaCount === 1)
                             {{-- 1 TA RASM --}}
                             <div
-                                x-data="{ showModal: false }"
+                                x-data="{
+                                    openZoom() {
+                                        $dispatch('open-zoom', { images: ['{{ $mediaItems[0]->getUrl() }}'], activeIndex: 0 });
+                                    }
+                                }"
                                 class="h-full w-full"
                             >
                                 <img
-                                    @click="showModal = true"
+                                    @click="openZoom()"
                                     src="{{ $mediaItems[0]->getUrl('optimized') }}"
                                     alt="{{ $product->name }}"
                                     class="h-full w-full object-cover transition duration-300 cursor-zoom-in group-hover:scale-105"
                                 >
-
-                                {{-- ZOOM MODAL - Bitta rasm uchun --}}
-                                <template x-teleport="body">
-                                    <div
-                                        x-show="showModal"
-                                        @click="showModal = false"
-                                        @keydown.escape.window="showModal = false"
-                                        x-cloak
-                                        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95"
-                                        x-transition:enter="transition ease-out duration-200"
-                                        x-transition:enter-start="opacity-0"
-                                        x-transition:enter-end="opacity-100"
-                                    >
-                                        <div class="relative w-full h-full flex items-center justify-center p-4">
-                                            <img
-                                                src="{{ $mediaItems[0]->getUrl() }}"
-                                                alt="{{ $product->name }}"
-                                                class="max-h-[90vh] max-w-[95vw] w-auto h-auto object-contain"
-                                                @click.stop
-                                            >
-                                            <button
-                                                @click.stop="showModal = false"
-                                                class="absolute top-4 right-4 z-10 rounded-full bg-white p-2 text-gray-800 shadow-lg hover:bg-gray-100 transition"
-                                                title="Yopish (ESC)"
-                                            >
-                                                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </template>
                             </div>
                         @else
                             {{-- RASM YO'Q --}}
@@ -208,6 +127,68 @@
 
         <div>
             {{ $products->links() }}
+        </div>
+    </div>
+
+    {{-- GLOBAL ZOOM MODAL --}}
+    <div
+        x-data="{
+            show: false,
+            images: [],
+            activeIndex: 0,
+            next() { this.activeIndex = (this.activeIndex === this.images.length - 1) ? 0 : this.activeIndex + 1 },
+            prev() { this.activeIndex = (this.activeIndex === 0) ? this.images.length - 1 : this.activeIndex - 1 }
+        }"
+        @open-zoom.window="show = true; images = $event.detail.images; activeIndex = $event.detail.activeIndex"
+        @keydown.escape.window="show = false"
+        x-show="show"
+        x-cloak
+        @click="show = false"
+        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95"
+        style="display: none;"
+    >
+        <div class="relative w-full h-full flex items-center justify-center p-4">
+            <template x-for="(image, index) in images" :key="index">
+                <img
+                    x-show="activeIndex === index"
+                    :src="image"
+                    alt="Zoom"
+                    class="max-h-[90vh] max-w-[95vw] w-auto h-auto object-contain"
+                    @click.stop
+                >
+            </template>
+
+            {{-- X tugmasi --}}
+            <button
+                @click.stop="show = false"
+                class="absolute top-4 right-4 z-10 rounded-full bg-white p-2 text-gray-800 shadow-lg hover:bg-gray-100 transition"
+                title="Yopish (ESC)"
+            >
+                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            {{-- Navigation tugmalari --}}
+            <button
+                x-show="images.length > 1"
+                @click.stop="prev()"
+                class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 text-gray-800 shadow-lg hover:bg-white transition"
+            >
+                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+
+            <button
+                x-show="images.length > 1"
+                @click.stop="next()"
+                class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-3 text-gray-800 shadow-lg hover:bg-white transition"
+            >
+                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
         </div>
     </div>
 </x-filament::page>
