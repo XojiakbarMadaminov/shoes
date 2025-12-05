@@ -1,7 +1,6 @@
 <x-filament::page>
     <div class="space-y-6">
-        {{-- ... Filtrlar qismi o'zgarishsiz qoladi ... --}}
-
+        {{-- Filtrlar --}}
         <div class="flex flex-col gap-4 md:flex-row md:items-end">
             <label class="w-full">
                 <span class="sr-only">Qidiruv</span>
@@ -18,24 +17,25 @@
             </label>
         </div>
 
-        {{-- GRID QISMI: grid-cols-4 eng kichik ekranda (telefon) 4 ustunni majbur qiladi --}}
-        <div class="grid grid-cols-4 gap-6 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6">
+        {{-- RESPONSIVE GRID: telefon 2ta, tablet 3ta, katta ekran 5-6ta --}}
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5 xl:grid-cols-6">
             @forelse ($products as $product)
-                <div class="group relative flex flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                <div class="group relative flex flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-sm transition hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg dark:border-gray-700 dark:bg-gray-900 md:p-4">
 
-                    {{-- Rasm Mantiqi (o'zgarishsiz qoladi) --}}
+                    {{-- Rasm Mantiqi --}}
                     @php
                         $mediaItems = $product->getMedia('images');
                         $mediaCount = $mediaItems->count();
                     @endphp
 
-                    <div class="mb-4 h-48 w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+                    <div class="mb-3 h-36 w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 sm:h-40 md:h-48">
                         @if ($mediaCount > 1)
                             {{-- KARUSEL --}}
                             <div
                                 x-data="{
                                     activeSlide: 0,
                                     slidesCount: {{ $mediaCount }},
+                                    showModal: false,
                                     next() { this.activeSlide = (this.activeSlide === this.slidesCount - 1) ? 0 : this.activeSlide + 1 },
                                     prev() { this.activeSlide = (this.activeSlide === 0) ? this.slidesCount - 1 : this.activeSlide - 1 }
                                 }"
@@ -44,32 +44,33 @@
                                 @foreach ($mediaItems as $index => $media)
                                     <img
                                         x-show="activeSlide === {{ $index }}"
+                                        @click="showModal = true"
                                         x-cloak
                                         x-transition:enter="transition ease-out duration-300"
                                         x-transition:enter-start="opacity-0"
                                         x-transition:enter-end="opacity-100"
                                         src="{{ $media->getUrl('optimized') }}"
                                         alt="{{ $product->name }}"
-                                        class="absolute inset-0 h-full w-full object-cover"
+                                        class="absolute inset-0 h-full w-full object-cover cursor-zoom-in"
                                     >
                                 @endforeach
 
                                 {{-- Tugmalar --}}
                                 <button
                                     @click.prevent.stop="prev()"
-                                    class="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-1 text-gray-800 opacity-0 shadow hover:bg-white group-hover:opacity-100 transition focus:outline-none"
+                                    class="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-1 text-gray-800 opacity-0 shadow hover:bg-white group-hover:opacity-100 transition focus:outline-none md:left-2"
                                 >
-                                    <x-heroicon-m-chevron-left class="h-4 w-4" />
+                                    <x-heroicon-m-chevron-left class="h-3 w-3 md:h-4 md:w-4" />
                                 </button>
 
                                 <button
                                     @click.prevent.stop="next()"
-                                    class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-1 text-gray-800 opacity-0 shadow hover:bg-white group-hover:opacity-100 transition focus:outline-none"
+                                    class="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-1 text-gray-800 opacity-0 shadow hover:bg-white group-hover:opacity-100 transition focus:outline-none md:right-2"
                                 >
-                                    <x-heroicon-m-chevron-right class="h-4 w-4" />
+                                    <x-heroicon-m-chevron-right class="h-3 w-3 md:h-4 md:w-4" />
                                 </button>
 
-                                {{-- Kichik nuqtalar (pastda) --}}
+                                {{-- Kichik nuqtalar --}}
                                 <div class="absolute bottom-2 left-0 right-0 flex justify-center space-x-1">
                                     @foreach ($mediaItems as $index => $media)
                                         <div
@@ -78,20 +79,76 @@
                                         ></div>
                                     @endforeach
                                 </div>
+
+                                {{-- ZOOM MODAL --}}
+                                <div
+                                    x-show="showModal"
+                                    @click="showModal = false"
+                                    x-cloak
+                                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+                                    x-transition:enter="transition ease-out duration-200"
+                                    x-transition:enter-start="opacity-0"
+                                    x-transition:enter-end="opacity-100"
+                                >
+                                    <img
+                                        :src="'{{ $mediaItems[0]->getUrl() }}'.replace('/0/', '/' + activeSlide + '/')"
+                                        alt="{{ $product->name }}"
+                                        class="max-h-full max-w-full object-contain"
+                                        @click.stop
+                                    >
+                                    <button
+                                        @click.stop="showModal = false"
+                                        class="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
+                                    >
+                                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
 
                         @elseif ($mediaCount === 1)
                             {{-- 1 TA RASM --}}
-                            <a href="{{ route('filament.admin.resources.products.view', $product) }}" class="h-full w-full">
+                            <div
+                                x-data="{ showModal: false }"
+                                class="h-full w-full"
+                            >
                                 <img
+                                    @click="showModal = true"
                                     src="{{ $mediaItems[0]->getUrl('optimized') }}"
                                     alt="{{ $product->name }}"
-                                    class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                    class="h-full w-full object-cover transition duration-300 cursor-zoom-in group-hover:scale-105"
                                 >
-                            </a>
+
+                                {{-- ZOOM MODAL --}}
+                                <div
+                                    x-show="showModal"
+                                    @click="showModal = false"
+                                    x-cloak
+                                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+                                    x-transition:enter="transition ease-out duration-200"
+                                    x-transition:enter-start="opacity-0"
+                                    x-transition:enter-end="opacity-100"
+                                >
+                                    <img
+                                        src="{{ $mediaItems[0]->getUrl() }}"
+                                        alt="{{ $product->name }}"
+                                        class="max-h-full max-w-full object-contain"
+                                        @click.stop
+                                    >
+                                    <button
+                                        @click.stop="showModal = false"
+                                        class="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
+                                    >
+                                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         @else
                             {{-- RASM YO'Q --}}
-                            <a href="{{ route('filament.admin.resources.products.view', $product) }}" class="flex h-full w-full items-center justify-center text-sm text-gray-500">
+                            <a href="{{ route('filament.admin.resources.products.view', $product) }}" class="flex h-full w-full items-center justify-center text-xs text-gray-500">
                                 Rasm mavjud emas
                             </a>
                         @endif
@@ -100,7 +157,7 @@
                     {{-- Matn qismi --}}
                     <a href="{{ route('filament.admin.resources.products.view', $product) }}" class="flex flex-1 flex-col justify-between">
                         <div>
-                            <div class="text-base font-semibold text-gray-900 group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400 line-clamp-2">
+                            <div class="text-sm font-semibold text-gray-900 group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400 line-clamp-2 md:text-base">
                                 {{ $product->name }}
                             </div>
                         </div>
@@ -108,7 +165,7 @@
 
                 </div>
             @empty
-                <div class="col-span-4 rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+                <div class="col-span-2 rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 sm:col-span-3 lg:col-span-5 xl:col-span-6">
                     Mahsulot topilmadi.
                 </div>
             @endforelse
