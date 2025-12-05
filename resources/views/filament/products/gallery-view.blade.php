@@ -80,31 +80,60 @@
                                     @endforeach
                                 </div>
 
-                                {{-- ZOOM MODAL --}}
-                                <div
-                                    x-show="showModal"
-                                    @click="showModal = false"
-                                    x-cloak
-                                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-                                    x-transition:enter="transition ease-out duration-200"
-                                    x-transition:enter-start="opacity-0"
-                                    x-transition:enter-end="opacity-100"
-                                >
-                                    <img
-                                        :src="'{{ $mediaItems[0]->getUrl() }}'.replace('/0/', '/' + activeSlide + '/')"
-                                        alt="{{ $product->name }}"
-                                        class="max-h-full max-w-full object-contain"
-                                        @click.stop
+                                {{-- ZOOM MODAL - Karusel uchun --}}
+                                <template x-teleport="body">
+                                    <div
+                                        x-show="showModal"
+                                        @click="showModal = false"
+                                        @keydown.escape.window="showModal = false"
+                                        x-cloak
+                                        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95"
+                                        x-transition:enter="transition ease-out duration-200"
+                                        x-transition:enter-start="opacity-0"
+                                        x-transition:enter-end="opacity-100"
                                     >
-                                    <button
-                                        @click.stop="showModal = false"
-                                        class="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
-                                    >
-                                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-                                </div>
+                                        <div class="relative w-full h-full flex items-center justify-center p-4">
+                                            @foreach ($mediaItems as $index => $media)
+                                                <img
+                                                    x-show="activeSlide === {{ $index }}"
+                                                    src="{{ $media->getUrl() }}"
+                                                    alt="{{ $product->name }}"
+                                                    class="max-h-[90vh] max-w-[95vw] w-auto h-auto object-contain"
+                                                    @click.stop
+                                                >
+                                            @endforeach
+
+                                            <button
+                                                @click.stop="showModal = false"
+                                                class="absolute top-4 right-4 z-10 rounded-full bg-white p-2 text-gray-800 shadow-lg hover:bg-gray-100 transition"
+                                                title="Yopish (ESC)"
+                                            >
+                                                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                            </button>
+
+                                            {{-- Navigation tugmalari modal ichida --}}
+                                            <button
+                                                @click.stop="prev()"
+                                                class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-3 text-white hover:bg-white/30 transition backdrop-blur-sm"
+                                            >
+                                                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                                </svg>
+                                            </button>
+
+                                            <button
+                                                @click.stop="next()"
+                                                class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-3 text-white hover:bg-white/30 transition backdrop-blur-sm"
+                                            >
+                                                <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
 
                         @elseif ($mediaCount === 1)
@@ -120,31 +149,37 @@
                                     class="h-full w-full object-cover transition duration-300 cursor-zoom-in group-hover:scale-105"
                                 >
 
-                                {{-- ZOOM MODAL --}}
-                                <div
-                                    x-show="showModal"
-                                    @click="showModal = false"
-                                    x-cloak
-                                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
-                                    x-transition:enter="transition ease-out duration-200"
-                                    x-transition:enter-start="opacity-0"
-                                    x-transition:enter-end="opacity-100"
-                                >
-                                    <img
-                                        src="{{ $mediaItems[0]->getUrl() }}"
-                                        alt="{{ $product->name }}"
-                                        class="max-h-full max-w-full object-contain"
-                                        @click.stop
+                                {{-- ZOOM MODAL - Bitta rasm uchun --}}
+                                <template x-teleport="body">
+                                    <div
+                                        x-show="showModal"
+                                        @click="showModal = false"
+                                        @keydown.escape.window="showModal = false"
+                                        x-cloak
+                                        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95"
+                                        x-transition:enter="transition ease-out duration-200"
+                                        x-transition:enter-start="opacity-0"
+                                        x-transition:enter-end="opacity-100"
                                     >
-                                    <button
-                                        @click.stop="showModal = false"
-                                        class="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition"
-                                    >
-                                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-                                </div>
+                                        <div class="relative w-full h-full flex items-center justify-center p-4">
+                                            <img
+                                                src="{{ $mediaItems[0]->getUrl() }}"
+                                                alt="{{ $product->name }}"
+                                                class="max-h-[90vh] max-w-[95vw] w-auto h-auto object-contain"
+                                                @click.stop
+                                            >
+                                            <button
+                                                @click.stop="showModal = false"
+                                                class="absolute top-4 right-4 z-10 rounded-full bg-white p-2 text-gray-800 shadow-lg hover:bg-gray-100 transition"
+                                                title="Yopish (ESC)"
+                                            >
+                                                <svg class="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         @else
                             {{-- RASM YO'Q --}}
