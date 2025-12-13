@@ -74,7 +74,11 @@
             'name_max'   => 40,
             'barcode'    => ['scale' => 1.0, 'height' => 22],
             'code_font'  => '8px',
-            'price_font' => '8px',
+            'price_font' => function (int $len): string {
+                if ($len <= 12) { return '9px'; }
+                if ($len <= 16) { return '8px'; }
+                return '7px';
+            },
         ],
         '57x30' => [
             'name_font' => function (int $len): string {
@@ -85,7 +89,11 @@
             'name_max'   => 60,
             'barcode'    => ['scale' => 1.3, 'height' => 34],
             'code_font'  => '10px',
-            'price_font' => '11px',
+            'price_font' => function (int $len): string {
+                if ($len <= 12) { return '12px'; }
+                if ($len <= 18) { return '11px'; }
+                return '10px';
+            },
         ],
         '85x65' => [
             'name_font' => function (int $len): string {
@@ -96,7 +104,11 @@
             'name_max'   => 90,
             'barcode'    => ['scale' => 2.0, 'height' => 50],
             'code_font'  => '12px',
-            'price_font' => '14px',
+            'price_font' => function (int $len): string {
+                if ($len <= 14) { return '16px'; }
+                if ($len <= 20) { return '14px'; }
+                return '12px';
+            },
         ],
     ];
 
@@ -117,10 +129,11 @@
         $scale      = $cfg['barcode']['scale'];
         $barHeight  = $cfg['barcode']['height'];
         $codeFont   = $cfg['code_font'];
-        $priceFont  = $cfg['price_font'] ?? $codeFont;
 
         $price      = (int) ($product->price ?? 0);
         $priceStr   = number_format($price, 0, '.', ' ') . " so'm";
+        $pLen       = function_exists('mb_strlen') ? mb_strlen($priceStr) : strlen($priceStr);
+        $priceFont  = is_callable($cfg['price_font']) ? ($cfg['price_font'])($pLen) : ($cfg['price_font'] ?? $codeFont);
     @endphp
 
     <div class="label">
@@ -134,7 +147,7 @@
 
         <div class="product-name" style="font-size: {{ $codeFont }}">{{ $product->barcode }}</div>
 
-        <div class="product-name" style="font-size: {{ $priceFont }}; margin-top: 1mm;">
+        <div class="product-name" style="font-size: {{ $priceFont }}; font-weight: 700; margin-top: 1mm;">
             {{ $priceStr }}
         </div>
     </div>
