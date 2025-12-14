@@ -67,7 +67,7 @@
 <div class="bold">Store: #{{ $storeIdFormatted !== null ? $storeIdFormatted : '—' }}</div>
 <div style="margin-top:8px; font-size:12px;" class="bold">
     <div>ID: <strong>{{ $meta['sale_id'] ?? '—' }}</strong></div>
-    <div>Klient: <strong>{{ $meta['client_name'] ?? 'Tanlanmagan' }}</strong></div>
+    <div>Klient: <strong>{{ $meta['client_name'] ?? '-' }}</strong></div>
     @if(!empty($meta['cashier_name']))
         <div>Kassir: <strong>{{ $meta['cashier_name'] }}</strong></div>
     @endif

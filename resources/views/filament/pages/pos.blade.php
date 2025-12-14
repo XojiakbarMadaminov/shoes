@@ -405,6 +405,27 @@
                             🧍 Klient tanlash
                         </x-filament::button>
 
+                        <div class="flex items-center gap-4 sm:w-auto w-full order-1 sm:order-2">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" wire:model.live="saleWithoutClient"
+                                       class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-700">
+                                <span>Klientsiz sotuv</span>
+                            </label>
+                            <div class="flex items-center gap-3 text-sm">
+                                <label class="inline-flex items-center gap-1 text-gray-700 dark:text-gray-300">
+                                    <input type="radio" value="cash" wire:model.live="saleWithoutClientPaymentType"
+                                           @disabled(!$saleWithoutClient || $selectedClientId)
+                                           class="text-primary-600 focus:ring-primary-500">
+                                    <span>Naqd</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1 text-gray-700 dark:text-gray-300">
+                                    <input type="radio" value="card" wire:model.live="saleWithoutClientPaymentType"
+                                           @disabled(!$saleWithoutClient || $selectedClientId)
+                                           class="text-primary-600 focus:ring-primary-500">
+                                    <span>Karta</span>
+                                </label>
+                            </div>
+                        </div>
                         {{-- Checkout --}}
                         <x-filament::button
                             wire:click="checkout"
@@ -790,7 +811,7 @@
                                 <div class="flex items-center justify-between text-sm">
                                     <span class="text-gray-600 dark:text-gray-400">Klient:</span>
                                     <span class="font-medium text-gray-900 dark:text-gray-100">
-                                        {{ collect($clients)->firstWhere('id', $selectedClientId)?->full_name ?? 'Tanlanmagan' }}
+                                        {{ collect($clients)->firstWhere('id', $selectedClientId)?->full_name ?? ($saleWithoutClient ? '-' : 'Tanlanmagan') }}
                                     </span>
                                 </div>
                                 <div class="flex items-center justify-between text-sm mt-2">

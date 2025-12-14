@@ -54,12 +54,16 @@ class Pos extends Page
     public array $cartClients           = [];
     public array $cartPaymentTypes      = [];
     public array $cartPartialPayments   = [];
-    public array $cartMixedPayments     = [];
+    public array $cartMixedPayments                  = [];
+    public array $cartSaleWithoutClient              = [];
+    public array $cartSaleWithoutClientPaymentType   = [];
     public bool $showClientPanel        = false;
     public bool $showCreateClientForm   = false;
     public string $searchClient         = '';
     public $clients                     = [];
     public ?int $selectedClientId       = null;
+    public bool $saleWithoutClient      = true;
+    public string $saleWithoutClientPaymentType = 'cash';
     public string $paymentType          = '';
     public ?float $partialPaymentAmount = null;
     public ?string $paymentNote         = null;
@@ -82,7 +86,9 @@ class Pos extends Page
         $this->cartClients         = session('pos_cart_clients', []);
         $this->cartPaymentTypes    = session('pos_cart_payment_types', []);
         $this->cartPartialPayments = session('pos_cart_partial_payments', []);
-        $this->cartMixedPayments   = session('pos_cart_mixed_payments', []);
+        $this->cartMixedPayments                    = session('pos_cart_mixed_payments', []);
+        $this->cartSaleWithoutClient                = session('pos_cart_sale_without_client', []);
+        $this->cartSaleWithoutClientPaymentType     = session('pos_cart_sale_without_client_payment_type', []);
 
         // Oxirgi faol cart ID ni session dan olish
         $savedCartId = session('pos_active_cart_id', 1);
@@ -366,7 +372,7 @@ class Pos extends Page
             return false;
         }
 
-        if (!$this->selectedClientId) {
+        if (!$this->selectedClientId && !$this->saleWithoutClient) {
             Notification::make()
                 ->title('Klient tanlanmagan')
                 ->body('Checkout qilishdan oldin klientni tanlang.')
@@ -401,6 +407,17 @@ class Pos extends Page
             Notification::make()
                 ->title('Klient talab qilinadi')
                 ->body('Qarzga savdo uchun klientni tanlashingiz kerak.')
+                ->warning()
+                ->send();
+
+            return false;
+        }
+
+        // Klientsiz sotuvda faqat Naqd yoki Karta
+        if ($this->saleWithoutClient && !$this->selectedClientId && !in_array($this->paymentType, ['cash', 'card'], true)) {
+            Notification::make()
+                ->title('Klientsiz sotuv uchun to\'lov turi')
+                ->body('Klientsiz sotuv faqat Naqd yoki Karta bilan yakunlanadi.')
                 ->warning()
                 ->send();
 
@@ -755,7 +772,7 @@ class Pos extends Page
                 $totals,
                 [
                     'sale_id'          => $sale->id,
-                    'client_name'      => $sale->client?->full_name,
+                    'client_name'      => $sale->client?->full_name ?? '-',
                     'payment_type'     => $paymentType,
                     'paid_amount'      => $sale->paid_amount,
                     'remaining_amount' => $remainingAmountForReceipt,
@@ -856,6 +873,17 @@ class Pos extends Page
     {
         $this->selectedClientId = $this->cartClients[$this->activeCartId] ?? null;
         $this->paymentType      = $this->cartPaymentTypes[$this->activeCartId] ?? '';
+        $this->saleWithoutClient = (bool) ($this->cartSaleWithoutClient[$this->activeCartId] ?? true);
+        $this->saleWithoutClientPaymentType = (string) ($this->cartSaleWithoutClientPaymentType[$this->activeCartId] ?? 'cash');
+
+        if ($this->saleWithoutClient && !$this->selectedClientId) {
+            if (!in_array($this->paymentType, ['cash', 'card'], true)) {
+                $this->paymentType = in_array($this->saleWithoutClientPaymentType, ['cash', 'card'], true)
+                    ? $this->saleWithoutClientPaymentType
+                    : 'cash';
+                $this->cartPaymentTypes[$this->activeCartId] = $this->paymentType;
+            }
+        }
 
         $partialValue = $this->cartPartialPayments[$this->activeCartId] ?? null;
         if (is_array($partialValue)) {
@@ -880,6 +908,8 @@ class Pos extends Page
     {
         session()->put('pos_cart_clients', $this->cartClients);
         session()->put('pos_cart_payment_types', $this->cartPaymentTypes);
+        session()->put('pos_cart_sale_without_client', $this->cartSaleWithoutClient);
+        session()->put('pos_cart_sale_without_client_payment_type', $this->cartSaleWithoutClientPaymentType);
 
         $partialNormalized = [];
         foreach ($this->cartPartialPayments as $cartId => $value) {
@@ -905,6 +935,35 @@ class Pos extends Page
 
         $this->cartMixedPayments = $mixedNormalized;
         session()->put('pos_cart_mixed_payments', $mixedNormalized);
+    }
+
+    public function updatedSaleWithoutClient($value): void
+    {
+        $this->cartSaleWithoutClient[$this->activeCartId] = (bool) $value;
+
+        if ($this->saleWithoutClient && !$this->selectedClientId) {
+            $type = in_array($this->saleWithoutClientPaymentType, ['cash', 'card'], true)
+                ? $this->saleWithoutClientPaymentType
+                : 'cash';
+            $this->paymentType = $type;
+            $this->cartPaymentTypes[$this->activeCartId] = $type;
+        }
+
+        $this->persistCartMeta();
+    }
+
+    public function updatedSaleWithoutClientPaymentType($value): void
+    {
+        $val = in_array($value, ['cash', 'card'], true) ? $value : 'cash';
+        $this->saleWithoutClientPaymentType = $val;
+        $this->cartSaleWithoutClientPaymentType[$this->activeCartId] = $val;
+
+        if ($this->saleWithoutClient && !$this->selectedClientId) {
+            $this->paymentType = $val;
+            $this->cartPaymentTypes[$this->activeCartId] = $val;
+        }
+
+        $this->persistCartMeta();
     }
 
     /* ---------- Skaner metodlari ---------- */
@@ -1099,6 +1158,9 @@ class Pos extends Page
     {
         $this->selectedClientId                 = $id;
         $this->cartClients[$this->activeCartId] = $id;
+        // When a client is selected, disable 'klientsiz sotuv' mode
+        $this->saleWithoutClient = false;
+        $this->cartSaleWithoutClient[$this->activeCartId] = false;
         $this->persistCartMeta();
     }
 
@@ -1156,8 +1218,23 @@ class Pos extends Page
             return;
         }
 
+        if ($this->saleWithoutClient && !$this->selectedClientId && !in_array($type, ['cash', 'card'], true)) {
+            Notification::make()
+                ->title('Klientsiz sotuv uchun to\'lov turi')
+                ->body('Klientsiz sotuv faqat Naqd yoki Karta bilan yakunlanadi.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
         $this->paymentType                           = $type;
         $this->cartPaymentTypes[$this->activeCartId] = $type;
+
+        if (in_array($type, ['cash', 'card'], true)) {
+            $this->saleWithoutClientPaymentType = $type;
+            $this->cartSaleWithoutClientPaymentType[$this->activeCartId] = $type;
+        }
 
         if ($type === 'partial') {
             $this->partialPaymentAmount = $this->cartPartialPayments[$this->activeCartId] ?? null;

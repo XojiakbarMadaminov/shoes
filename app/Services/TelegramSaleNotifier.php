@@ -53,7 +53,7 @@ class TelegramSaleNotifier
 
         $title       = $this->messageTitle($event);
         $storeName   = $sale->store?->name ?? "Noma'lum do'kon";
-        $clientName  = $sale->client?->full_name ?? 'Tanlanmagan mijoz';
+        $clientName  = $sale->client?->full_name ?? '-';
         $cashierName = $sale->createdBy?->name ?? "Noma'lum kassir";
         $total       = number_format((float) $sale->total_amount, 0, '.', ' ');
         $currency    = $this->resolveCurrency($sale);

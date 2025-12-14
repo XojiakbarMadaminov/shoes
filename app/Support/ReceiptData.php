@@ -39,7 +39,7 @@ class ReceiptData
             'receipt_number' => $receiptNumber,
             'meta'           => array_merge([
                 'sale_id'          => $sale->id,
-                'client_name'      => $sale->client?->full_name ?? 'Tanlanmagan',
+                'client_name'      => $sale->client?->full_name ?? '-',
                 'cashier_name'     => $sale->createdBy?->name ?? null,
                 'payment_type'     => $sale->payment_type,
                 'paid_amount'      => $sale->paid_amount,

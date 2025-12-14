@@ -56,6 +56,7 @@ class SalesHistoryPage extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->searchable(false)
             ->query(
                 fn (): Builder => Sale::query()
                     ->with(['client', 'items.product', 'items.productSize', 'createdBy'])
@@ -83,21 +84,23 @@ class SalesHistoryPage extends Page implements HasTable
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
+                    ->width('1%')
                     ->toggleable()
                     ->sortable()
-                    ->searchable(),
+                    ->searchable(isIndividual: true),
 
                 TextColumn::make('client.full_name')
                     ->label('Klient')
+                    ->placeholder('-')
                     ->toggleable()
                     ->sortable()
-                    ->searchable(),
+                    ->searchable(isIndividual: true),
 
                 TextColumn::make('client.phone')
                     ->label('Telefon')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable()
-                    ->searchable(),
+                    ->searchable(isIndividual: true),
 
                 TextColumn::make('createdBy.name')
                     ->label('Kassir')
