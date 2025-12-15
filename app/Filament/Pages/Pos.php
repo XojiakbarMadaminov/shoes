@@ -48,26 +48,26 @@ class Pos extends Page
     /** @var EloquentCollection<int, Product> */
     public EloquentCollection $products;
 
-    public array $cart                  = [];
-    public array $totals                = ['qty' => 0, 'amount' => 0];
-    public array $activeCarts           = []; // Barcha faol cartlar ro'yxati
-    public array $cartClients           = [];
-    public array $cartPaymentTypes      = [];
-    public array $cartPartialPayments   = [];
-    public array $cartMixedPayments                  = [];
-    public array $cartSaleWithoutClient              = [];
-    public array $cartSaleWithoutClientPaymentType   = [];
-    public bool $showClientPanel        = false;
-    public bool $showCreateClientForm   = false;
-    public string $searchClient         = '';
-    public $clients                     = [];
-    public ?int $selectedClientId       = null;
-    public bool $saleWithoutClient      = true;
-    public string $saleWithoutClientPaymentType = 'cash';
-    public string $paymentType          = '';
-    public ?float $partialPaymentAmount = null;
-    public ?string $paymentNote         = null;
-    public array $mixedPayment          = [
+    public array $cart                             = [];
+    public array $totals                           = ['qty' => 0, 'amount' => 0];
+    public array $activeCarts                      = []; // Barcha faol cartlar ro'yxati
+    public array $cartClients                      = [];
+    public array $cartPaymentTypes                 = [];
+    public array $cartPartialPayments              = [];
+    public array $cartMixedPayments                = [];
+    public array $cartSaleWithoutClient            = [];
+    public array $cartSaleWithoutClientPaymentType = [];
+    public bool $showClientPanel                   = false;
+    public bool $showCreateClientForm              = false;
+    public string $searchClient                    = '';
+    public $clients                                = [];
+    public ?int $selectedClientId                  = null;
+    public bool $saleWithoutClient                 = true;
+    public string $saleWithoutClientPaymentType    = 'cash';
+    public string $paymentType                     = '';
+    public ?float $partialPaymentAmount            = null;
+    public ?string $paymentNote                    = null;
+    public array $mixedPayment                     = [
         'cash' => null,
         'card' => null,
     ];
@@ -83,12 +83,12 @@ class Pos extends Page
         $this->products = new EloquentCollection;
         $this->refreshActiveCarts();
 
-        $this->cartClients         = session('pos_cart_clients', []);
-        $this->cartPaymentTypes    = session('pos_cart_payment_types', []);
-        $this->cartPartialPayments = session('pos_cart_partial_payments', []);
-        $this->cartMixedPayments                    = session('pos_cart_mixed_payments', []);
-        $this->cartSaleWithoutClient                = session('pos_cart_sale_without_client', []);
-        $this->cartSaleWithoutClientPaymentType     = session('pos_cart_sale_without_client_payment_type', []);
+        $this->cartClients                      = session('pos_cart_clients', []);
+        $this->cartPaymentTypes                 = session('pos_cart_payment_types', []);
+        $this->cartPartialPayments              = session('pos_cart_partial_payments', []);
+        $this->cartMixedPayments                = session('pos_cart_mixed_payments', []);
+        $this->cartSaleWithoutClient            = session('pos_cart_sale_without_client', []);
+        $this->cartSaleWithoutClientPaymentType = session('pos_cart_sale_without_client_payment_type', []);
 
         // Oxirgi faol cart ID ni session dan olish
         $savedCartId = session('pos_active_cart_id', 1);
@@ -809,8 +809,11 @@ class Pos extends Page
     /* ---------- Chek funksiyalari ---------- */
     public function prepareReceipt(int $storeId, int $cartId, array $items, array $totals, array $meta = []): void
     {
+        $storeName = $meta['store_name'] ?? auth()->user()?->currentStore?->name ?? config('app.store_name');
+
         $this->receiptData = [
             'store_id'       => $storeId,
+            'store_name'     => $storeName,
             'cart_id'        => $cartId,
             'items'          => $items,
             'totals'         => $totals,
@@ -871,9 +874,9 @@ class Pos extends Page
 
     protected function loadActiveCartMeta(): void
     {
-        $this->selectedClientId = $this->cartClients[$this->activeCartId] ?? null;
-        $this->paymentType      = $this->cartPaymentTypes[$this->activeCartId] ?? '';
-        $this->saleWithoutClient = (bool) ($this->cartSaleWithoutClient[$this->activeCartId] ?? true);
+        $this->selectedClientId             = $this->cartClients[$this->activeCartId] ?? null;
+        $this->paymentType                  = $this->cartPaymentTypes[$this->activeCartId] ?? '';
+        $this->saleWithoutClient            = (bool) ($this->cartSaleWithoutClient[$this->activeCartId] ?? true);
         $this->saleWithoutClientPaymentType = (string) ($this->cartSaleWithoutClientPaymentType[$this->activeCartId] ?? 'cash');
 
         if ($this->saleWithoutClient && !$this->selectedClientId) {
@@ -945,7 +948,7 @@ class Pos extends Page
             $type = in_array($this->saleWithoutClientPaymentType, ['cash', 'card'], true)
                 ? $this->saleWithoutClientPaymentType
                 : 'cash';
-            $this->paymentType = $type;
+            $this->paymentType                           = $type;
             $this->cartPaymentTypes[$this->activeCartId] = $type;
         }
 
@@ -954,12 +957,12 @@ class Pos extends Page
 
     public function updatedSaleWithoutClientPaymentType($value): void
     {
-        $val = in_array($value, ['cash', 'card'], true) ? $value : 'cash';
-        $this->saleWithoutClientPaymentType = $val;
+        $val                                                         = in_array($value, ['cash', 'card'], true) ? $value : 'cash';
+        $this->saleWithoutClientPaymentType                          = $val;
         $this->cartSaleWithoutClientPaymentType[$this->activeCartId] = $val;
 
         if ($this->saleWithoutClient && !$this->selectedClientId) {
-            $this->paymentType = $val;
+            $this->paymentType                           = $val;
             $this->cartPaymentTypes[$this->activeCartId] = $val;
         }
 
@@ -1159,7 +1162,7 @@ class Pos extends Page
         $this->selectedClientId                 = $id;
         $this->cartClients[$this->activeCartId] = $id;
         // When a client is selected, disable 'klientsiz sotuv' mode
-        $this->saleWithoutClient = false;
+        $this->saleWithoutClient                          = false;
         $this->cartSaleWithoutClient[$this->activeCartId] = false;
         $this->persistCartMeta();
     }
@@ -1232,7 +1235,7 @@ class Pos extends Page
         $this->cartPaymentTypes[$this->activeCartId] = $type;
 
         if (in_array($type, ['cash', 'card'], true)) {
-            $this->saleWithoutClientPaymentType = $type;
+            $this->saleWithoutClientPaymentType                          = $type;
             $this->cartSaleWithoutClientPaymentType[$this->activeCartId] = $type;
         }
 

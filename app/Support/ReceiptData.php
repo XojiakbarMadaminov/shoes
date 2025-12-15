@@ -8,6 +8,7 @@ class ReceiptData
 {
     public static function fromSale(Sale $sale, array $metaOverrides = []): array
     {
+        $sale->loadMissing(['store']);
         $items     = $sale->items()->with(['product', 'productSize'])->get();
         $storeId   = $sale->store_id;
         $cartId    = $sale->cart_id ?? $sale->id;
@@ -19,9 +20,10 @@ class ReceiptData
         $receiptNumber = 'R' . str_pad((string) $cartId, 4, '0', STR_PAD_LEFT) . $timestamp;
 
         return [
-            'cart_id'  => $cartId,
-            'store_id' => $storeId,
-            'items'    => $items->map(function ($item) {
+            'cart_id'    => $cartId,
+            'store_id'   => $storeId,
+            'store_name' => $sale->store?->name ?? config('app.store_name'),
+            'items'      => $items->map(function ($item) {
                 return [
                     'name'  => $item->product?->name ?? 'Mahsulot',
                     'size'  => $item->productSize?->size,

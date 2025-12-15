@@ -13,8 +13,9 @@
         default    => 'Noma\'lum',
     };
 
-    $items  = $data['items'] ?? [];
-    $totals = $data['totals'] ?? ['qty' => 0, 'amount' => 0];
+    $items      = $data['items'] ?? [];
+    $totals     = $data['totals'] ?? ['qty' => 0, 'amount' => 0];
+    $storeName  = $data['store_name'] ?? (auth()->user()?->currentStore?->name ?? config('app.store_name'));
 
     $cartIdFormatted = $data['cart_id'] ?? null;
     $storeIdFormatted = $data['store_id'] ?? null;
@@ -58,7 +59,7 @@
 @endonce
 
 <div class="center" style="margin-bottom:10px; margin-top:5px;">
-    <h3 style="margin:0;">** Mir obuv 9494 **</h3>
+    <h3 style="margin:0;">** {{ $storeName }} **</h3>
 </div>
 <div class="center bold" style="font-size:18px; margin-bottom:6px;">SAVDO CHEKI</div>
 <div class="center bold" style="margin-bottom:4px;">{{ $data['receipt_number'] ?? '' }}</div>
