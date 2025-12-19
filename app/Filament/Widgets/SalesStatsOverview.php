@@ -8,6 +8,8 @@ use App\Models\Purchase;
 use App\Models\SaleItem;
 use Livewire\Attributes\On;
 use Illuminate\Support\Carbon;
+use App\Models\CashTransaction;
+use App\Models\InventoryAdjustment;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Filament\Forms\Concerns\InteractsWithForms;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
@@ -57,6 +59,58 @@ class SalesStatsOverview extends BaseWidget
             ->whereBetween('purchase_date', [$start, $end])
             ->get();
 
+        $returnRevenue = CashTransaction::query()
+            ->where('reason', CashTransaction::REASON_RETURN)
+            ->whereBetween('created_at', [$start, $end])
+            ->sum('amount');
+
+        $returnCost = InventoryAdjustment::query()
+            ->where('adjustment_type', InventoryAdjustment::TYPE_RETURN)
+            ->whereBetween('inventory_adjustments.created_at', [$start, $end])
+            ->join('products', 'products.id', '=', 'inventory_adjustments.product_id')
+            ->selectRaw('COALESCE(SUM(COALESCE(products.initial_price, 0) * inventory_adjustments.quantity), 0) as total')
+            ->value('total') ?? 0;
+
+        $exchangeInRevenue = InventoryAdjustment::query()
+            ->where('adjustment_type', InventoryAdjustment::TYPE_EXCHANGE_IN)
+            ->whereBetween('inventory_adjustments.created_at', [$start, $end])
+            ->selectRaw('COALESCE(SUM(unit_price * inventory_adjustments.quantity), 0) as total')
+            ->value('total') ?? 0;
+
+        $exchangeInCost = InventoryAdjustment::query()
+            ->where('adjustment_type', InventoryAdjustment::TYPE_EXCHANGE_IN)
+            ->whereBetween('inventory_adjustments.created_at', [$start, $end])
+            ->join('products', 'products.id', '=', 'inventory_adjustments.product_id')
+            ->selectRaw('COALESCE(SUM(COALESCE(products.initial_price, 0) * inventory_adjustments.quantity), 0) as total')
+            ->value('total') ?? 0;
+
+        $exchangeOutRevenue = InventoryAdjustment::query()
+            ->where('adjustment_type', InventoryAdjustment::TYPE_EXCHANGE_OUT)
+            ->whereBetween('inventory_adjustments.created_at', [$start, $end])
+            ->selectRaw('COALESCE(SUM(unit_price * ABS(inventory_adjustments.quantity)), 0) as total')
+            ->value('total') ?? 0;
+
+        $exchangeOutCost = InventoryAdjustment::query()
+            ->where('adjustment_type', InventoryAdjustment::TYPE_EXCHANGE_OUT)
+            ->whereBetween('inventory_adjustments.created_at', [$start, $end])
+            ->join('products', 'products.id', '=', 'inventory_adjustments.product_id')
+            ->selectRaw('COALESCE(SUM(COALESCE(products.initial_price, 0) * ABS(inventory_adjustments.quantity)), 0) as total')
+            ->value('total') ?? 0;
+
+        $returnProfitImpact     = $returnRevenue - $returnCost;
+        $exchangeInProfitImpact = $exchangeInRevenue - $exchangeInCost;
+        $exchangeOutProfit      = $exchangeOutRevenue - $exchangeOutCost;
+
+        $netSales = max(
+            0,
+            $totalSales - $returnRevenue - $exchangeInRevenue + $exchangeOutRevenue
+        );
+
+        $netProfit = $totalProfit
+            - $returnProfitImpact
+            - $exchangeInProfitImpact
+            + $exchangeOutProfit;
+
         $totalPurchases = $purchases->sum('total_amount');
 
         $debtPurchases = $purchases
@@ -64,11 +118,11 @@ class SalesStatsOverview extends BaseWidget
             ->sum('total_amount');
 
         return [
-            Stat::make('Umumiy sotuvlar', number_format($totalSales) . " so'm")
+            Stat::make('Umumiy sotuvlar', number_format($netSales) . " so'm")
                 ->description('Tanlangan davr uchun umumiy sotuvlar')
                 ->icon('heroicon-o-wallet')
                 ->color('success'),
-            Stat::make('Foyda', number_format($totalProfit) . " so'm")
+            Stat::make('Foyda', number_format($netProfit) . " so'm")
                 ->description('Tanlangan davr uchun foyda')
                 ->icon('heroicon-o-wallet')
                 ->color('primary'),

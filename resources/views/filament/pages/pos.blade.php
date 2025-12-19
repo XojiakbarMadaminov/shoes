@@ -43,6 +43,364 @@
         </div>
     @endif
 
+    @php
+        $posFieldLabelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
+        $posSelectClass = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white';
+        $posTextareaClass = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white';
+        $posInputClass = 'fi-input block w-full rounded-lg border border-gray-300 outline outline-1 outline-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/40 dark:border-gray-700 dark:outline-gray-700 dark:bg-gray-900 dark:text-white';
+    @endphp
+
+    {{-- Return Modal --}}
+    @if($showReturnModal)
+        <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+            <div class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 rounded-xl w-full max-w-2xl shadow-xl overflow-hidden" wire:click.stop>
+                <form wire:submit.prevent="submitReturn" class="p-6 space-y-5">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold">Mahsulotni qaytarish</h3>
+                        <button type="button" wire:click="closeReturnModal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                            <x-heroicon-o-x-mark class="w-6 h-6"/>
+                        </button>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="sm:col-span-2 space-y-2">
+                            <label class="{{ $posFieldLabelClass }}">Mahsulot</label>
+                            <x-filament::input
+                                type="text"
+                                wire:model.live.debounce.300ms="returnProductSearch"
+                                placeholder="Nom yoki shtrix-kod bo‘yicha qidiring..."
+                                class="{{ $posInputClass }}"
+                            />
+                            @if($returnSelectedProductLabel)
+                                <div class="flex items-center justify-between rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700 dark:border-primary-500/40 dark:bg-primary-500/10 dark:text-primary-100">
+                                    <span>{{ $returnSelectedProductLabel }}</span>
+                                    <button type="button" wire:click="clearReturnProductSelection" class="text-xs font-semibold uppercase tracking-wide">O‘chirish</button>
+                                </div>
+                            @endif
+                            @error('returnForm.product_id')
+                            <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                            @enderror
+                            @if($returnProductSearch !== '')
+                                @if(empty($returnProductOptions))
+                                    <p class="text-xs text-gray-500">Natija topilmadi.</p>
+                                @else
+                                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800 max-h-48 overflow-y-auto">
+                                        @foreach($returnProductOptions as $id => $label)
+                                            <button
+                                                type="button"
+                                                wire:click="selectReturnProduct({{ $id }})"
+                                                class="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 dark:hover:bg-primary-500/10"
+                                            >
+                                                {{ $label }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            @endif
+                        </div>
+
+                        @if(!empty($returnSizeOptions))
+                            <div class="sm:col-span-2">
+                                <label class="{{ $posFieldLabelClass }}">Razmer</label>
+                                <select wire:model="returnForm.product_size_id" class="{{ $posSelectClass }}">
+                                    <option value="">Razmer tanlang</option>
+                                    @foreach($returnSizeOptions as $option)
+                                        <option value="{{ $option['id'] }}">{{ $option['label'] }}</option>
+                                    @endforeach
+                                </select>
+                                @error('returnForm.product_size_id')
+                                <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        @endif
+
+                        <div>
+                            <label class="{{ $posFieldLabelClass }}">Sklad</label>
+                            <select wire:model="returnForm.stock_id" class="{{ $posSelectClass }}">
+                                <option value="">Sklad tanlang</option>
+                                @foreach($stockOptions as $id => $label)
+                                    <option value="{{ $id }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('returnForm.stock_id')
+                            <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $posFieldLabelClass }}">Miqdor</label>
+                            <x-filament::input
+                                type="number"
+                                min="1"
+                                wire:model.number="returnForm.quantity"
+                                class="{{ $posInputClass }}"
+                            />
+                            @error('returnForm.quantity')
+                            <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $posFieldLabelClass }}">Narx (bir dona)</label>
+                            <x-filament::input
+                                type="number"
+                                min="1"
+                                step="1"
+                                wire:model.live.debounce.300ms="returnForm.price"
+                                class="{{ $posInputClass }}"
+                            />
+                            <p class="text-xs text-gray-500 mt-1">Bo‘sh qoldirsangiz, mahsulotning joriy narxi olinadi.</p>
+                            @error('returnForm.price')
+                            <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="{{ $posFieldLabelClass }}">Izoh (ixtiyoriy)</label>
+                            <textarea wire:model="returnForm.reason" rows="2" class="{{ $posTextareaClass }}"></textarea>
+                            @error('returnForm.reason')
+                            <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                        <x-filament::button color="gray" type="button" wire:click="closeReturnModal">Bekor qilish</x-filament::button>
+                        <x-filament::button color="primary" type="submit">Qaytarishni saqlash</x-filament::button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    {{-- Exchange Modal --}}
+    @if($showExchangeModal)
+        <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+            <div class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 rounded-xl w-full max-w-4xl shadow-xl overflow-y-auto max-h-[95vh]" wire:click.stop>
+                <form wire:submit.prevent="submitExchange" class="p-6 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold">Mahsulot almashtirish</h3>
+                        <button type="button" wire:click="closeExchangeModal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                            <x-heroicon-o-x-mark class="w-6 h-6"/>
+                        </button>
+                    </div>
+
+                    <div class="grid gap-5 md:grid-cols-2">
+                        <div class="space-y-4">
+                            <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Qaytarilayotgan mahsulot</h4>
+
+                            <div class="space-y-2">
+                                <label class="{{ $posFieldLabelClass }}">Mahsulot</label>
+                                <x-filament::input
+                                    type="text"
+                                    wire:model.live.debounce.300ms="exchangeInProductSearch"
+                                    placeholder="Nom yoki shtrix-kod bo‘yicha qidiring..."
+                                    class="{{ $posInputClass }}"
+                                />
+                                @if($exchangeInSelectedProductLabel)
+                                    <div class="flex items-center justify-between rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700 dark:border-primary-500/40 dark:bg-primary-500/10 dark:text-primary-100">
+                                        <span>{{ $exchangeInSelectedProductLabel }}</span>
+                                        <button type="button" wire:click="clearExchangeInProductSelection" class="text-xs font-semibold uppercase tracking-wide">O‘chirish</button>
+                                    </div>
+                                @endif
+                                @error('exchangeForm.in_product_id')
+                                <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                                @enderror
+                                @if($exchangeInProductSearch !== '')
+                                    @if(empty($exchangeInProductOptions))
+                                        <p class="text-xs text-gray-500">Natija topilmadi.</p>
+                                    @else
+                                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800 max-h-48 overflow-y-auto">
+                                            @foreach($exchangeInProductOptions as $id => $label)
+                                                <button
+                                                    type="button"
+                                                    wire:click="selectExchangeInProduct({{ $id }})"
+                                                    class="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 dark:hover:bg-primary-500/10"
+                                                >
+                                                    {{ $label }}
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                @endif
+                            </div>
+
+                            @if(!empty($exchangeInSizeOptions))
+                                <div>
+                                    <label class="{{ $posFieldLabelClass }}">Razmer</label>
+                                    <select wire:model="exchangeForm.in_product_size_id" class="{{ $posSelectClass }}">
+                                        <option value="">Razmer tanlang</option>
+                                        @foreach($exchangeInSizeOptions as $option)
+                                            <option value="{{ $option['id'] }}">{{ $option['label'] }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('exchangeForm.in_product_size_id')
+                                    <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endif
+
+                            <div>
+                                <label class="{{ $posFieldLabelClass }}">Narx (bir dona)</label>
+                                <x-filament::input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    wire:model.live.debounce.300ms="exchangeForm.in_price"
+                                    class="{{ $posInputClass }}"
+                                />
+                                @error('exchangeForm.in_price')
+                                <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Beriladigan mahsulot</h4>
+
+                            <div class="space-y-2">
+                                <label class="{{ $posFieldLabelClass }}">Mahsulot</label>
+                                <x-filament::input
+                                    type="text"
+                                    wire:model.live.debounce.300ms="exchangeOutProductSearch"
+                                    placeholder="Nom yoki shtrix-kod bo‘yicha qidiring..."
+                                    class="{{ $posInputClass }}"
+                                />
+                                @if($exchangeOutSelectedProductLabel)
+                                    <div class="flex items-center justify-between rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-700 dark:border-primary-500/40 dark:bg-primary-500/10 dark:text-primary-100">
+                                        <span>{{ $exchangeOutSelectedProductLabel }}</span>
+                                        <button type="button" wire:click="clearExchangeOutProductSelection" class="text-xs font-semibold uppercase tracking-wide">O‘chirish</button>
+                                    </div>
+                                @endif
+                                @error('exchangeForm.out_product_id')
+                                <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                                @enderror
+                                @if($exchangeOutProductSearch !== '')
+                                    @if(empty($exchangeOutProductOptions))
+                                        <p class="text-xs text-gray-500">Natija topilmadi.</p>
+                                    @else
+                                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800 max-h-48 overflow-y-auto">
+                                            @foreach($exchangeOutProductOptions as $id => $label)
+                                                <button
+                                                    type="button"
+                                                    wire:click="selectExchangeOutProduct({{ $id }})"
+                                                    class="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 dark:hover:bg-primary-500/10"
+                                                >
+                                                    {{ $label }}
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                @endif
+                            </div>
+
+                            @if(!empty($exchangeOutSizeOptions))
+                                <div>
+                                    <label class="{{ $posFieldLabelClass }}">Razmer</label>
+                                    <select wire:model="exchangeForm.out_product_size_id" class="{{ $posSelectClass }}">
+                                        <option value="">Razmer tanlang</option>
+                                        @foreach($exchangeOutSizeOptions as $option)
+                                            <option value="{{ $option['id'] }}">{{ $option['label'] }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('exchangeForm.out_product_size_id')
+                                    <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @endif
+
+                            <div>
+                                <label class="{{ $posFieldLabelClass }}">Narx (bir dona)</label>
+                                <x-filament::input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    wire:model.live.debounce.300ms="exchangeForm.out_price"
+                                    class="{{ $posInputClass }}"
+                                />
+                                @error('exchangeForm.out_price')
+                                <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div>
+                            <label class="{{ $posFieldLabelClass }}">Sklad</label>
+                            <select wire:model="exchangeForm.stock_id" class="{{ $posSelectClass }}">
+                                <option value="">Sklad tanlang</option>
+                                @foreach($stockOptions as $id => $label)
+                                    <option value="{{ $id }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('exchangeForm.stock_id')
+                            <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $posFieldLabelClass }}">Miqdor</label>
+                            <x-filament::input
+                                type="number"
+                                min="1"
+                                wire:model.live.debounce.300ms="exchangeForm.quantity"
+                                class="{{ $posInputClass }}"
+                            />
+                            @error('exchangeForm.quantity')
+                            <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="{{ $posFieldLabelClass }}">Izoh</label>
+                            <x-filament::input
+                                type="text"
+                                wire:model="exchangeForm.reason"
+                                class="{{ $posInputClass }}"
+                            />
+                            @error('exchangeForm.reason')
+                            <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+                        <div class="text-sm font-medium text-gray-600 dark:text-gray-300">Narx farqi</div>
+                        @if(!is_null($exchangePriceDifference))
+                            @if($exchangePriceDifference > 0)
+                                <p class="mt-1 text-success-600 font-semibold">Mijoz to‘lashi kerak: {{ number_format($exchangePriceDifference, 0, '.', ' ') }} so‘m</p>
+                            @elseif($exchangePriceDifference < 0)
+                                <p class="mt-1 text-danger-600 font-semibold">Mijozga qaytarilishi kerak: {{ number_format(abs($exchangePriceDifference), 0, '.', ' ') }} so‘m</p>
+                            @else
+                                <p class="mt-1 text-gray-700 dark:text-gray-300">Narx farqi yo‘q.</p>
+                            @endif
+                        @else
+                            <p class="mt-1 text-gray-500 text-sm">Har ikki mahsulot uchun narx va miqdorni kiriting.</p>
+                        @endif
+                    </div>
+
+                    <div class="flex justify-end gap-3">
+                        <x-filament::button color="gray" type="button" wire:click="closeExchangeModal">Bekor qilish</x-filament::button>
+                        <x-filament::button color="primary" type="submit">Almashinuvni saqlash</x-filament::button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    {{-- Quick actions --}}
+    <x-filament::card class="mb-6">
+        <div class="flex flex-wrap gap-3">
+            <x-filament::button color="warning" icon="heroicon-o-arrow-uturn-left" wire:click="openReturnModal">
+                Mahsulotni qaytarish
+            </x-filament::button>
+            <x-filament::button color="info" icon="heroicon-o-arrows-right-left" wire:click="openExchangeModal">
+                Mahsulot almashtirish
+            </x-filament::button>
+        </div>
+    </x-filament::card>
+
     {{-- Cart Management Section --}}
     <x-filament::card class="mb-6" wire:key="cart-header-{{ $activeCartId }}-{{ $totals['qty'] }}">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">

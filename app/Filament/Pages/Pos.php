@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use Filament\Panel;
 use App\Models\Sale;
+use App\Models\Stock;
 use App\Models\Client;
 use App\Models\Debtor;
 use App\Models\Product;
@@ -13,10 +14,14 @@ use Livewire\Attributes\On;
 use App\Models\ProductStock;
 use App\Services\CartService;
 use App\Enums\NavigationGroup;
+use App\Services\ReturnService;
+use Illuminate\Validation\Rule;
 use App\Models\DebtorTransaction;
+use App\Services\ExchangeService;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Panel\Concerns\HasNotifications;
+use Illuminate\Validation\ValidationException;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Illuminate\Support\Collection as EloquentCollection;
 
@@ -72,6 +77,45 @@ class Pos extends Page
         'card' => null,
     ];
     protected bool $isSyncingMixedPayment = false;
+    public array $stockOptions            = [];
+
+    public bool $showReturnModal   = false;
+    public bool $showExchangeModal = false;
+
+    public array $returnForm = [
+        'product_id'      => null,
+        'product_size_id' => null,
+        'stock_id'        => null,
+        'quantity'        => 1,
+        'price'           => null,
+        'reason'          => null,
+    ];
+
+    public array $exchangeForm = [
+        'in_product_id'       => null,
+        'in_product_size_id'  => null,
+        'out_product_id'      => null,
+        'out_product_size_id' => null,
+        'stock_id'            => null,
+        'quantity'            => 1,
+        'in_price'            => null,
+        'out_price'           => null,
+        'reason'              => null,
+    ];
+
+    public array $returnSizeOptions                 = [];
+    public array $exchangeInSizeOptions             = [];
+    public array $exchangeOutSizeOptions            = [];
+    public ?int $exchangePriceDifference            = null;
+    public string $returnProductSearch              = '';
+    public string $exchangeInProductSearch          = '';
+    public string $exchangeOutProductSearch         = '';
+    public array $returnProductOptions              = [];
+    public array $exchangeInProductOptions          = [];
+    public array $exchangeOutProductOptions         = [];
+    public ?string $returnSelectedProductLabel      = null;
+    public ?string $exchangeInSelectedProductLabel  = null;
+    public ?string $exchangeOutSelectedProductLabel = null;
 
     public array $newClient = [
         'full_name' => '',
@@ -108,6 +152,14 @@ class Pos extends Page
 
         $this->loadActiveCartMeta();
         $this->refreshCart();
+
+        $this->stockOptions = Stock::scopes('active')->pluck('name', 'id')->all();
+        $defaultStockId     = $this->stockOptions ? array_key_first($this->stockOptions) : null;
+
+        $this->returnForm['stock_id']   = $defaultStockId;
+        $this->exchangeForm['stock_id'] = $defaultStockId;
+
+        $this->refreshSelectedProductLabels();
     }
 
     /* ---------- Cart boshqaruvi ---------- */
@@ -1374,6 +1426,503 @@ class Pos extends Page
         } finally {
             $this->isSyncingMixedPayment = false;
         }
+    }
+
+    public function openReturnModal(): void
+    {
+        $this->resetErrorBag();
+        $this->showReturnModal      = true;
+        $this->returnProductOptions = $this->buildProductOptions($this->returnProductSearch);
+        $this->refreshSelectedProductLabels();
+
+        if ($productId = $this->returnForm['product_id']) {
+            $this->loadReturnProductMeta((int) $productId);
+        }
+    }
+
+    public function closeReturnModal(): void
+    {
+        $this->showReturnModal = false;
+        $this->resetErrorBag();
+    }
+
+    public function openExchangeModal(): void
+    {
+        $this->resetErrorBag();
+        $this->showExchangeModal         = true;
+        $this->exchangeInProductOptions  = $this->buildProductOptions($this->exchangeInProductSearch);
+        $this->exchangeOutProductOptions = $this->buildProductOptions($this->exchangeOutProductSearch);
+        $this->refreshSelectedProductLabels();
+
+        if ($productId = $this->exchangeForm['in_product_id']) {
+            $this->loadExchangeProductMeta('in', (int) $productId);
+        }
+
+        if ($productId = $this->exchangeForm['out_product_id']) {
+            $this->loadExchangeProductMeta('out', (int) $productId);
+        }
+    }
+
+    public function closeExchangeModal(): void
+    {
+        $this->showExchangeModal = false;
+        $this->resetErrorBag();
+    }
+
+    public function updatedReturnFormProductId($value): void
+    {
+        $this->loadReturnProductMeta((int) $value);
+        $this->returnSelectedProductLabel = $this->getProductLabel((int) $value);
+    }
+
+    public function updatedExchangeFormInProductId($value): void
+    {
+        $this->loadExchangeProductMeta('in', (int) $value);
+        $this->exchangeInSelectedProductLabel = $this->getProductLabel((int) $value);
+    }
+
+    public function updatedExchangeFormOutProductId($value): void
+    {
+        $this->loadExchangeProductMeta('out', (int) $value);
+        $this->exchangeOutSelectedProductLabel = $this->getProductLabel((int) $value);
+    }
+
+    public function updatedExchangeFormQuantity($value): void
+    {
+        $this->exchangeForm['quantity'] = (int) $value;
+        $this->recalcExchangeDifference();
+    }
+
+    public function updatedExchangeFormInPrice($value): void
+    {
+        $this->exchangeForm['in_price'] = $value;
+        $this->recalcExchangeDifference();
+    }
+
+    public function updatedExchangeFormOutPrice($value): void
+    {
+        $this->exchangeForm['out_price'] = $value;
+        $this->recalcExchangeDifference();
+    }
+
+    public function updatedReturnProductSearch(): void
+    {
+        $this->returnProductOptions = $this->buildProductOptions($this->returnProductSearch);
+    }
+
+    public function updatedExchangeInProductSearch(): void
+    {
+        $this->exchangeInProductOptions = $this->buildProductOptions($this->exchangeInProductSearch);
+    }
+
+    public function updatedExchangeOutProductSearch(): void
+    {
+        $this->exchangeOutProductOptions = $this->buildProductOptions($this->exchangeOutProductSearch);
+    }
+
+    public function selectReturnProduct(int $productId): void
+    {
+        $label = $this->getProductLabel($productId);
+
+        if (!$label) {
+            Notification::make()
+                ->title('Mahsulot topilmadi')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $this->returnForm['product_id']   = $productId;
+        $this->returnSelectedProductLabel = $label;
+        $this->returnProductSearch        = '';
+        $this->returnProductOptions       = [];
+        $this->loadReturnProductMeta($productId);
+        $this->refreshSelectedProductLabels();
+    }
+
+    public function clearReturnProductSelection(): void
+    {
+        $this->returnForm['product_id']      = null;
+        $this->returnForm['product_size_id'] = null;
+        $this->returnForm['price']           = null;
+        $this->returnSelectedProductLabel    = null;
+        $this->returnProductSearch           = '';
+        $this->returnSizeOptions             = [];
+        $this->refreshSelectedProductLabels();
+    }
+
+    public function selectExchangeInProduct(int $productId): void
+    {
+        $label = $this->getProductLabel($productId);
+
+        if (!$label) {
+            Notification::make()
+                ->title('Mahsulot topilmadi')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $this->exchangeForm['in_product_id']  = $productId;
+        $this->exchangeInSelectedProductLabel = $label;
+        $this->exchangeInProductSearch        = '';
+        $this->exchangeInProductOptions       = [];
+        $this->loadExchangeProductMeta('in', $productId);
+        $this->refreshSelectedProductLabels();
+    }
+
+    public function clearExchangeInProductSelection(): void
+    {
+        $this->exchangeForm['in_product_id']      = null;
+        $this->exchangeForm['in_product_size_id'] = null;
+        $this->exchangeForm['in_price']           = null;
+        $this->exchangeInSelectedProductLabel     = null;
+        $this->exchangeInProductSearch            = '';
+        $this->exchangeInSizeOptions              = [];
+        $this->refreshSelectedProductLabels();
+    }
+
+    public function selectExchangeOutProduct(int $productId): void
+    {
+        $label = $this->getProductLabel($productId);
+
+        if (!$label) {
+            Notification::make()
+                ->title('Mahsulot topilmadi')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $this->exchangeForm['out_product_id']  = $productId;
+        $this->exchangeOutSelectedProductLabel = $label;
+        $this->exchangeOutProductSearch        = '';
+        $this->exchangeOutProductOptions       = [];
+        $this->loadExchangeProductMeta('out', $productId);
+        $this->refreshSelectedProductLabels();
+    }
+
+    public function clearExchangeOutProductSelection(): void
+    {
+        $this->exchangeForm['out_product_id']      = null;
+        $this->exchangeForm['out_product_size_id'] = null;
+        $this->exchangeForm['out_price']           = null;
+        $this->exchangeOutSelectedProductLabel     = null;
+        $this->exchangeOutProductSearch            = '';
+        $this->exchangeOutSizeOptions              = [];
+        $this->refreshSelectedProductLabels();
+    }
+
+    public function submitReturn(): void
+    {
+        $form = $this->validateReturnForm()['returnForm'];
+
+        try {
+            app(ReturnService::class)->handle([
+                'product_id'      => $form['product_id'],
+                'product_size_id' => $form['product_size_id'],
+                'stock_id'        => $form['stock_id'],
+                'quantity'        => $form['quantity'],
+                'price'           => $form['price'],
+                'reason'          => $form['reason'],
+            ]);
+        } catch (ValidationException $exception) {
+            $this->applyFormErrors('returnForm', $exception->errors());
+
+            return;
+        }
+
+        Notification::make()
+            ->title('Mahsulot qaytarildi')
+            ->body('Ombordagi qoldiq yangilandi va naqd balans kamaytirildi.')
+            ->success()
+            ->send();
+
+        $this->resetReturnForm();
+        $this->showReturnModal = false;
+    }
+
+    public function submitExchange(): void
+    {
+        $form = $this->validateExchangeForm()['exchangeForm'];
+
+        try {
+            $operation = app(ExchangeService::class)->handle([
+                'in_product_id'       => $form['in_product_id'],
+                'in_product_size_id'  => $form['in_product_size_id'],
+                'out_product_id'      => $form['out_product_id'],
+                'out_product_size_id' => $form['out_product_size_id'],
+                'stock_id'            => $form['stock_id'],
+                'quantity'            => $form['quantity'],
+                'in_price'            => $form['in_price'],
+                'out_price'           => $form['out_price'],
+                'reason'              => $form['reason'],
+            ]);
+        } catch (ValidationException $exception) {
+            $this->applyFormErrors('exchangeForm', $exception->errors());
+
+            return;
+        }
+
+        $this->exchangePriceDifference = $operation->price_difference;
+
+        $diffMessage = match (true) {
+            $this->exchangePriceDifference > 0 => 'Mijozdan farq summasi qabul qilindi.',
+            $this->exchangePriceDifference < 0 => 'Mijozga farq summasi qaytarildi.',
+            default                            => 'Narx farqi mavjud emas.',
+        };
+
+        Notification::make()
+            ->title('Almashinuv yakunlandi')
+            ->body($diffMessage)
+            ->success()
+            ->send();
+
+        $this->resetExchangeForm();
+        $this->showExchangeModal = false;
+    }
+
+    protected function validateReturnForm(): array
+    {
+        return $this->validate([
+            'returnForm.product_id'      => ['required', 'integer', 'exists:products,id'],
+            'returnForm.stock_id'        => ['required', 'integer', 'exists:stocks,id'],
+            'returnForm.quantity'        => ['required', 'integer', 'min:1'],
+            'returnForm.price'           => ['nullable', 'numeric', 'min:1'],
+            'returnForm.product_size_id' => [
+                Rule::requiredIf(!empty($this->returnSizeOptions)),
+                'nullable',
+                'integer',
+                'exists:product_sizes,id',
+            ],
+            'returnForm.reason' => ['nullable', 'string', 'max:255'],
+        ]);
+    }
+
+    protected function validateExchangeForm(): array
+    {
+        return $this->validate([
+            'exchangeForm.in_product_id'      => ['required', 'integer', 'exists:products,id'],
+            'exchangeForm.out_product_id'     => ['required', 'integer', 'exists:products,id'],
+            'exchangeForm.stock_id'           => ['required', 'integer', 'exists:stocks,id'],
+            'exchangeForm.quantity'           => ['required', 'integer', 'min:1'],
+            'exchangeForm.in_price'           => ['nullable', 'numeric', 'min:1'],
+            'exchangeForm.out_price'          => ['nullable', 'numeric', 'min:1'],
+            'exchangeForm.in_product_size_id' => [
+                Rule::requiredIf(!empty($this->exchangeInSizeOptions)),
+                'nullable',
+                'integer',
+                'exists:product_sizes,id',
+            ],
+            'exchangeForm.out_product_size_id' => [
+                Rule::requiredIf(!empty($this->exchangeOutSizeOptions)),
+                'nullable',
+                'integer',
+                'exists:product_sizes,id',
+            ],
+            'exchangeForm.reason' => ['nullable', 'string', 'max:255'],
+        ]);
+    }
+
+    protected function resetReturnForm(): void
+    {
+        $this->returnForm = [
+            'product_id'      => null,
+            'product_size_id' => null,
+            'stock_id'        => $this->getDefaultStockId(),
+            'quantity'        => 1,
+            'price'           => null,
+            'reason'          => null,
+        ];
+
+        $this->returnSizeOptions          = [];
+        $this->returnProductSearch        = '';
+        $this->returnProductOptions       = [];
+        $this->returnSelectedProductLabel = null;
+        $this->refreshSelectedProductLabels();
+    }
+
+    protected function resetExchangeForm(): void
+    {
+        $this->exchangeForm = [
+            'in_product_id'       => null,
+            'in_product_size_id'  => null,
+            'out_product_id'      => null,
+            'out_product_size_id' => null,
+            'stock_id'            => $this->getDefaultStockId(),
+            'quantity'            => 1,
+            'in_price'            => null,
+            'out_price'           => null,
+            'reason'              => null,
+        ];
+
+        $this->exchangeInSizeOptions           = [];
+        $this->exchangeOutSizeOptions          = [];
+        $this->exchangePriceDifference         = null;
+        $this->exchangeInProductSearch         = '';
+        $this->exchangeOutProductSearch        = '';
+        $this->exchangeInProductOptions        = [];
+        $this->exchangeOutProductOptions       = [];
+        $this->exchangeInSelectedProductLabel  = null;
+        $this->exchangeOutSelectedProductLabel = null;
+        $this->refreshSelectedProductLabels();
+    }
+
+    protected function recalcExchangeDifference(): void
+    {
+        $quantity = (int) ($this->exchangeForm['quantity'] ?? 0);
+        $inPrice  = (int) round($this->exchangeForm['in_price'] ?? 0);
+        $outPrice = (int) round($this->exchangeForm['out_price'] ?? 0);
+
+        if ($quantity > 0 && $inPrice > 0 && $outPrice > 0) {
+            $this->exchangePriceDifference = ($outPrice - $inPrice) * $quantity;
+        } else {
+            $this->exchangePriceDifference = null;
+        }
+    }
+
+    protected function loadReturnProductMeta(?int $productId): void
+    {
+        $this->returnSizeOptions             = [];
+        $this->returnForm['product_size_id'] = null;
+
+        if (!$productId) {
+            $this->returnForm['price'] = null;
+
+            return;
+        }
+
+        $product = Product::with('sizes')->find($productId);
+
+        if (!$product) {
+            $this->returnForm['price'] = null;
+
+            return;
+        }
+
+        if ($product->isPackageBased()) {
+            $this->returnSizeOptions = [];
+        } else {
+            $this->returnSizeOptions = $product->sizes
+                ->map(fn ($size) => [
+                    'id'    => $size->id,
+                    'label' => $size->size,
+                ])
+                ->toArray();
+        }
+
+        $this->returnForm['price'] = $product->price;
+    }
+
+    protected function loadExchangeProductMeta(string $target, ?int $productId): void
+    {
+        $sizeProperty = $target === 'in' ? 'exchangeInSizeOptions' : 'exchangeOutSizeOptions';
+        $sizeField    = "{$target}_product_size_id";
+        $priceField   = "{$target}_price";
+
+        $this->{$sizeProperty}          = [];
+        $this->exchangeForm[$sizeField] = null;
+
+        if (!$productId) {
+            $this->exchangeForm[$priceField] = null;
+            $this->recalcExchangeDifference();
+
+            return;
+        }
+
+        $product = Product::with('sizes')->find($productId);
+
+        if (!$product) {
+            $this->exchangeForm[$priceField] = null;
+            $this->recalcExchangeDifference();
+
+            return;
+        }
+
+        if ($product->isPackageBased()) {
+            $this->{$sizeProperty} = [];
+        } else {
+            $this->{$sizeProperty} = $product->sizes
+                ->map(fn ($size) => [
+                    'id'    => $size->id,
+                    'label' => $size->size,
+                ])
+                ->toArray();
+        }
+
+        $this->exchangeForm[$priceField] = $product->price;
+        $this->recalcExchangeDifference();
+    }
+
+    protected function applyFormErrors(string $prefix, array $errors): void
+    {
+        foreach ($errors as $field => $messages) {
+            $messages = (array) $messages;
+
+            foreach ($messages as $message) {
+                $this->addError("{$prefix}.{$field}", $message);
+            }
+        }
+    }
+
+    protected function getDefaultStockId(): ?int
+    {
+        return $this->stockOptions ? (int) array_key_first($this->stockOptions) : null;
+    }
+
+    protected function refreshSelectedProductLabels(): void
+    {
+        $this->returnSelectedProductLabel      = $this->getProductLabel($this->returnForm['product_id'] ?? null);
+        $this->exchangeInSelectedProductLabel  = $this->getProductLabel($this->exchangeForm['in_product_id'] ?? null);
+        $this->exchangeOutSelectedProductLabel = $this->getProductLabel($this->exchangeForm['out_product_id'] ?? null);
+    }
+
+    protected function buildProductOptions(?string $term = null): array
+    {
+        $term = trim((string) ($term ?? ''));
+
+        if ($term === '') {
+            return [];
+        }
+
+        return Product::query()
+            ->where(function ($q) use ($term) {
+                $q->where('name', 'ilike', "%{$term}%")
+                    ->orWhere('barcode', 'ilike', "%{$term}%");
+            })
+            ->orderBy('name')
+            ->limit(25)
+            ->get(['id', 'name', 'barcode'])
+            ->mapWithKeys(function (Product $product) {
+                return [$product->id => $this->formatProductOptionLabel($product)];
+            })
+            ->all();
+    }
+
+    protected function getProductLabel(?int $productId): ?string
+    {
+        if (!$productId) {
+            return null;
+        }
+
+        $product = Product::find($productId);
+
+        return $product ? $this->formatProductOptionLabel($product) : null;
+    }
+
+    protected function formatProductOptionLabel(Product $product): string
+    {
+        $label   = $product->name ?? 'Noma’lum';
+        $barcode = trim((string) ($product->barcode ?? ''));
+
+        if ($barcode !== '') {
+            return "{$label} ({$barcode})";
+        }
+
+        return $label;
     }
 
     protected function normalizeMixedPaymentValue($value): ?float
