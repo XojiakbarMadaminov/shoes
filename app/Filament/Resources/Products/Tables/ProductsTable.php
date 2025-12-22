@@ -43,9 +43,13 @@ class ProductsTable
                         ->label('Rasm')
                         ->getStateUsing(fn (Product $record) => $record->getPrimaryImageUrl())
                         ->square()
-                        ->height(32)
+                        ->imageHeight(32)
                         ->width(32)
-                        ->extraAttributes(['class' => 'cursor-zoom-in'])
+                        ->extraAttributes([
+                            'class'    => 'cursor-zoom-in',
+                            'loading'  => 'lazy',
+                            'decoding' => 'async',
+                        ])
                         ->action(
                             Action::make('zoom_image')
                                 ->label("Ko'rish")
@@ -169,7 +173,7 @@ class ProductsTable
                 ]),
             ])
             ->modifyQueryUsing(function ($query) use ($stocks) {
-                $query->with(['category', 'sizes:id,product_id']);
+                $query->with(['category', 'sizes:id,product_id', 'media']);
 
                 foreach ($stocks as $stock) {
                     $alias = "stock_{$stock->id}_qty";
