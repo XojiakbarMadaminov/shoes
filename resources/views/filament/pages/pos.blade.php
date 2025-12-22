@@ -132,7 +132,7 @@
                             <x-filament::input
                                 type="number"
                                 min="1"
-                                wire:model.number="returnForm.quantity"
+                                wire:model.live.debounce.300ms.number="returnForm.quantity"
                                 class="{{ $posInputClass }}"
                             />
                             @error('returnForm.quantity')
@@ -153,6 +153,28 @@
                             @error('returnForm.price')
                             <p class="text-xs text-danger-600 mt-1">{{ $message }}</p>
                             @enderror
+                        </div>
+                        <div class="sm:col-span-2">
+                            @php
+                                $__total = 0;
+                                if (!empty($returnItems)) {
+                                    foreach ($returnItems as $__it) {
+                                        $__q = (int) ($__it['quantity'] ?? 0);
+                                        $__p = (int) round($__it['price'] ?? 0);
+                                        if ($__q > 0 && $__p > 0) { $__total += $__q * $__p; }
+                                    }
+                                } else {
+                                    $__q = (int) ($returnForm['quantity'] ?? 0);
+                                    $__p = (int) round($returnForm['price'] ?? 0);
+                                    if ($__q > 0 && $__p > 0) { $__total = $__q * $__p; }
+                                }
+                            @endphp
+                            <div class="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 mb-3">
+                                <span class="text-sm text-gray-600 dark:text-gray-300">Jami qaytariladigan summa</span>
+                                <span class="text-base font-semibold text-gray-900 dark:text-white">
+                                    {{ number_format($__total, 0, '.', ' ') }} so'm
+                                </span>
+                            </div>
                         </div>
 
                         <div class="sm:col-span-2">
