@@ -20,8 +20,7 @@ use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class ExchangeHistoryPage extends Page implements HasTable
 {
-    use /* HasPageShield, */
-        InteractsWithTable;
+    use HasPageShield, InteractsWithTable;
 
     protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::Finance;
     protected static ?string $navigationLabel                = 'Almashinuv tarixi';
