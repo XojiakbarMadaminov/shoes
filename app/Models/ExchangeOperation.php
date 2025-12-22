@@ -20,8 +20,23 @@ class ExchangeOperation extends Model
         return $this->belongsTo(Product::class, 'in_product_id');
     }
 
+    public function inProductSize(): BelongsTo
+    {
+        return $this->belongsTo(ProductSize::class, 'in_product_size_id');
+    }
+
     public function outProduct(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'out_product_id');
+    }
+
+    public function outProductSize(): BelongsTo
+    {
+        return $this->belongsTo(ProductSize::class, 'out_product_size_id');
+    }
+
+    public function handledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'handled_by');
     }
 }

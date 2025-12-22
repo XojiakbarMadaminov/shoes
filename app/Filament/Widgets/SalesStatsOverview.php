@@ -101,10 +101,7 @@ class SalesStatsOverview extends BaseWidget
         $exchangeInProfitImpact = $exchangeInRevenue - $exchangeInCost;
         $exchangeOutProfit      = $exchangeOutRevenue - $exchangeOutCost;
 
-        $netSales = max(
-            0,
-            $totalSales - $returnRevenue - $exchangeInRevenue + $exchangeOutRevenue
-        );
+        $netSales = $totalSales - $returnRevenue - $exchangeInRevenue + $exchangeOutRevenue;
 
         $netProfit = $totalProfit
             - $returnProfitImpact

@@ -112,24 +112,31 @@ class ExchangeService
 
             InventoryAdjustment::create([
                 'product_id'      => $inProduct->id,
+                'product_size_id' => $inProductSizeId,
                 'quantity'        => $quantity,
                 'unit_price'      => $incomingPrice,
                 'adjustment_type' => InventoryAdjustment::TYPE_EXCHANGE_IN,
                 'reason'          => $reason,
+                'handled_by'      => auth()->id(),
             ]);
 
             InventoryAdjustment::create([
                 'product_id'      => $outProduct->id,
+                'product_size_id' => $outProductSizeId,
                 'quantity'        => -$quantity,
                 'unit_price'      => $outgoingPrice,
                 'adjustment_type' => InventoryAdjustment::TYPE_EXCHANGE_OUT,
                 'reason'          => $reason,
+                'handled_by'      => auth()->id(),
             ]);
 
             $operation = ExchangeOperation::create([
-                'in_product_id'    => $inProduct->id,
-                'out_product_id'   => $outProduct->id,
-                'price_difference' => $priceDifference,
+                'in_product_id'       => $inProduct->id,
+                'in_product_size_id'  => $inProductSizeId,
+                'out_product_id'      => $outProduct->id,
+                'out_product_size_id' => $outProductSizeId,
+                'price_difference'    => $priceDifference,
+                'handled_by'          => auth()->id(),
             ]);
 
             if ($priceDifference !== 0) {

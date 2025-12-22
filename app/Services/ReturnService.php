@@ -80,10 +80,12 @@ class ReturnService
 
             $adjustment = InventoryAdjustment::create([
                 'product_id'      => $product->id,
+                'product_size_id' => $productSizeId,
                 'quantity'        => $quantity,
                 'unit_price'      => $unitPrice,
                 'adjustment_type' => InventoryAdjustment::TYPE_RETURN,
                 'reason'          => $payload['reason'] ?? null,
+                'handled_by'      => auth()->id(),
             ]);
 
             CashTransaction::create([

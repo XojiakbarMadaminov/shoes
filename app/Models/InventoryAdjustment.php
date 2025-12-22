@@ -24,4 +24,14 @@ class InventoryAdjustment extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function handledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'handled_by');
+    }
+
+    public function productSize(): BelongsTo
+    {
+        return $this->belongsTo(ProductSize::class, 'product_size_id');
+    }
 }
