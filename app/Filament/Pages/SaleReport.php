@@ -11,9 +11,11 @@ use App\Filament\Widgets\SalesByClientChart;
 use App\Filament\Widgets\SalesByCashierChart;
 use App\Filament\Widgets\MonthlySalesTrendChart;
 use App\Filament\Widgets\SupplierPurchasesChart;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class SaleReport extends Page
 {
+    use HasPageShield;
     protected string $view = 'filament.pages.sale-report';
 
     protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::Statistics;
