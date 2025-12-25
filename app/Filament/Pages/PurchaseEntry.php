@@ -60,13 +60,74 @@ class PurchaseEntry extends Page implements HasForms
                 Section::make('Xarid maʼlumotlari')
                     ->columns(2)
                     ->schema([
-                        Select::make('supplier_id')
-                            ->label('Ta’minotchi')
+                                                                                                Select::make('supplier_id')
+                            ->label('Ta�minotchi')
                             ->options(fn () => Supplier::orderBy('full_name')->pluck('full_name', 'id'))
                             ->searchable()
-                            ->required(),
-
-                        Select::make('stock_id')
+                            ->required()
+                            ->createOptionForm([
+                                TextInput::make('full_name')
+                                    ->label('Ismi va familiyasi')
+                                    ->required(),
+                                TextInput::make('phone')
+                                    ->label('Telefon raqam')
+                                    ->maxLength(9)
+                                    ->prefix('+998')
+                                    ->placeholder('90 123 45 67 yoki 0')
+                                    ->required()
+                                    ->reactive()
+                                    ->rule('regex:/^[0-9]{0,9}$/')
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        $digits = preg_replace('/\D/', '', (string) $state);
+                                        if ($digits === '0') {
+                                            return;
+                                        }
+                                        $phone = '+998' . $digits;
+                                        $exists = Supplier::where('phone', $phone)->exists();
+                                        if ($exists) {
+                                            $set('phone', null);
+                                            Notification::make()
+                                                ->title('Ushbu raqam ro?yxatda mavjud!')
+                                                ->danger()
+                                                ->send();
+                                        }
+                                    }),
+                                TextInput::make('address')
+                                    ->label('Manzil')
+                                    ->nullable(),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                $fullName = trim((string) ($data['full_name'] ?? ''));
+                                $rawPhone = (string) ($data['phone'] ?? '');
+                                $address  = trim((string) ($data['address'] ?? '')) ?: null;
+                                if ($fullName === '') {
+                                    throw ValidationException::withMessages([
+                                        'full_name' => 'Ism va familiya kiritilishi shart.',
+                                    ]);
+                                }
+                                $digits = preg_replace('/\D/', '', $rawPhone);
+                                if ($digits !== '0') {
+                                    if (!preg_match('/^[0-9]{9}$/', $digits ?? '')) {
+                                        throw ValidationException::withMessages([
+                                            'phone' => 'Telefon raqam 9 ta raqamdan iborat bo?lishi kerak yoki 0 bo?lishi mumkin.',
+                                        ]);
+                                    }
+                                    $phone = '+998' . $digits;
+                                    if (Supplier::where('phone', $phone)->exists()) {
+                                        throw ValidationException::withMessages([
+                                            'phone' => 'Ushbu raqam ro?yxatda mavjud!',
+                                        ]);
+                                    }
+                                } else {
+                                    $phone = '0';
+                                }
+                                $supplier = Supplier::create([
+                                    'full_name' => $fullName,
+                                    'phone'     => $phone,
+                                    'address'   => $address,
+                                ]);
+                                return $supplier->id;
+                            }),Select::make('stock_id')
                             ->label('Sklad')
                             ->options(fn () => Stock::query()->where('is_active', true)->pluck('name', 'id'))
                             ->live()
@@ -399,3 +460,7 @@ class PurchaseEntry extends Page implements HasForms
         }
     }
 }
+
+
+
+
