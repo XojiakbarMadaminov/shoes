@@ -204,13 +204,217 @@ class PurchaseService
 
     protected function incrementProductStock(?int $productId, ?int $productSizeId, int $stockId, int $quantity): void
     {
-        $record = ProductStock::firstOrNew([
-            'product_id'      => $productId,
-            'product_size_id' => $productSizeId,
-            'stock_id'        => $stockId,
-        ]);
+        $keys = ['stock_id' => $stockId];
+        if ($productId !== null) {
+            $keys['product_id']      = $productId;
+            $keys['product_size_id'] = null;
+        } elseif ($productSizeId !== null) {
+            $keys['product_id']      = null;
+            $keys['product_size_id'] = $productSizeId;
+        }
 
+        $record = ProductStock::firstOrNew($keys);
         $record->quantity = (int) $record->quantity + $quantity;
         $record->save();
+    }
+
+    /**
+     * Update an existing purchase and reconcile stock and debts.
+     *
+     * @throws \Throwable
+     */
+    public function update(Purchase $purchase, array $data): Purchase
+    {
+        $user    = Auth::user();
+        $storeId = $purchase->store_id ?: $user?->current_store_id;
+
+        if (!$storeId) {
+            throw ValidationException::withMessages([
+                'store_id' => 'Foydalanuvchi uchun joriy do‘kon tanlanmagan.',
+            ]);
+        }
+
+        $itemsData = collect($data['items'] ?? [])
+            ->filter(fn ($item) => !empty($item['product_id']))
+            ->values();
+
+        if ($itemsData->isEmpty()) {
+            throw ValidationException::withMessages([
+                'items' => 'Hech bo‘lmaganda bitta mahsulot qo‘shing.',
+            ]);
+        }
+
+        $stockId = (int) ($data['stock_id'] ?? 0);
+        if (!$stockId) {
+            throw ValidationException::withMessages([
+                'stock_id' => 'Ombor (sklad) tanlanishi kerak.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($purchase, $data, $itemsData, $storeId, $stockId) {
+            $purchase->loadMissing('items');
+
+            // Clear previous debt impact
+            $this->clearPurchaseDebt($purchase);
+
+            // Roll back previous stock
+            foreach ($purchase->items as $old) {
+                $this->decrementProductStock($old->product_id, $old->product_size_id, $old->stock_id, (int) $old->quantity);
+            }
+
+            // Delete previous items
+            $purchase->items()->delete();
+
+            // Update basic fields
+            $purchase->update([
+                'supplier_id'   => $data['supplier_id'],
+                'stock_id'      => $stockId,
+                'purchase_date' => $data['purchase_date'],
+                'payment_type'  => $data['payment_type'],
+                'note'          => $data['note'] ?? null,
+            ]);
+
+            $totalAmount = 0.0;
+
+            foreach ($itemsData as $item) {
+                $product = Product::withoutGlobalScope('current_store')->findOrFail($item['product_id']);
+                $unit    = (float) ($item['unit_cost'] ?? 0);
+
+                if ($unit <= 0) {
+                    throw ValidationException::withMessages([
+                        'items' => "Mahsulot {$product->name} uchun xarid narxi 0 dan katta bo‘lishi kerak.",
+                    ]);
+                }
+
+                if ($product->isPackageBased()) {
+                    $quantity = (int) ($item['quantity'] ?? 0);
+                    if ($quantity <= 0) {
+                        throw ValidationException::withMessages([
+                            'items' => "{$product->name} uchun miqdor kiritilmadi.",
+                        ]);
+                    }
+
+                    $lineTotal = round($unit * $quantity, 2);
+                    $totalAmount += $lineTotal;
+
+                    PurchaseItem::create([
+                        'purchase_id'     => $purchase->id,
+                        'product_id'      => $product->id,
+                        'product_size_id' => null,
+                        'stock_id'        => $stockId,
+                        'quantity'        => $quantity,
+                        'unit_cost'       => $unit,
+                        'total_cost'      => $lineTotal,
+                    ]);
+
+                    $this->incrementProductStock($product->id, null, $stockId, $quantity);
+                } else {
+                    $sizes = collect($item['size_quantities'] ?? [])
+                        ->map(fn ($row) => [
+                            'product_size_id' => Arr::get($row, 'product_size_id'),
+                            'quantity'        => (int) Arr::get($row, 'quantity', 0),
+                        ])
+                        ->filter(fn ($row) => ($row['product_size_id'] ?? null) && $row['quantity'] > 0);
+
+                    if ($sizes->isEmpty()) {
+                        throw ValidationException::withMessages([
+                            'items' => "{$product->name} uchun razmer bo‘yicha miqdorlar kiritilmadi.",
+                        ]);
+                    }
+
+                    /** @var ProductSize $size */
+                    foreach ($sizes as $sizeRow) {
+                        $size = ProductSize::where('product_id', $product->id)
+                            ->where('id', $sizeRow['product_size_id'])
+                            ->first();
+
+                        if (!$size) {
+                            throw ValidationException::withMessages([
+                                'items' => "{$product->name} uchun razmer topilmadi.",
+                            ]);
+                        }
+
+                        $quantity  = $sizeRow['quantity'];
+                        $lineTotal = round($unit * $quantity, 2);
+                        $totalAmount += $lineTotal;
+
+                        PurchaseItem::create([
+                            'purchase_id'     => $purchase->id,
+                            'product_id'      => $product->id,
+                            'product_size_id' => $size->id,
+                            'stock_id'        => $stockId,
+                            'quantity'        => $quantity,
+                            'unit_cost'       => $unit,
+                            'total_cost'      => $lineTotal,
+                        ]);
+
+                        $this->incrementProductStock(null, $size->id, $stockId, $quantity);
+                    }
+                }
+            }
+
+            $purchase->update([
+                'total_amount'     => $totalAmount,
+                'paid_amount'      => $paid = $this->resolvePaidAmount($data['payment_type'], $totalAmount, $data['partial_paid_amount'] ?? null),
+                'remaining_amount' => max(0, round($totalAmount - $paid, 2)),
+            ]);
+
+            if ($purchase->remaining_amount > 0) {
+                $debt = SupplierDebt::firstOrCreate(
+                    [
+                        'supplier_id' => $purchase->supplier_id,
+                        'store_id'    => $storeId,
+                    ],
+                    [
+                        'amount'   => 0,
+                        'currency' => 'uzs',
+                    ]
+                );
+
+                $debt->increment('amount', $purchase->remaining_amount);
+
+                SupplierDebtTransaction::create([
+                    'supplier_debt_id' => $debt->id,
+                    'purchase_id'      => $purchase->id,
+                    'type'             => 'debt',
+                    'amount'           => $purchase->remaining_amount,
+                    'date'             => now(),
+                    'note'             => $data['note'] ?? null,
+                ]);
+            }
+
+            return $purchase->fresh(['supplier', 'items.product', 'items.productSize']);
+        });
+    }
+
+    protected function decrementProductStock(?int $productId, ?int $productSizeId, int $stockId, int $quantity): void
+    {
+        $keys = ['stock_id' => $stockId];
+        if ($productId !== null) {
+            $keys['product_id']      = $productId;
+            $keys['product_size_id'] = null;
+        } elseif ($productSizeId !== null) {
+            $keys['product_id']      = null;
+            $keys['product_size_id'] = $productSizeId;
+        }
+
+        $record = ProductStock::firstOrNew($keys);
+        $record->quantity = max(0, (int) $record->quantity - $quantity);
+        $record->save();
+    }
+
+    protected function clearPurchaseDebt(Purchase $purchase): void
+    {
+        $transactions = SupplierDebtTransaction::where('purchase_id', $purchase->id)->get();
+
+        foreach ($transactions as $transaction) {
+            $debt = $transaction->debt()->lockForUpdate()->first();
+            if ($debt && $transaction->type === 'debt') {
+                $debt->amount = max(0, (float) $debt->amount - (float) $transaction->amount);
+                $debt->save();
+            }
+
+            $transaction->delete();
+        }
     }
 }
