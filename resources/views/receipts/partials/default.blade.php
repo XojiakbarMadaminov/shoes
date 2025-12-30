@@ -121,3 +121,7 @@
         <img src="{{ $qrPath }}" alt="QR code" style="max-width:32mm; max-height:32mm;">
     </div>
 @endif
+
+<div class="center" style="margin-top:8px; font-size:10px;">
+    Tizim hamkori - @oson_pos
+</div>
