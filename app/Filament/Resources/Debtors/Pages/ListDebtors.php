@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\Debtors\Pages;
 
-use App\Filament\Resources\Debtors\DebtorResource;
-use App\Filament\Widgets\DebtorStatsOverview;
 use App\Models\Debtor;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Widgets\DebtorStatsOverview;
+use App\Filament\Resources\Debtors\DebtorResource;
 
 class ListDebtors extends ListRecords
 {
@@ -17,7 +17,7 @@ class ListDebtors extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-//            CreateAction::make(),
+            CreateAction::make()->label('Qarzdor yaratish'),
         ];
     }
 

@@ -3,11 +3,10 @@
 namespace App\Filament\Resources\Debtors\Tables;
 
 use App\Models\Debtor;
-use App\Models\DebtorTransaction;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Tables\Table;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use App\Models\DebtorTransaction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Forms\Components\Textarea;
@@ -16,6 +15,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Components\DateTimePicker;
 use App\Filament\Resources\Debtors\DebtorResource;
 
 class DebtorsTable
@@ -54,6 +54,33 @@ class DebtorsTable
                 //
             ])
             ->recordActions([
+                Action::make('add_debt')
+                    ->label('Qarz qo‘shish')
+                    ->color('danger')
+                    ->form([
+                        TextInput::make('amount')
+                            ->label('Qarz summasi')
+                            ->prefix(fn (Debtor $record) => $record->currency)
+                            ->numeric()
+                            ->required(),
+                        Textarea::make('note')
+                            ->label('Izoh')
+                            ->nullable(),
+                        DatePicker::make('date')
+                            ->label('Sana')
+                            ->default(today()),
+                    ])
+                    ->action(function (array $data, Debtor $record) {
+                        // Bazaga yozish
+                        $record->transactions()->create([
+                            'type'   => 'debt',
+                            'amount' => $data['amount'],
+                            'date'   => $data['date'],
+                            'note'   => $data['note'] ?? null,
+                        ]);
+
+                        $record->increment('amount', $data['amount']); // total qarz yangilanadi
+                    }),
                 Action::make('add_payment')
                     ->label('To‘lov qilish')
                     ->color('success')

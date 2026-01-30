@@ -2,9 +2,7 @@
 
 namespace App\Filament\Resources\Debtors\Schemas;
 
-use App\Models\Client;
 use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -17,30 +15,21 @@ class DebtorForm
         return $schema
             ->components([
                 Grid::make()->schema([
-                    Select::make('client_id')
-                        ->label('Klient')
-                        ->searchable()
-                        ->preload()
-                        ->options(fn () => Client::orderBy('full_name')->pluck('full_name', 'id'))
-                        ->getSearchResultsUsing(function (string $search) {
-                            return Client::query()
-                                ->where('full_name', 'ilike', "%{$search}%")
-                                ->orWhere('phone', 'ilike', "%{$search}%")
-                                ->limit(50)
-                                ->pluck('full_name', 'id');
-                        })
-                        ->getOptionLabelUsing(fn ($value) => optional(Client::find($value))->full_name)
+                    TextInput::make('phone')
+                        ->label('Telefon raqam')
+                        ->maxLength(9)
+                        ->prefix('+998')
+                        ->placeholder('90 123 45 67')
+                        ->required()
+                        ->reactive()
+                        ->rule('regex:/^[0-9]{0,9}$/')
+                        ->dehydrateStateUsing(fn ($state) => '+998' . preg_replace('/[^0-9]/', '', (string) $state))
+                        ->formatStateUsing(fn ($state) => $state ? ltrim(preg_replace('/^\+998/', '', (string) $state), '0') : $state),
+
+                    TextInput::make('full_name')
+                        ->label('To`liq ism')
+                        ->placeholder('Masalan: Ali Valiyev')
                         ->required(),
-
-                    TextInput::make('client_phone')
-                        ->label('Telefon')
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->formatStateUsing(function ($state, callable $get) {
-                            $id = $get('client_id');
-
-                            return ($id ? Client::find($id) : null)?->phone;
-                        }),
 
                     TextInput::make('amount')
                         ->label('Qarz summasi')
@@ -56,8 +45,8 @@ class DebtorForm
                 ])->columnSpanFull(),
 
                 Textarea::make('note')
-                    ->label('Qo‘shimcha qaydlar')
-                    ->placeholder('Masalan: Do‘kon tovarlari uchun...')
+                    ->label('Qo`shimcha qaydlar')
+                    ->placeholder('Masalan: Do`kon tovarlari uchun...')
                     ->rows(3)
                     ->maxLength(500)
                     ->columnSpanFull(),
