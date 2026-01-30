@@ -19,7 +19,7 @@ class DebtorStatsOverview extends BaseWidget
             ->pluck('total', 'currency');
 
         return [
-            Stat::make('Jami qarz summa', number_format($debts['uzs'] ?? 0, 0, '.', ' ') . " so'm"),
+            Stat::make('Jami qarz summa', number_format($debts['UZS'] ?? 0, 0, '.', ' ') . " so'm"),
         ];
     }
 

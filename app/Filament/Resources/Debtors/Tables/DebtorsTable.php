@@ -13,7 +13,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DateTimePicker;
 use App\Filament\Resources\Debtors\DebtorResource;
@@ -66,9 +65,10 @@ class DebtorsTable
                         Textarea::make('note')
                             ->label('Izoh')
                             ->nullable(),
-                        DatePicker::make('date')
+                        DateTimePicker::make('date')
                             ->label('Sana')
-                            ->default(today()),
+                            ->default(now())
+                            ->required(),
                     ])
                     ->action(function (array $data, Debtor $record) {
                         // Bazaga yozish

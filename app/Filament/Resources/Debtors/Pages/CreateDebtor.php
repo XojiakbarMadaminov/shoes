@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Debtors\Pages;
 
 use App\Models\Client;
 use App\Models\Debtor;
+use Illuminate\Support\Carbon;
 use Filament\Support\Exceptions\Halt;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -60,6 +61,10 @@ class CreateDebtor extends CreateRecord
             if ($client->trashed()) {
                 $client->restore();
             }
+
+            $client->update([
+                'full_name' => $fullName,
+            ]);
         } else {
             // Create client if not exists
             $client = Client::create([
@@ -80,10 +85,13 @@ class CreateDebtor extends CreateRecord
 
     protected function afterCreate(): void
     {
+        $dateTime = Carbon::parse($this->record->date)
+            ->setTimeFromTimeString(now()->format('H:i:s'));
+
         $this->record->transactions()->create([
             'type'   => 'debt',
             'amount' => $this->record->amount,
-            'date'   => $this->record->date,
+            'date'   => $dateTime,
             'note'   => 'Dastlabki qarz',
         ]);
     }
