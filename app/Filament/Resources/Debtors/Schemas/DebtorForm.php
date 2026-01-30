@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\Debtors\Schemas;
 
+use App\Models\Client;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
 class DebtorForm
 {
@@ -25,7 +28,19 @@ class DebtorForm
                         ->reactive()
                         ->rule('regex:/^[0-9]{0,9}$/')
                         ->dehydrateStateUsing(fn ($state) => '+998' . preg_replace('/[^0-9]/', '', (string) $state))
-                        ->formatStateUsing(fn ($state) => $state ? ltrim(preg_replace('/^\+998/', '', (string) $state), '0') : $state),
+                        ->formatStateUsing(fn ($state) => $state ? ltrim(preg_replace('/^\+998/', '', (string) $state), '0') : $state)
+                        ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                            $digits = preg_replace('/[^0-9]/', '', (string) $state);
+                            if (strlen($digits) < 9) {
+                                return;
+                            }
+
+                            $phone  = '+998' . substr($digits, -9);
+                            $client = Client::withTrashed()->where('phone', $phone)->first();
+                            if ($client && blank($get('full_name'))) {
+                                $set('full_name', $client->full_name);
+                            }
+                        }),
 
                     TextInput::make('full_name')
                         ->label('To`liq ism')
