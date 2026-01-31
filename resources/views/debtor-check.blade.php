@@ -74,7 +74,7 @@
 
 <div class="divider"></div>
 
-<div class="center mini">Powered by @developer_2202</div>
+<div class="center mini">Tizim hamkori - @oson_pos</div>
 
 </body>
 </html>

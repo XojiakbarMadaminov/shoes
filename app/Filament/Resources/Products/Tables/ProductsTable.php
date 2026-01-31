@@ -39,27 +39,27 @@ class ProductsTable
             ->columns(array_merge(
                 [
                     TextColumn::make('id')->label('ID'),
-                    ImageColumn::make('first_image')
-                        ->label('Rasm')
-                        ->getStateUsing(fn (Product $record) => $record->getPrimaryImageUrl())
-                        ->square()
-                        ->imageHeight(32)
-                        ->width(32)
-                        ->extraAttributes([
-                            'class'    => 'cursor-zoom-in',
-                            'loading'  => 'lazy',
-                            'decoding' => 'async',
-                        ])
-                        ->action(
-                            Action::make('zoom_image')
-                                ->label("Ko'rish")
-                                ->modalSubmitAction(false)
-                                ->modalHeading(fn (Product $record) => $record->name)
-                                ->modalWidth('5xl')
-                                ->modalContent(fn (Product $record) => view('filament.products.partials.image-zoom', [
-                                    'urls' => $record->getImageUrls(),
-                                ]))
-                        ),
+                    //                    ImageColumn::make('first_image')
+                    //                        ->label('Rasm')
+                    //                        ->getStateUsing(fn (Product $record) => $record->getPrimaryImageUrl())
+                    //                        ->square()
+                    //                        ->imageHeight(32)
+                    //                        ->width(32)
+                    //                        ->extraAttributes([
+                    //                            'class'    => 'cursor-zoom-in',
+                    //                            'loading'  => 'lazy',
+                    //                            'decoding' => 'async',
+                    //                        ])
+                    //                        ->action(
+                    //                            Action::make('zoom_image')
+                    //                                ->label("Ko'rish")
+                    //                                ->modalSubmitAction(false)
+                    //                                ->modalHeading(fn (Product $record) => $record->name)
+                    //                                ->modalWidth('5xl')
+                    //                                ->modalContent(fn (Product $record) => view('filament.products.partials.image-zoom', [
+                    //                                    'urls' => $record->getImageUrls(),
+                    //                                ]))
+                    //                        ),
                     TextColumn::make('name')->label('Nomi')->searchable()->sortable(),
                     TextColumn::make('barcode')->label('Bar kod')->searchable(),
                     TextColumn::make('initial_price')->label('Kelgan narxi')->numeric(),

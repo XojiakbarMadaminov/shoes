@@ -9,6 +9,8 @@ use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
 class DebtorForm
 {
@@ -17,30 +19,33 @@ class DebtorForm
         return $schema
             ->components([
                 Grid::make()->schema([
-                    Select::make('client_id')
-                        ->label('Klient')
-                        ->searchable()
-                        ->preload()
-                        ->options(fn () => Client::orderBy('full_name')->pluck('full_name', 'id'))
-                        ->getSearchResultsUsing(function (string $search) {
-                            return Client::query()
-                                ->where('full_name', 'ilike', "%{$search}%")
-                                ->orWhere('phone', 'ilike', "%{$search}%")
-                                ->limit(50)
-                                ->pluck('full_name', 'id');
-                        })
-                        ->getOptionLabelUsing(fn ($value) => optional(Client::find($value))->full_name)
-                        ->required(),
+                    TextInput::make('phone')
+                        ->label('Telefon raqam')
+                        ->maxLength(9)
+                        ->prefix('+998')
+                        ->placeholder('90 123 45 67')
+                        ->required()
+                        ->reactive()
+                        ->rule('regex:/^[0-9]{0,9}$/')
+                        ->dehydrateStateUsing(fn ($state) => '+998' . preg_replace('/[^0-9]/', '', (string) $state))
+                        ->formatStateUsing(fn ($state) => $state ? ltrim(preg_replace('/^\+998/', '', (string) $state), '0') : $state)
+                        ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                            $digits = preg_replace('/[^0-9]/', '', (string) $state);
+                            if (strlen($digits) < 9) {
+                                return;
+                            }
 
-                    TextInput::make('client_phone')
-                        ->label('Telefon')
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->formatStateUsing(function ($state, callable $get) {
-                            $id = $get('client_id');
-
-                            return ($id ? Client::find($id) : null)?->phone;
+                            $phone  = '+998' . substr($digits, -9);
+                            $client = Client::withTrashed()->where('phone', $phone)->first();
+                            if ($client && blank($get('full_name'))) {
+                                $set('full_name', $client->full_name);
+                            }
                         }),
+
+                    TextInput::make('full_name')
+                        ->label('To`liq ism')
+                        ->placeholder('Masalan: Ali Valiyev')
+                        ->required(),
 
                     TextInput::make('amount')
                         ->label('Qarz summasi')
@@ -56,8 +61,8 @@ class DebtorForm
                 ])->columnSpanFull(),
 
                 Textarea::make('note')
-                    ->label('Qo‘shimcha qaydlar')
-                    ->placeholder('Masalan: Do‘kon tovarlari uchun...')
+                    ->label('Qo`shimcha qaydlar')
+                    ->placeholder('Masalan: Do`kon tovarlari uchun...')
                     ->rows(3)
                     ->maxLength(500)
                     ->columnSpanFull(),

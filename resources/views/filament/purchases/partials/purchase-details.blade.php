@@ -17,7 +17,7 @@
             <div class="text-base font-medium">Xarid #{{ $purchase->id }}</div>
             <a
                 href="{{ \App\Filament\Pages\PurchaseEdit::getUrl(['record' => $purchase->id]) }}"
-                class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-3 py-1.5 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-600"
+                class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-3 py-1.5 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-600"
             >
                 <x-filament::icon icon="heroicon-o-pencil-square" class="h-4 w-4" />
                 Tahrirlash

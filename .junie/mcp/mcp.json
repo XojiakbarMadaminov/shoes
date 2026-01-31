@@ -1,11 +1,20 @@
 {
     "mcpServers": {
         "laravel-boost": {
-            "command": "/usr/bin/php8.3",
+            "command": "C:\\Users\\xojiakbar\\.config\\herd\\bin\\php84\\php.exe",
             "args": [
-                "/home/xojiakbar/PhpstormProjects/learning3/artisan",
+                "C:\\Users\\xojiakbar\\PhpstormProjects\\babyparfume\\artisan",
                 "boost:mcp"
             ]
+        },
+        "herd": {
+            "command": "C:\\Users\\xojiakbar\\.config\\herd\\bin\\php84\\php.exe",
+            "args": [
+                "C:/Users/xojiakbar/.config/herd/bin/herd-mcp.phar"
+            ],
+            "env": {
+                "SITE_PATH": "C:\\Users\\xojiakbar\\PhpstormProjects\\babyparfume"
+            }
         }
     }
 }
