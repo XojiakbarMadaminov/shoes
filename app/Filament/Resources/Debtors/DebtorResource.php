@@ -22,10 +22,10 @@ class DebtorResource extends Resource
 {
     protected static ?string $model = Debtor::class;
 
-    protected static string|null|\UnitEnum $navigationGroup = NavigationGroup::Finance;
+//    protected static string|null|\UnitEnum $navigationGroup = NavigationGroup::Finance;
     protected static ?string $label                         = 'Qarzdorlar';
     protected static string|BackedEnum|null $navigationIcon = Heroicon::CreditCard;
-    protected static ?int $navigationSort                   = 1;
+    protected static ?int $navigationSort                   = 3;
 
     public static function form(Schema $schema): Schema
     {

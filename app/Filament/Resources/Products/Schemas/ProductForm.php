@@ -56,11 +56,11 @@ class ProductForm
                                     })
                             ),
 
-                        Select::make('category_id')
-                            ->label('Kategoriyasi')
-                            ->preload()
-                            ->relationship('category', 'name')
-                            ->searchable(),
+                        //                        Select::make('category_id')
+                        //                            ->label('Kategoriyasi')
+                        //                            ->preload()
+                        //                            ->relationship('category', 'name')
+                        //                            ->searchable(),
 
                         Select::make('type')
                             ->label('Turi')
@@ -147,29 +147,29 @@ class ProductForm
                                 }),
                         ];
                     }),
-                Section::make('Rasm')
-                    ->columnSpanFull()
-                    ->schema(function () {
-                        $upload = SpatieMediaLibraryFileUpload::make('images')
-                            ->disk(config('filesystems.default'))
-                            ->collection(Product::IMAGE_COLLECTION)
-                            ->label('Mahsulot rasmlari')
-                            ->imageEditor()
-                            ->maxSize(10240)
-                            ->multiple()
-                            ->reorderable()
-                            ->responsiveImages()
-                            ->extraAttributes(['class' => 'cursor-zoom-in', 'capture' => 'environment'])
-                            ->visibility('public');
-
-                        if (Product::canOptimizeImages()) {
-                            $upload->conversion(Product::OPTIMIZED_CONVERSION); // WebP konversiyani ishlatadi
-                        } else {
-                            $upload->helperText('Diqqat: GD yoki Imagick PHP kengaytmasi yoqilmagan. Rasm optimizatsiyasi vaqtincha o\'chirildi.');
-                        }
-
-                        return [$upload];
-                    }),
+                //                Section::make('Rasm')
+                //                    ->columnSpanFull()
+                //                    ->schema(function () {
+                //                        $upload = SpatieMediaLibraryFileUpload::make('images')
+                //                            ->disk(config('filesystems.default'))
+                //                            ->collection(Product::IMAGE_COLLECTION)
+                //                            ->label('Mahsulot rasmlari')
+                //                            ->imageEditor()
+                //                            ->maxSize(10240)
+                //                            ->multiple()
+                //                            ->reorderable()
+                //                            ->responsiveImages()
+                //                            ->extraAttributes(['class' => 'cursor-zoom-in', 'capture' => 'environment'])
+                //                            ->visibility('public');
+                //
+                //                        if (Product::canOptimizeImages()) {
+                //                            $upload->conversion(Product::OPTIMIZED_CONVERSION); // WebP konversiyani ishlatadi
+                //                        } else {
+                //                            $upload->helperText('Diqqat: GD yoki Imagick PHP kengaytmasi yoqilmagan. Rasm optimizatsiyasi vaqtincha o\'chirildi.');
+                //                        }
+                //
+                //                        return [$upload];
+                //                    }),
             ]);
     }
 

@@ -29,7 +29,7 @@ class Pos extends Page
 {
     use HasNotifications, HasPageShield;
 
-    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::BaseActions;
+//    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::BaseActions;
     protected static ?string $title                          = 'Sotuv';
     protected string $view                                   = 'filament.pages.pos';
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-shopping-cart';
