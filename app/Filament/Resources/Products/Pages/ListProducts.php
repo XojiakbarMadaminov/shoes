@@ -20,6 +20,7 @@ class ListProducts extends ListRecords
                 ->color('gray')
                 ->url(ProductResource::getUrl('gallery')),
             CreateAction::make(),
+
         ];
     }
 }
