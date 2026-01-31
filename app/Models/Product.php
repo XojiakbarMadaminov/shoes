@@ -10,6 +10,7 @@ use App\Models\Traits\HasCurrentStoreScope;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -66,6 +67,11 @@ class Product extends Model implements HasMedia
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
     }
 
     public function getDisplayLabelAttribute(): string

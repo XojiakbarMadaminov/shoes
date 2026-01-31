@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use SplFileObject;
 use App\Models\Stock;
+use App\Models\Store;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Support\Arr;
@@ -13,11 +14,13 @@ use Illuminate\Support\Facades\DB;
 
 class ImportProductsCsv extends Command
 {
+    // php artisan products:import resources/products.csv --store-id=1
     protected $signature = 'products:import
         {file : Path to the CSV file}
         {--delimiter=, : CSV delimiter}
         {--no-header : Treat file as having no header row}
         {--update : Update existing products if found}
+        {--store-id= : Limit ProductStock creation to stocks attached to the given store id}
     ';
 
     protected $description = 'Import products from a CSV file, assign to all stocks with quantity 0, and set type to package.';
@@ -38,7 +41,27 @@ class ImportProductsCsv extends Command
             return self::FAILURE;
         }
 
-        $stocks = Stock::query()->get();
+        $storeId = $this->option('store-id');
+
+        if ($storeId !== null && $storeId !== '') {
+            $storeId = (int) $storeId;
+        } else {
+            $storeId = null;
+        }
+
+        if ($storeId) {
+            $store = Store::query()->find($storeId);
+            if (!$store) {
+                $this->error("Store not found: {$storeId}");
+
+                return self::FAILURE;
+            }
+
+            $stocks = $store->stocks()->get();
+            $this->info("Using stocks attached to store #{$storeId}: " . $stocks->pluck('id')->implode(', '));
+        } else {
+            $stocks = Stock::query()->get();
+        }
         if ($stocks->isEmpty()) {
             $this->warn('No stocks found. Products will be created without product_stocks entries.');
         }
@@ -94,20 +117,35 @@ class ImportProductsCsv extends Command
             try {
                 $product = null;
                 if ($barcode !== '') {
-                    $product = Product::query()->where('barcode', $barcode)->first();
+                    $query = Product::query()->where('barcode', $barcode);
+                    if ($storeId) {
+                        $query->where('store_id', $storeId);
+                    }
+                    $product = $query->first();
                 }
-                if (!$product && $name !== '') {
-                    $product = Product::query()->where('name', $name)->first();
+                $existsGlobally = $product !== null;
+
+                // Store-aware existence: only treat as existing when the product is already attached
+                // to any of the target store's stocks.
+                $targetStockIds = $stocks->pluck('id')->all();
+                $existsForStore = false;
+                if ($existsGlobally && !empty($targetStockIds)) {
+                    $existsForStore = ProductStock::query()
+                        ->where('product_id', $product->id)
+                        ->whereIn('stock_id', $targetStockIds)
+                        ->exists();
                 }
 
-                $exists = $product !== null;
-                if (!$exists) {
-                    $product = new Product;
-                } elseif (!$shouldUpdate) {
+                if ($existsGlobally && $existsForStore && !$shouldUpdate) {
                     DB::rollBack();
                     $skipped++;
-                    $this->line("[skip] Row {$rowNumber}: product exists (name='{$name}', barcode='{$barcode}')");
+                    $this->line("[skip] Row {$rowNumber}: product exists for this store (name='{$name}', barcode='{$barcode}')");
                     continue;
+                }
+
+                $creatingNewProduct = !$existsGlobally;
+                if ($creatingNewProduct) {
+                    $product = new Product;
                 }
 
                 if ($name !== '') {
@@ -124,6 +162,10 @@ class ImportProductsCsv extends Command
                 }
                 if ($categoryId !== null) {
                     $product->category_id = $categoryId;
+                }
+
+                if ($creatingNewProduct && $storeId) {
+                    $product->store_id = $storeId;
                 }
 
                 $product->type = Product::TYPE_PACKAGE;
@@ -143,9 +185,14 @@ class ImportProductsCsv extends Command
                 }
 
                 DB::commit();
-                if ($exists) {
-                    $updated++;
-                    $this->line("[update] Row {$rowNumber}: '{$product->name}' (#{$product->id})");
+                if ($existsGlobally) {
+                    if ($existsForStore) {
+                        $updated++;
+                        $this->line("[update] Row {$rowNumber}: '{$product->name}' (#{$product->id})");
+                    } else {
+                        $created++;
+                        $this->line("[attach] Row {$rowNumber}: '{$product->name}' attached to store stocks (#{$product->id})");
+                    }
                 } else {
                     $created++;
                     $this->line("[create] Row {$rowNumber}: '{$product->name}' (#{$product->id})");

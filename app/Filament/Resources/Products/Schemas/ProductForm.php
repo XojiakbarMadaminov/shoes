@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Models\Stock;
 use App\Helpers\Helper;
 use App\Models\Product;
-use App\Models\Stock;
 use Filament\Actions\Action;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
@@ -36,7 +36,14 @@ class ProductForm
 
                         TextInput::make('barcode')
                             ->label('Bar kod')
-                            ->unique('products', 'barcode', ignoreRecord: true)
+                            ->unique('products', 'barcode', ignoreRecord: true, modifyRuleUsing: function (\Illuminate\Validation\Rules\Unique $rule) {
+                                $storeId = auth()->user()?->current_store_id;
+                                if ($storeId) {
+                                    $rule->where('store_id', $storeId);
+                                }
+
+                                return $rule;
+                            })
                             ->numeric()
                             ->required()
                             ->autofocus()
