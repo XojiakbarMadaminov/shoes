@@ -23,6 +23,7 @@ class Product extends Model implements HasMedia
 
     public const TYPE_SIZE            = 'size';
     public const TYPE_PACKAGE         = 'package';
+    public const TYPE_COLOR           = 'color';
     public const IMAGE_COLLECTION     = 'images';
     public const OPTIMIZED_CONVERSION = 'optimized';
 
@@ -105,9 +106,24 @@ class Product extends Model implements HasMedia
         return ($this->type ?? self::TYPE_SIZE) === self::TYPE_SIZE;
     }
 
+    public function isColorBased(): bool
+    {
+        return ($this->type ?? self::TYPE_SIZE) === self::TYPE_COLOR;
+    }
+
     public function isPackageBased(): bool
     {
         return ($this->type ?? self::TYPE_SIZE) === self::TYPE_PACKAGE;
+    }
+
+    public function getVariantLabelAttribute(): string
+    {
+        return $this->isColorBased() ? 'Rang' : 'Razmer';
+    }
+
+    public function getVariantPluralLabelAttribute(): string
+    {
+        return $this->isColorBased() ? 'Ranglar' : 'Razmerlar';
     }
 
     public function registerMediaConversions(?Media $media = null): void

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Pages;
 
+use App\Models\Product;
 use Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\Products\ProductResource;
 
@@ -32,7 +33,7 @@ class CreateProduct extends CreateRecord
     {
         $product = $this->record;
 
-        if (($product->type ?? 'size') === 'size') {
+        if (!$product->isPackageBased()) {
             foreach ($this->sizesData as $sizeRow) {
                 $size = $product->sizes()->create(['size' => $sizeRow['size']]);
 

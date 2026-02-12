@@ -33,7 +33,7 @@ class EditProduct extends EditRecord
         $product = $this->record;
         $stocks  = Stock::all();
 
-        if (($product->type ?? 'size') === 'size') {
+        if (!$product->isPackageBased()) {
             $data['sizes'] = $product->sizes()
                 ->with('productStocks')
                 ->get()
@@ -63,7 +63,7 @@ class EditProduct extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $this->sizesData = $data['sizes'] ?? [];
+        $this->sizesData        = $data['sizes'] ?? [];
         $this->packageStockData = collect($data)
             ->filter(fn ($v, $k) => str_starts_with($k, 'pkg_stock_'))
             ->all();
@@ -80,12 +80,12 @@ class EditProduct extends EditRecord
     {
         $product = $this->record;
 
-        if (($product->type ?? 'size') === 'size') {
+        if (!$product->isPackageBased()) {
             $currentSizeRows = collect($this->sizesData);
 
-            $currentSizes = $currentSizeRows->pluck('size')->toArray();
+            $currentSizes  = $currentSizeRows->pluck('size')->toArray();
             $existingSizes = $product->sizes()->pluck('size')->toArray();
-            $deletedSizes = array_diff($existingSizes, $currentSizes);
+            $deletedSizes  = array_diff($existingSizes, $currentSizes);
 
             if (!empty($deletedSizes)) {
                 $product->sizes()
@@ -118,9 +118,9 @@ class EditProduct extends EditRecord
 
                 ProductStock::updateOrCreate(
                     [
-                        'product_id' => $product->id,
+                        'product_id'      => $product->id,
                         'product_size_id' => null,
-                        'stock_id' => $stockId,
+                        'stock_id'        => $stockId,
                     ],
                     [
                         'quantity' => (int) ($val ?? 0),
@@ -130,4 +130,3 @@ class EditProduct extends EditRecord
         }
     }
 }
-

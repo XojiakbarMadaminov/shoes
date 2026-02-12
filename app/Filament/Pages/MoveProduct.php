@@ -101,13 +101,13 @@ class MoveProduct extends Page implements HasForms
                                     ->visible(fn (Get $get) => ($get('type') ?? 'size') === 'package'),
 
                                 Repeater::make('sizes')
-                                    ->label('Razmerlar')
+                                    ->label('Variantlar')
                                     ->schema([
                                         Hidden::make('size_id'),
                                         Hidden::make('size_name'),
                                         TextInput::make('quantity')
                                             ->columnSpanFull()
-                                            ->label(fn ($get) => (($get('size_name') ?? 'Razmer')))
+                                            ->label(fn ($get) => (($get('size_name') ?? 'Variant')))
                                             ->numeric()
                                             ->minValue(0)
                                             ->default(0)
@@ -119,7 +119,7 @@ class MoveProduct extends Page implements HasForms
                                     ->addable(false)
                                     ->deletable(false)
                                     ->reorderable(false)
-                                    ->visible(fn (Get $get) => ($get('type') ?? 'size') === 'size'),
+                                    ->visible(fn (Get $get) => in_array(($get('type') ?? 'size'), ['size', 'color'], true)),
                             ])
                             ->grid()
                             ->minItems(1)

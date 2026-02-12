@@ -106,6 +106,9 @@ class Pos extends Page
     public array $returnSizeOptions                 = [];
     public array $exchangeInSizeOptions             = [];
     public array $exchangeOutSizeOptions            = [];
+    public string $returnVariantLabel               = 'Razmer';
+    public string $exchangeInVariantLabel           = 'Razmer';
+    public string $exchangeOutVariantLabel          = 'Razmer';
     public ?int $exchangePriceDifference            = null;
     public string $returnProductSearch              = '';
     public string $exchangeInProductSearch          = '';
@@ -296,8 +299,8 @@ class Pos extends Page
         $product = Product::find($id);
         if (($product?->type ?? 'size') !== 'package') {
             Notification::make()
-                ->title('Razmerni tanlang')
-                ->body('Razmerli tovar uchun miqdor razmer modalida belgilanadi.')
+                ->title('Variantni tanlang')
+                ->body('Variantli tovar uchun miqdor variant modalida belgilanadi.')
                 ->warning()
                 ->send();
 
@@ -352,8 +355,8 @@ class Pos extends Page
         $product = Product::find($id);
         if (($product?->type ?? 'size') !== 'package') {
             Notification::make()
-                ->title('Razmerni tanlang')
-                ->body('Razmerli tovar uchun miqdor razmer modalida belgilanadi.')
+                ->title('Variantni tanlang')
+                ->body('Variantli tovar uchun miqdor variant modalida belgilanadi.')
                 ->warning()
                 ->send();
 
@@ -615,9 +618,12 @@ class Pos extends Page
             $sizes = $item['sizes'] ?? [];
 
             if (empty($sizes)) {
+                $product      = Product::find($item['id'] ?? $productId);
+                $variantLabel = $product?->variant_label ?? 'Variant';
+
                 Notification::make()
-                    ->title('Razmer tanlanmagan')
-                    ->body("{$item['name']} uchun razmer va miqdorlarni kiriting.")
+                    ->title('Variant tanlanmagan')
+                    ->body("{$item['name']} uchun {$variantLabel} va miqdorlarni kiriting.")
                     ->warning()
                     ->send();
 
@@ -641,12 +647,13 @@ class Pos extends Page
 
                 if ($available === null || $qty > $available) {
                     $size         = \App\Models\ProductSize::find($sizeId);
-                    $sizeName     = $size?->size ?? 'Razmer';
+                    $variantLabel = $size?->product?->variant_label ?? 'Variant';
+                    $sizeName     = $size?->size ?? $variantLabel;
                     $availableQty = $available ?? 0;
 
                     Notification::make()
                         ->title('Yetarli miqdor yo‘q')
-                        ->body("{$item['name']} ({$sizeName}) uchun maksimal {$availableQty} dona mavjud.")
+                        ->body("{$item['name']} ({$variantLabel}: {$sizeName}) uchun maksimal {$availableQty} dona mavjud.")
                         ->danger()
                         ->send();
 
@@ -1114,7 +1121,12 @@ class Pos extends Page
         ]);
 
         return [
-            'product'    => ['id' => $product->id, 'name' => $product->name],
+            'product' => [
+                'id'                   => $product->id,
+                'name'                 => $product->name,
+                'variant_label'        => $product->variant_label,
+                'variant_plural_label' => $product->variant_plural_label,
+            ],
             'sizes'      => $sizes,
             'quantities' => $this->cart[$productId]['sizes'] ?? [],
         ];
@@ -1148,9 +1160,11 @@ class Pos extends Page
                 ->value('quantity');
 
             if ($qty > $available) {
+                $variantLabel = $size?->product?->variant_label ?? 'Variant';
+
                 Notification::make()
                     ->title('Yetarli miqdor yo‘q')
-                    ->body("Razmer: <b>{$size->size}</b> uchun faqat <b>{$available}</b> dona mavjud.")
+                    ->body("{$variantLabel}: <b>{$size->size}</b> uchun faqat <b>{$available}</b> dona mavjud.")
                     ->danger()
                     ->send();
 
@@ -1742,6 +1756,7 @@ class Pos extends Page
         $this->returnProductSearch        = '';
         $this->returnProductOptions       = [];
         $this->returnSelectedProductLabel = null;
+        $this->returnVariantLabel         = 'Razmer';
         $this->refreshSelectedProductLabels();
     }
 
@@ -1768,6 +1783,8 @@ class Pos extends Page
         $this->exchangeOutProductOptions       = [];
         $this->exchangeInSelectedProductLabel  = null;
         $this->exchangeOutSelectedProductLabel = null;
+        $this->exchangeInVariantLabel          = 'Razmer';
+        $this->exchangeOutVariantLabel         = 'Razmer';
         $this->refreshSelectedProductLabels();
     }
 
@@ -1782,6 +1799,24 @@ class Pos extends Page
         } else {
             $this->exchangePriceDifference = null;
         }
+    }
+
+    protected function getVariantLabelForProduct(?Product $product): string
+    {
+        if (!$product) {
+            return 'Razmer';
+        }
+
+        return $product->isColorBased() ? 'Rang' : 'Razmer';
+    }
+
+    protected function getVariantPluralLabelForProduct(?Product $product): string
+    {
+        if (!$product) {
+            return 'Razmerlar';
+        }
+
+        return $product->isColorBased() ? 'Ranglar' : 'Razmerlar';
     }
 
     protected function loadReturnProductMeta(?int $productId): void
@@ -1802,6 +1837,8 @@ class Pos extends Page
 
             return;
         }
+
+        $this->returnVariantLabel = $this->getVariantLabelForProduct($product);
 
         if ($product->isPackageBased()) {
             $this->returnSizeOptions = [];
@@ -1841,6 +1878,9 @@ class Pos extends Page
 
             return;
         }
+
+        $variantLabelProperty          = $target === 'in' ? 'exchangeInVariantLabel' : 'exchangeOutVariantLabel';
+        $this->{$variantLabelProperty} = $this->getVariantLabelForProduct($product);
 
         if ($product->isPackageBased()) {
             $this->{$sizeProperty} = [];

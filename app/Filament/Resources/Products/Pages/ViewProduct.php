@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Products\Pages;
 
 use App\Models\Stock;
 use App\Models\ProductStock;
-use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\Products\ProductResource;
@@ -41,7 +40,7 @@ class ViewProduct extends ViewRecord
             ->values()
             ->toArray();
 
-        if (($product->type ?? 'size') === 'package') {
+        if ($product->isPackageBased()) {
             foreach ($stocks as $stock) {
                 $data["pkg_stock_{$stock->id}"] = (int) (ProductStock::whereNull('product_size_id')
                     ->where('product_id', $product->id)

@@ -2,16 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Stock;
 use App\Models\Product;
 use App\Models\Purchase;
-use App\Models\Stock;
 use App\Models\Supplier;
 use Filament\Pages\Page;
-use App\Models\ProductSize;
 use App\Models\ProductStock;
-use Filament\Actions\Action;
 use Filament\Schemas\Schema;
-use App\Enums\NavigationGroup;
 use App\Services\PurchaseService;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -26,14 +23,13 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Validation\ValidationException;
 use Filament\Forms\Concerns\InteractsWithForms;
-use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class PurchaseEdit extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $title = 'Xaridni tahrirlash';
-    protected static ?string $slug  = 'purchases/{record}/edit';
+    protected static ?string $title                 = 'Xaridni tahrirlash';
+    protected static ?string $slug                  = 'purchases/{record}/edit';
     protected static bool $shouldRegisterNavigation = false;
 
     protected string $view = 'filament.pages.purchase-edit';
@@ -125,8 +121,9 @@ class PurchaseEdit extends Page implements HasForms
                                     ->searchable()
                                     ->preload()
                                     ->live()
-                                    ->options(fn () => Product::withoutGlobalScope('current_store')->orderBy('name')->get()
-                                        ->mapWithKeys(fn ($product) => [$product->id => $product->display_label])
+                                    ->options(
+                                        fn () => Product::withoutGlobalScope('current_store')->orderBy('name')->get()
+                                            ->mapWithKeys(fn ($product) => [$product->id => $product->display_label])
                                     )
                                     ->afterStateUpdated(function (Set $set, ?string $state, Get $get) {
                                         $product = $state ? Product::withoutGlobalScope('current_store')->with('sizes')->find($state) : null;
@@ -163,18 +160,18 @@ class PurchaseEdit extends Page implements HasForms
                                     ->columnSpan(2),
 
                                 Repeater::make('size_quantities')
-                                    ->label('Razmerlar')
-                                    ->createItemButtonLabel('Razmer qo’shish')
+                                    ->label(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Ranglar' : 'Razmerlar')
+                                    ->createItemButtonLabel(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Rang qo’shish' : 'Razmer qo’shish')
                                     ->reorderable(false)
-                                    ->visible(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_SIZE)
+                                    ->visible(fn (Get $get) => in_array(($get('product_type') ?? Product::TYPE_PACKAGE), [Product::TYPE_SIZE, Product::TYPE_COLOR], true))
                                     ->columnSpan(12)
                                     ->schema([
                                         Hidden::make('product_size_id'),
                                         TextInput::make('size_label')
-                                            ->label('Razmer')
+                                            ->label(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Rang' : 'Razmer')
                                             ->required(fn (Get $get) => blank($get('product_size_id')))
                                             ->disabled(fn (Get $get) => filled($get('product_size_id')))
-                                            ->placeholder('Razmer nomi'),
+                                            ->placeholder(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Rang nomi' : 'Razmer nomi'),
                                         TextInput::make('quantity')
                                             ->label('Miqdor')
                                             ->numeric()
@@ -202,19 +199,19 @@ class PurchaseEdit extends Page implements HasForms
                 $row = $rows->first();
 
                 return [
-                    'product_id'    => (int) $productId,
-                    'product_type'  => Product::TYPE_PACKAGE,
-                    'unit_cost'     => $unit,
-                    'quantity'      => (int) ($row->quantity ?? 1),
+                    'product_id'      => (int) $productId,
+                    'product_type'    => Product::TYPE_PACKAGE,
+                    'unit_cost'       => $unit,
+                    'quantity'        => (int) ($row->quantity ?? 1),
                     'size_quantities' => [],
                 ];
             }
 
             return [
-                'product_id'    => (int) $productId,
-                'product_type'  => Product::TYPE_SIZE,
-                'unit_cost'     => $unit,
-                'quantity'      => 0,
+                'product_id'      => (int) $productId,
+                'product_type'    => $product->type ?? Product::TYPE_SIZE,
+                'unit_cost'       => $unit,
+                'quantity'        => 0,
                 'size_quantities' => $rows->map(function ($row) {
                     return [
                         'product_size_id' => $row->product_size_id,
@@ -231,7 +228,7 @@ class PurchaseEdit extends Page implements HasForms
         $data = $this->form->getState();
 
         // Normalize dynamic size creation like in create page
-        $stockId = $data['stock_id'] ?? null;
+        $stockId       = $data['stock_id'] ?? null;
         $data['items'] = collect($data['items'] ?? [])
             ->map(function (array $item) use ($stockId) {
                 $productId = $item['product_id'] ?? null;
@@ -244,7 +241,7 @@ class PurchaseEdit extends Page implements HasForms
                     ->with('sizes')
                     ->find($productId);
 
-                if (!$product || ($item['product_type'] ?? Product::TYPE_PACKAGE) !== Product::TYPE_SIZE) {
+                if (!$product || !in_array(($item['product_type'] ?? Product::TYPE_PACKAGE), [Product::TYPE_SIZE, Product::TYPE_COLOR], true)) {
                     return $item;
                 }
 

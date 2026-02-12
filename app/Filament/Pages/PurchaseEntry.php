@@ -60,7 +60,7 @@ class PurchaseEntry extends Page implements HasForms
                 Section::make('Xarid maʼlumotlari')
                     ->columns(2)
                     ->schema([
-                                                                                                Select::make('supplier_id')
+                        Select::make('supplier_id')
                             ->label('Ta�minotchi')
                             ->options(fn () => Supplier::orderBy('full_name')->pluck('full_name', 'id'))
                             ->searchable()
@@ -82,7 +82,7 @@ class PurchaseEntry extends Page implements HasForms
                                         if ($digits === '0') {
                                             return;
                                         }
-                                        $phone = '+998' . $digits;
+                                        $phone  = '+998' . $digits;
                                         $exists = Supplier::where('phone', $phone)->exists();
                                         if ($exists) {
                                             $set('phone', null);
@@ -126,8 +126,9 @@ class PurchaseEntry extends Page implements HasForms
                                     'phone'     => $phone,
                                     'address'   => $address,
                                 ]);
+
                                 return $supplier->id;
-                            }),Select::make('stock_id')
+                            }), Select::make('stock_id')
                             ->label('Sklad')
                             ->options(fn () => Stock::query()->where('is_active', true)->pluck('name', 'id'))
                             ->live()
@@ -297,18 +298,18 @@ class PurchaseEntry extends Page implements HasForms
                                     ->columnSpan(2),
 
                                 Repeater::make('size_quantities')
-                                    ->label('Razmerlar')
-                                    ->createItemButtonLabel('Razmer qo‘shish')
+                                    ->label(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Ranglar' : 'Razmerlar')
+                                    ->createItemButtonLabel(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Rang qo‘shish' : 'Razmer qo‘shish')
                                     ->reorderable(false)
-                                    ->visible(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_SIZE)
+                                    ->visible(fn (Get $get) => in_array(($get('product_type') ?? Product::TYPE_PACKAGE), [Product::TYPE_SIZE, Product::TYPE_COLOR], true))
                                     ->columnSpan(12)
                                     ->schema([
                                         Hidden::make('product_size_id'),
                                         TextInput::make('size_label')
-                                            ->label('Razmer')
+                                            ->label(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Rang' : 'Razmer')
                                             ->required(fn (Get $get) => blank($get('product_size_id')))
                                             ->disabled(fn (Get $get) => filled($get('product_size_id')))
-                                            ->placeholder('Razmer nomi'),
+                                            ->placeholder(fn (Get $get) => ($get('product_type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Rang nomi' : 'Razmer nomi'),
                                         TextInput::make('quantity')
                                             ->label('Miqdor')
                                             ->numeric()
@@ -353,10 +354,18 @@ class PurchaseEntry extends Page implements HasForms
                         ->options([
                             Product::TYPE_PACKAGE => 'Paketli',
                             Product::TYPE_SIZE    => 'Razmerli',
+                            Product::TYPE_COLOR   => 'Rangli',
                         ])
                         ->default(Product::TYPE_PACKAGE)
                         ->live()
-                        ->required(),
+                        ->required()
+                        ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                            if ($state === Product::TYPE_SIZE && empty($get('sizes'))) {
+                                $set('sizes', collect(range(36, 41))
+                                    ->map(fn ($size) => ['size' => $size])
+                                    ->toArray());
+                            }
+                        }),
                 ]),
             Section::make()
                 ->columns()
@@ -375,15 +384,15 @@ class PurchaseEntry extends Page implements HasForms
                 ]),
 
             Repeater::make('sizes')
-                ->label('Razmerlar')
-                ->visible(fn (Get $get) => ($get('type') ?? Product::TYPE_PACKAGE) === Product::TYPE_SIZE)
+                ->label(fn (Get $get) => ($get('type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Ranglar' : 'Razmerlar')
+                ->visible(fn (Get $get) => in_array(($get('type') ?? Product::TYPE_PACKAGE), [Product::TYPE_SIZE, Product::TYPE_COLOR], true))
                 ->schema([
                     TextInput::make('size')
-                        ->label('Razmer')
+                        ->label(fn (Get $get) => ($get('type') ?? Product::TYPE_PACKAGE) === Product::TYPE_COLOR ? 'Rang' : 'Razmer')
                         ->required(),
                 ])
                 ->minItems(1)
-                ->default(fn () => collect(range(36, 41))->map(fn ($size) => ['size' => $size])->toArray()),
+                ->default([]),
         ];
     }
 
@@ -405,7 +414,7 @@ class PurchaseEntry extends Page implements HasForms
                     ->with('sizes')
                     ->find($productId);
 
-                if (!$product || ($item['product_type'] ?? Product::TYPE_PACKAGE) !== Product::TYPE_SIZE) {
+                if (!$product || !in_array(($item['product_type'] ?? Product::TYPE_PACKAGE), [Product::TYPE_SIZE, Product::TYPE_COLOR], true)) {
                     return $item;
                 }
 
@@ -460,7 +469,3 @@ class PurchaseEntry extends Page implements HasForms
         }
     }
 }
-
-
-
-

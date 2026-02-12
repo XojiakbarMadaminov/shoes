@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Models\Stock;
 use App\Helpers\Helper;
 use App\Models\Product;
-use App\Models\Stock;
 use Filament\Actions\Action;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\Select;
@@ -58,12 +58,20 @@ class ProductForm
                         Select::make('type')
                             ->label('Turi')
                             ->options([
-                                'size'    => 'Razmerli',
-                                'package' => 'Paketli',
+                                Product::TYPE_SIZE    => 'Razmerli',
+                                Product::TYPE_COLOR   => 'Rangli',
+                                Product::TYPE_PACKAGE => 'Paketli',
                             ])
-                            ->default('package')
+                            ->default(Product::TYPE_PACKAGE)
                             ->required()
-                            ->reactive(),
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, Set $set, Get $get) {
+                                if ($state === Product::TYPE_SIZE && empty($get('sizes'))) {
+                                    $set('sizes', collect(range(36, 41))
+                                        ->map(fn ($size) => ['size' => $size])
+                                        ->toArray());
+                                }
+                            }),
                     ])->columns(3),
 
                 Section::make('Narxlar')
@@ -80,13 +88,13 @@ class ProductForm
                             ->required(),
                     ])->columns(),
 
-                Section::make('Razmerlar va Stocklar')
+                Section::make('Variantlar va Stocklar')
                     ->columnSpanFull()
-                    ->description('Har bir razmer uchun har bir ombordagi miqdorni kiriting')
-                    ->visible(fn (Get $get) => ($get('type') ?? 'size') === 'size')
+                    ->description('Har bir variant uchun har bir ombordagi miqdorni kiriting')
+                    ->visible(fn (Get $get) => in_array(($get('type') ?? Product::TYPE_SIZE), [Product::TYPE_SIZE, Product::TYPE_COLOR], true))
                     ->schema([
                         Repeater::make('sizes')
-                            ->label('Razmerlar')
+                            ->label(fn (Get $get) => ($get('type') ?? Product::TYPE_SIZE) === Product::TYPE_COLOR ? 'Ranglar' : 'Razmerlar')
                             ->schema(function () use ($stocks) {
                                 return [
                                     Grid::make()
@@ -95,8 +103,7 @@ class ProductForm
                                             $fields = [];
 
                                             $fields[] = TextInput::make('size')
-                                                ->label('Razmer')
-                                                ->numeric();
+                                                ->label(fn (Get $get) => ($get('type') ?? Product::TYPE_SIZE) === Product::TYPE_COLOR ? 'Rang' : 'Razmer');
 
                                             foreach ($stocks as $id => $name) {
                                                 $fields[] = TextInput::make("stock_{$id}")
@@ -108,11 +115,6 @@ class ProductForm
                                             return $fields;
                                         }),
                                 ];
-                            })
-                            ->default(function () {
-                                return collect(range(36, 41))
-                                    ->map(fn ($size) => ['size' => $size])
-                                    ->toArray();
                             })
                             ->columns(1)
                             ->reorderable(false),

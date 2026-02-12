@@ -65,7 +65,13 @@ class ProductsTable
                     TextColumn::make('initial_price')->label('Kelgan narxi')->numeric(),
                     TextColumn::make('price')->label('Sotish narxi')->numeric(),
                     TextColumn::make('category.name')->label('Kategoriyasi')->sortable()->searchable(),
-                    TextColumn::make('type')->label('Turi')->badge()->formatStateUsing(fn ($state) => $state === 'package' ? 'Paket' : 'Razmer'),
+                    TextColumn::make('type')->label('Turi')->badge()->formatStateUsing(function ($state) {
+                        return match ($state) {
+                            Product::TYPE_PACKAGE => 'Paket',
+                            Product::TYPE_COLOR   => 'Rang',
+                            default               => 'Razmer',
+                        };
+                    }),
                 ],
                 $stocks->map(function ($stock) {
                     return TextColumn::make("stock_{$stock->id}_qty")
@@ -78,10 +84,14 @@ class ProductsTable
             ))
             ->recordActions([
                 Action::make('sizes_breakdown')
-                    ->label('Razmerlar')
+                    ->label(fn (Product $record) => $record->isColorBased() ? 'Ranglar' : 'Razmerlar')
                     ->icon('heroicon-o-queue-list')
-                    ->visible(fn (Product $record) => ($record->type ?? 'size') === 'size')
-                    ->modalHeading(fn (Product $record) => "{$record->name} — Razmerlar bo‘yicha zaxira")
+                    ->visible(fn (Product $record) => !$record->isPackageBased())
+                    ->modalHeading(function (Product $record) {
+                        $variantLabel = $record->isColorBased() ? 'Ranglar' : 'Razmerlar';
+
+                        return "{$record->name} — {$variantLabel} bo‘yicha zaxira";
+                    })
                     ->modalSubmitAction(false)
                     ->modalWidth('4xl')
                     ->modalContent(function (Product $record) {

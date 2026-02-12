@@ -101,9 +101,9 @@
 
                         @if(!empty($returnSizeOptions))
                             <div class="sm:col-span-2">
-                                <label class="{{ $posFieldLabelClass }}">Razmer</label>
+                                <label class="{{ $posFieldLabelClass }}">{{ $returnVariantLabel }}</label>
                                 <select wire:model="returnForm.product_size_id" class="{{ $posSelectClass }}">
-                                    <option value="">Razmer tanlang</option>
+                                    <option value="">{{ $returnVariantLabel }} tanlang</option>
                                     @foreach($returnSizeOptions as $option)
                                         <option value="{{ $option['id'] }}">{{ $option['label'] }}</option>
                                     @endforeach
@@ -249,9 +249,9 @@
 
                             @if(!empty($exchangeInSizeOptions))
                                 <div>
-                                    <label class="{{ $posFieldLabelClass }}">Razmer</label>
+                                    <label class="{{ $posFieldLabelClass }}">{{ $exchangeInVariantLabel }}</label>
                                     <select wire:model="exchangeForm.in_product_size_id" class="{{ $posSelectClass }}">
-                                        <option value="">Razmer tanlang</option>
+                                        <option value="">{{ $exchangeInVariantLabel }} tanlang</option>
                                         @foreach($exchangeInSizeOptions as $option)
                                             <option value="{{ $option['id'] }}">{{ $option['label'] }}</option>
                                         @endforeach
@@ -318,9 +318,9 @@
 
                             @if(!empty($exchangeOutSizeOptions))
                                 <div>
-                                    <label class="{{ $posFieldLabelClass }}">Razmer</label>
+                                    <label class="{{ $posFieldLabelClass }}">{{ $exchangeOutVariantLabel }}</label>
                                     <select wire:model="exchangeForm.out_product_size_id" class="{{ $posSelectClass }}">
-                                        <option value="">Razmer tanlang</option>
+                                        <option value="">{{ $exchangeOutVariantLabel }} tanlang</option>
                                         @foreach($exchangeOutSizeOptions as $option)
                                             <option value="{{ $option['id'] }}">{{ $option['label'] }}</option>
                                         @endforeach
@@ -575,7 +575,7 @@
                             </th>
                             <th scope="col"
                                 class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Razmerlar va miqdori
+                                Variantlar va miqdori
                             </th>
                             <th scope="col"
                                 class="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -659,7 +659,7 @@
                                             });
                                         "
                                     >
-                                        ⚙️ Razmerlar
+                                        ⚙️ Variantlar
                                     </x-filament::button>
                                     @endunless
 
@@ -842,7 +842,7 @@
             x-transition
         >
             <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                <span x-text="product?.name ?? 'Mahsulot'"></span> — Razmerlar
+                <span x-text="product?.name ?? 'Mahsulot'"></span> — <span x-text="product?.variant_plural_label ?? 'Variantlar'"></span>
             </h2>
 
             <template x-if="sizes.length > 0">
@@ -863,7 +863,7 @@
 
             <template x-if="sizes.length === 0">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Bu mahsulot uchun razmerlar mavjud emas
+                    Bu mahsulot uchun <span x-text="product?.variant_plural_label ?? 'variantlar'"></span> mavjud emas
                 </p>
             </template>
 
