@@ -14,12 +14,12 @@ class DebtorStatsOverview extends BaseWidget
     protected function getCards(): array
     {
         $debts = Debtor::query()
-            ->selectRaw('currency, SUM(amount) as total')
-            ->groupBy('currency')
+            ->selectRaw('LOWER(currency) as currency, SUM(amount) as total')
+            ->groupByRaw('LOWER(currency)')
             ->pluck('total', 'currency');
 
         return [
-            Stat::make('Jami qarz summa', number_format($debts['UZS'] ?? 0, 0, '.', ' ') . " so'm"),
+            Stat::make('Jami qarz summa', number_format($debts['uzs'] ?? 0, 0, '.', ' ') . " so'm"),
         ];
     }
 

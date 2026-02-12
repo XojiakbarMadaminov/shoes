@@ -103,7 +103,7 @@ class ProductForm
                                             $fields = [];
 
                                             $fields[] = TextInput::make('size')
-                                                ->label(fn (Get $get) => ($get('type') ?? Product::TYPE_SIZE) === Product::TYPE_COLOR ? 'Rang' : 'Razmer');
+                                                ->label(fn (Get $get) => ($get('../../type') ?? Product::TYPE_SIZE) === Product::TYPE_COLOR ? 'Rang' : 'Razmer');
 
                                             foreach ($stocks as $id => $name) {
                                                 $fields[] = TextInput::make("stock_{$id}")
