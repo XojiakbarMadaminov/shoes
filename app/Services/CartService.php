@@ -28,6 +28,8 @@ class CartService
             // Agar razmerli bo'lsa, sizes yig'indisi prioritet
             if (($product->type ?? 'size') === 'package') {
                 $items[$product->id]['qty'] += $qty;
+                // Manual o'zgartirish belgisini o'chirish (yana skaner qilinganda)
+                unset($items[$product->id]['manually_updated']);
             }
             // Razmerli mahsulotlar uchun hech narsa qilmaymiz - sizes yig'indisi ishlatiladi
         } else {
@@ -53,7 +55,9 @@ class CartService
 
         if (isset($items[$productId])) {
             $items[$productId]['qty'] = max(1, $qty);
-            $carts[$cartId]           = $items;
+            // Manual o'zgartirish belgisini qo'shish
+            $items[$productId]['manually_updated'] = true;
+            $carts[$cartId]                        = $items;
             session()->put($this->key, $carts);
         }
     }
