@@ -24,7 +24,12 @@ class CartService
         $defaultStockId = Stock::where('is_main', true)->value('id');
 
         if (isset($items[$product->id])) {
-            $items[$product->id]['qty'] += $qty;
+            // Agar mahsulot package tipida bo'lsa, qty ni oshirish
+            // Agar razmerli bo'lsa, sizes yig'indisi prioritet
+            if (($product->type ?? 'size') === 'package') {
+                $items[$product->id]['qty'] += $qty;
+            }
+            // Razmerli mahsulotlar uchun hech narsa qilmaymiz - sizes yig'indisi ishlatiladi
         } else {
             $items[$product->id] = [
                 'id'            => $product->id,
@@ -94,8 +99,21 @@ class CartService
     public function totals(int $cartId = 1): array
     {
         $items  = $this->all($cartId);
-        $qty    = array_sum(array_column($items, 'qty'));
-        $amount = array_sum(array_map(fn ($i) => $i['qty'] * $i['price'], $items));
+        $qty    = 0;
+        $amount = 0;
+
+        foreach ($items as $item) {
+            // Agar mahsulotda sizes mavjud bo'lsa, sizes yig'indisini ishlatish
+            if (!empty($item['sizes'])) {
+                $itemQty = array_sum($item['sizes']);
+            } else {
+                // Package yoki sizes mavjud bo'lmasa, oddiy qty dan foydalanish
+                $itemQty = (int) ($item['qty'] ?? 0);
+            }
+
+            $qty    += $itemQty;
+            $amount += $itemQty * (float) ($item['price'] ?? 0);
+        }
 
         return ['qty' => $qty, 'amount' => $amount];
     }

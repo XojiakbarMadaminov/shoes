@@ -594,7 +594,7 @@ class Pos extends Page
 
                 if ($qty > $available) {
                     Notification::make()
-                        ->title('Yetarli miqdor yo‘q')
+                        ->title('Yetarli miqdor yoq')
                         ->body("{$item['name']} uchun maksimal {$available} dona mavjud.")
                         ->danger()
                         ->send();
@@ -615,6 +615,7 @@ class Pos extends Page
                 continue;
             }
 
+            // Razmerli mahsulotlar uchun: sizes yig'indisi har doim prioritet
             $sizes = $item['sizes'] ?? [];
 
             if (empty($sizes)) {
@@ -652,7 +653,7 @@ class Pos extends Page
                     $availableQty = $available ?? 0;
 
                     Notification::make()
-                        ->title('Yetarli miqdor yo‘q')
+                        ->title('Yetarli miqdor yoq')
                         ->body("{$item['name']} ({$variantLabel}: {$sizeName}) uchun maksimal {$availableQty} dona mavjud.")
                         ->danger()
                         ->send();

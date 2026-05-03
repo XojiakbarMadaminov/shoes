@@ -711,7 +711,13 @@
 
 
                                 <td class="px-3 py-3 text-right font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
-                                    {{ number_format($row['qty'] * $row['price'], 0,'.',' ') }}
+                                    @php
+                                        // Razmerli mahsulotlar uchun sizes yig'indisi prioritet
+                                        $totalQty = isset($row['sizes']) && !empty($row['sizes'])
+                                            ? array_sum($row['sizes'])
+                                            : ($row['qty'] ?? 0);
+                                    @endphp
+                                    {{ number_format($totalQty * $row['price'], 0,'.',' ') }}
                                 </td>
 
                                 <td class="px-3 py-3 text-center">
