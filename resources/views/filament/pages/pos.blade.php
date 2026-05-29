@@ -1,6 +1,6 @@
 <x-filament::page class="bg-gray-100 dark:bg-gray-950">
     {{-- Auto-focus script --}}
-    <script src="{{asset('js/pos.js')}}"></script>
+    <script src="{{ asset('js/pos.js') }}?v={{ filemtime(public_path('js/pos.js')) }}"></script>
 
 
     {{-- Receipt Modal --}}

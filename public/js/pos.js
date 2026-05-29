@@ -16,20 +16,16 @@ document.addEventListener('livewire:navigated', function() {
     }, 100);
 });
 
-// Chek chiqarish
-// public/js/pos.js  (unchanged parts –– faqat CSS o‘zgardi)
-document.addEventListener('print-receipt', () => {
-    const src = document.getElementById('receipt-content');
-    if (!src) return;
+let lastReceiptPrintAt = 0;
 
-    const w = window.open('', '_blank');
-    w.document.write(`
+function receiptDocument(html) {
+    return `
         <html>
         <head>
             <title>Chek</title>
             <style>
                 @page { size: 80mm auto; margin: 0 }
-               body {
+                body {
                     font-family: 'Courier New', monospace;
                     font-size: 12px;
                     margin: 0;
@@ -66,13 +62,100 @@ document.addEventListener('print-receipt', () => {
         </head>
         <body>
             <div class="receipt">
-                ${src.innerHTML}
+                ${html}
             </div>
         </body>
         </html>
-    `);
-    w.document.close();
-    setTimeout(() => { w.print(); w.close(); }, 200);
-});
+    `;
+}
 
+function receiptHtmlFromEvent(event) {
+    if (event?.detail?.html) {
+        return event.detail.html;
+    }
 
+    if (event?.html) {
+        return event.html;
+    }
+
+    const src = document.getElementById('receipt-content');
+
+    return src ? src.innerHTML : null;
+}
+
+function printReceipt(html) {
+    if (!html) {
+        return false;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0';
+
+    document.body.appendChild(iframe);
+
+    const printWindow = iframe.contentWindow;
+    const printDocument = printWindow?.document;
+
+    if (!printWindow || !printDocument) {
+        iframe.remove();
+
+        return false;
+    }
+
+    printDocument.open();
+    printDocument.write(receiptDocument(html));
+    printDocument.close();
+
+    setTimeout(() => {
+        printWindow.focus();
+        printWindow.onafterprint = () => iframe.remove();
+        printWindow.print();
+        setTimeout(() => iframe.remove(), 10000);
+    }, 250);
+
+    return true;
+}
+
+function scheduleReceiptPrint(event, attempt = 1) {
+    setTimeout(() => {
+        const html = receiptHtmlFromEvent(event);
+
+        if (!printReceipt(html) && attempt < 5) {
+            scheduleReceiptPrint(event, attempt + 1);
+        }
+    }, 50);
+}
+
+function handleReceiptPrint(event) {
+    const now = Date.now();
+
+    if (now - lastReceiptPrintAt < 500) {
+        return;
+    }
+
+    lastReceiptPrintAt = now;
+    scheduleReceiptPrint(event);
+}
+
+document.addEventListener('print-receipt', handleReceiptPrint);
+window.addEventListener('print-receipt', handleReceiptPrint);
+
+function registerLivewireReceiptPrintListener() {
+    if (!window.Livewire) {
+        return;
+    }
+
+    window.Livewire.on('print-receipt', handleReceiptPrint);
+}
+
+if (window.Livewire) {
+    registerLivewireReceiptPrintListener();
+} else {
+    document.addEventListener('livewire:init', registerLivewireReceiptPrintListener);
+}

@@ -839,6 +839,8 @@ class Pos extends Page
                     'cashier_name'     => $sale->createdBy?->name,
                 ]
             );
+
+            $this->dispatch('print-receipt', html: $this->receiptHtml());
         }
 
         $cartService->clear($this->activeCartId);
@@ -882,12 +884,20 @@ class Pos extends Page
             'meta'           => $meta,
         ];
 
-        $this->showReceipt = true;
+        $this->showReceipt = false;
     }
 
     public function printReceipt(): void
     {
-        $this->dispatch('print-receipt');
+        $this->dispatch('print-receipt', html: $this->receiptHtml());
+    }
+
+    protected function receiptHtml(): string
+    {
+        return view('receipts.partials.default', [
+            'receiptData' => $this->receiptData,
+            'qrPath'      => asset('images/taplink.png'),
+        ])->render();
     }
 
     public function closeReceipt(): void
