@@ -6,6 +6,7 @@ use App\Models\Debtor;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\DiscountService;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -59,7 +60,8 @@ Route::get('/sales/{sale}/receipt-pdf', function (Sale $sale) {
 
 // 1. Bitta product uchun
 Route::get('/products/{product}/barcode-pdf', function (Product $product, Request $request) {
-    $size = $request->get('size', '30x20');
+    $size             = $request->get('size', '30x20');
+    $useDiscountPrice = $request->boolean('use_discount_price');
 
     $sizes = [
         '30x20' => [0, 0, 85.04, 56.69],   // 30mm x 20mm
@@ -69,9 +71,16 @@ Route::get('/products/{product}/barcode-pdf', function (Product $product, Reques
 
     $paper = $sizes[$size] ?? $sizes['30x20'];
 
+    $discountPrices = $useDiscountPrice
+        ? collect([$product])->mapWithKeys(fn (Product $product): array => [
+            $product->id => app(DiscountService::class)->calculateProductLabelPrice($product),
+        ])
+        : collect();
+
     return Pdf::loadView('product-barcode', [
-        'products' => collect([$product]),
-        'size'     => $size,
+        'products'       => collect([$product]),
+        'size'           => $size,
+        'discountPrices' => $discountPrices,
     ])
         ->setPaper($paper)
         ->stream("barcode-{$product->id}.pdf");
@@ -93,8 +102,9 @@ Route::get('/products/barcodes/bulk', function (Request $request) {
     $paper = $sizes[$size] ?? $sizes['30x20'];
 
     return Pdf::loadView('product-barcode', [
-        'products' => $products,
-        'size'     => $size,
+        'products'       => $products,
+        'size'           => $size,
+        'discountPrices' => collect(),
     ])
         ->setPaper($paper)
         ->stream('barcodes.pdf');

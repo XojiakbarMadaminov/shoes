@@ -62,6 +62,7 @@
 
 @php
     $labelSize = $size ?? '30x20';
+    $discountPrices = $discountPrices ?? collect();
 
     // Sizing presets per label
     $presets = [
@@ -130,10 +131,22 @@
         $barHeight  = $cfg['barcode']['height'];
         $codeFont   = $cfg['code_font'];
 
-        $price      = (int) ($product->price ?? 0);
+        $discountPrice = $discountPrices instanceof \Illuminate\Support\Collection
+            ? $discountPrices->get($product->id)
+            : ($discountPrices[$product->id] ?? null);
+        $hasDiscountPrice = (bool) ($discountPrice['has_discount'] ?? false)
+            && (float) ($discountPrice['discounted_price'] ?? 0) < (float) ($discountPrice['original_price'] ?? 0);
+
+        $price      = (int) ($hasDiscountPrice ? $discountPrice['discounted_price'] : ($product->price ?? 0));
         $priceStr   = number_format($price, 0, '.', ' ') . " so'm";
+        $oldPriceStr = $hasDiscountPrice
+            ? number_format((int) $discountPrice['original_price'], 0, '.', ' ') . " so'm"
+            : null;
         $pLen       = function_exists('mb_strlen') ? mb_strlen($priceStr) : strlen($priceStr);
         $priceFont  = is_callable($cfg['price_font']) ? ($cfg['price_font'])($pLen) : ($cfg['price_font'] ?? $codeFont);
+        $priceFontPx = (float) str_replace('px', '', $priceFont);
+        $oldPriceFont = round($priceFontPx * 0.45, 1) . 'px';
+        $discountPriceFont = round($priceFontPx * 0.55, 1) . 'px';
     @endphp
 
     <div class="label">
@@ -147,9 +160,20 @@
 
         <div class="product-name" style="font-size: {{ $codeFont }}">{{ $product->barcode }}</div>
 
-        <div class="product-name" style="font-size: {{ $priceFont }}; font-weight: 700; margin-top: 1mm;">
-            {{ $priceStr }}
-        </div>
+        @if($hasDiscountPrice)
+            <div style="margin-top: 0.5mm;">
+                <div class="product-name" style="font-size: {{ $oldPriceFont }}; line-height: 1; margin: 0 auto; text-decoration: line-through;">
+                    {{ $oldPriceStr }}
+                </div>
+                <div class="product-name" style="font-size: {{ $discountPriceFont }}; line-height: 1; margin: 0 auto; font-weight: 700;">
+                    {{ $priceStr }}
+                </div>
+            </div>
+        @else
+            <div class="product-name" style="font-size: {{ $priceFont }}; font-weight: 700; margin-top: 1mm;">
+                {{ $priceStr }}
+            </div>
+        @endif
     </div>
 @endforeach
 </body>

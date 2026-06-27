@@ -184,3 +184,26 @@ it('applies selected product discounts only to attached products', function () {
         ->and($result['items'][0]['product_discount_total'])->toBe(50000.0)
         ->and($result['items'][1]['product_discount_total'])->toBe(0.0);
 });
+
+it('calculates product label discount price without order amount discounts', function () {
+    $product = Product::factory()->create(['price' => 100000]);
+
+    $selectedDiscount = Discount::factory()->create([
+        'type'    => DiscountType::SelectedProductsPercent,
+        'percent' => 50,
+    ]);
+    $selectedDiscount->products()->attach($product);
+
+    Discount::factory()->create([
+        'type'             => DiscountType::OrderAmountPercent,
+        'percent'          => 10,
+        'min_order_amount' => 1,
+    ]);
+
+    $result = app(DiscountService::class)->calculateProductLabelPrice($product);
+
+    expect($result['has_discount'])->toBeTrue()
+        ->and($result['original_price'])->toBe(100000.0)
+        ->and($result['discounted_price'])->toBe(50000.0)
+        ->and($result['discount_amount'])->toBe(50000.0);
+});

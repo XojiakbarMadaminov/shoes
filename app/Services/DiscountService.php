@@ -74,6 +74,64 @@ class DiscountService
     }
 
     /**
+     * @return array{
+     *     has_discount: bool,
+     *     original_price: float,
+     *     discounted_price: float,
+     *     discount_amount: float,
+     *     applied_discount: array<string, mixed>|null
+     * }
+     */
+    public function calculateProductLabelPrice(Product $product): array
+    {
+        $originalPrice = $this->roundMoney((float) ($product->price ?? 0));
+
+        if ($originalPrice <= 0) {
+            return [
+                'has_discount'     => false,
+                'original_price'   => $originalPrice,
+                'discounted_price' => $originalPrice,
+                'discount_amount'  => 0.0,
+                'applied_discount' => null,
+            ];
+        }
+
+        $activeProductDiscounts = Discount::query()
+            ->with(['products:id', 'categories:id'])
+            ->activeNow()
+            ->get()
+            ->filter(fn (Discount $discount): bool => $discount->type?->isProductScope() ?? false)
+            ->values();
+
+        $discount = $this->selectProductDiscountForItem(
+            $activeProductDiscounts,
+            (int) $product->getKey(),
+            $product->category_id !== null ? (int) $product->category_id : null,
+        );
+
+        if (!$discount instanceof Discount) {
+            return [
+                'has_discount'     => false,
+                'original_price'   => $originalPrice,
+                'discounted_price' => $originalPrice,
+                'discount_amount'  => 0.0,
+                'applied_discount' => null,
+            ];
+        }
+
+        $discountAmount  = min($this->percentAmount($originalPrice, (float) $discount->percent), $originalPrice);
+        $discountedPrice = $this->roundMoney($originalPrice - $discountAmount);
+
+        return [
+            'has_discount'     => $discountAmount > 0,
+            'original_price'   => $originalPrice,
+            'discounted_price' => $discountedPrice,
+            'discount_amount'  => $discountAmount,
+            'applied_discount' => $this->serializeAppliedDiscount($discount, $discountAmount, 'product'),
+        ];
+    }
+
+    /**
      * @param  array<int|string, array<string, mixed>>|Collection<int|string, array<string, mixed>>  $items
      * @return Collection<int, array<string, mixed>>
      */
