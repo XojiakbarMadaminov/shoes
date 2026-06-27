@@ -2,15 +2,24 @@
 
 namespace App\Models;
 
-use App\Models\Traits\HasCurrentStoreScope;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Traits\HasCurrentStoreScope;
 
 class SaleItem extends Model
 {
     use HasCurrentStoreScope;
 
-    protected $table = 'sale_items';
+    protected $table   = 'sale_items';
     protected $guarded = [];
+
+    protected $casts = [
+        'quantity'               => 'integer',
+        'price'                  => 'float',
+        'subtotal_amount'        => 'float',
+        'product_discount_total' => 'float',
+        'total'                  => 'float',
+        'applied_discounts'      => 'array',
+    ];
 
     public function product()
     {

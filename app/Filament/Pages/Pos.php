@@ -17,6 +17,7 @@ use App\Enums\NavigationGroup;
 use App\Services\ReturnService;
 use Illuminate\Validation\Rule;
 use App\Models\DebtorTransaction;
+use App\Services\DiscountService;
 use App\Services\ExchangeService;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
@@ -704,16 +705,34 @@ class Pos extends Page
             $sizeNames = \App\Models\ProductSize::whereIn('id', $sizeIds)->pluck('size', 'id')->toArray();
         }
 
-        $receiptItems = array_map(function (array $prepared) use ($sizeNames) {
-            $sizeId = $prepared['product_size_id'] ?? null;
+        $discountSummary = app(DiscountService::class)->calculate($preparedItems);
+        $totalAmount     = round((float) $discountSummary['total'], 2);
+        $totals          = array_merge($totals, [
+            'amount'                 => $discountSummary['total'],
+            'subtotal'               => $discountSummary['subtotal'],
+            'product_discount_total' => $discountSummary['product_discount_total'],
+            'order_discount_total'   => $discountSummary['order_discount_total'],
+            'discount_total'         => $discountSummary['discount_total'],
+            'applied_discounts'      => $discountSummary['applied_discounts'],
+        ]);
 
-            return [
-                'name'  => $prepared['name'] ?? 'Mahsulot',
-                'size'  => $sizeId ? ($sizeNames[$sizeId] ?? null) : null,
-                'qty'   => (float) $prepared['quantity'],
-                'price' => (float) $prepared['price'],
+        $receiptItems = [];
+
+        foreach ($preparedItems as $index => $prepared) {
+            $sizeId    = $prepared['product_size_id'] ?? null;
+            $breakdown = $discountSummary['items'][$index] ?? [];
+
+            $receiptItems[] = [
+                'name'                   => $prepared['name'] ?? 'Mahsulot',
+                'size'                   => $sizeId ? ($sizeNames[$sizeId] ?? null) : null,
+                'qty'                    => (float) $prepared['quantity'],
+                'price'                  => (float) $prepared['price'],
+                'subtotal'               => (float) ($breakdown['subtotal'] ?? round($prepared['quantity'] * $prepared['price'], 2)),
+                'product_discount_total' => (float) ($breakdown['product_discount_total'] ?? 0),
+                'total'                  => (float) ($breakdown['total'] ?? round($prepared['quantity'] * $prepared['price'], 2)),
             ];
-        }, $preparedItems);
+        }
+
         $paymentType = $this->paymentType;
         $clientId    = $this->selectedClientId;
 
@@ -721,7 +740,7 @@ class Pos extends Page
         $remainingAmountForReceipt = 0.0;
 
         try {
-            [$sale, $remainingAmountForReceipt] = DB::transaction(function () use ($preparedItems, $totalAmount, $paymentType, $clientId, $partialAmount, $mixedAmounts) {
+            [$sale, $remainingAmountForReceipt] = DB::transaction(function () use ($preparedItems, $discountSummary, $totalAmount, $paymentType, $clientId, $partialAmount, $mixedAmounts) {
                 $user    = auth()->user();
                 $storeId = $user?->current_store_id;
 
@@ -744,30 +763,41 @@ class Pos extends Page
                     : Sale::STATUS_COMPLETED;
 
                 $sale = Sale::create([
-                    'cart_id'           => $this->activeCartId,
-                    'client_id'         => $clientId,
-                    'total_amount'      => $totalAmount,
-                    'paid_amount'       => $paidAmount,
-                    'remaining_amount'  => $remainingAmount,
-                    'payment_type'      => $paymentType,
-                    'mixed_cash_amount' => $mixedCash,
-                    'mixed_card_amount' => $mixedCard,
-                    'store_id'          => $storeId,
-                    'status'            => $status,
-                    'created_by'        => $user?->id,
+                    'cart_id'                => $this->activeCartId,
+                    'client_id'              => $clientId,
+                    'subtotal_amount'        => $discountSummary['subtotal'],
+                    'total_amount'           => $totalAmount,
+                    'product_discount_total' => $discountSummary['product_discount_total'],
+                    'order_discount_total'   => $discountSummary['order_discount_total'],
+                    'discount_total'         => $discountSummary['discount_total'],
+                    'applied_discounts'      => $discountSummary['applied_discounts'],
+                    'paid_amount'            => $paidAmount,
+                    'remaining_amount'       => $remainingAmount,
+                    'payment_type'           => $paymentType,
+                    'mixed_cash_amount'      => $mixedCash,
+                    'mixed_card_amount'      => $mixedCard,
+                    'store_id'               => $storeId,
+                    'status'                 => $status,
+                    'created_by'             => $user?->id,
                 ]);
 
-                foreach ($preparedItems as $prepared) {
-                    $lineTotal = round($prepared['quantity'] * $prepared['price'], 2);
+                foreach ($preparedItems as $index => $prepared) {
+                    $breakdown    = $discountSummary['items'][$index] ?? [];
+                    $lineSubtotal = (float) ($breakdown['subtotal'] ?? round($prepared['quantity'] * $prepared['price'], 2));
+                    $lineDiscount = (float) ($breakdown['product_discount_total'] ?? 0);
+                    $lineTotal    = (float) ($breakdown['total'] ?? $lineSubtotal);
 
                     SaleItem::create([
-                        'sale_id'         => $sale->id,
-                        'product_id'      => $prepared['product_id'],
-                        'stock_id'        => $prepared['stock_id'],
-                        'product_size_id' => $prepared['product_size_id'],
-                        'quantity'        => $prepared['quantity'],
-                        'price'           => $prepared['price'],
-                        'total'           => $lineTotal,
+                        'sale_id'                => $sale->id,
+                        'product_id'             => $prepared['product_id'],
+                        'stock_id'               => $prepared['stock_id'],
+                        'product_size_id'        => $prepared['product_size_id'],
+                        'quantity'               => $prepared['quantity'],
+                        'price'                  => $prepared['price'],
+                        'subtotal_amount'        => $lineSubtotal,
+                        'product_discount_total' => $lineDiscount,
+                        'total'                  => $lineTotal,
+                        'applied_discounts'      => $breakdown['applied_discounts'] ?? [],
                     ]);
 
                     if (!empty($prepared['product_size_id'])) {

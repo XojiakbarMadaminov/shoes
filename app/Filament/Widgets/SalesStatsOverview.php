@@ -50,10 +50,12 @@ class SalesStatsOverview extends BaseWidget
             ->where('payment_type', 'debt')
             ->sum('total_amount');
 
-        $totalProfit = SaleItem::whereIn('sale_items.sale_id', $sales->pluck('id'))
+        $totalCost = SaleItem::whereIn('sale_items.sale_id', $sales->pluck('id'))
             ->join('products', 'products.id', '=', 'sale_items.product_id')
-            ->selectRaw('COALESCE(SUM( (sale_items.price - products.initial_price) * sale_items.quantity ), 0) AS profit')
-            ->value('profit');
+            ->selectRaw('COALESCE(SUM(COALESCE(products.initial_price, 0) * sale_items.quantity), 0) AS cost')
+            ->value('cost');
+
+        $totalProfit = $totalSales - (float) ($totalCost ?? 0);
 
         $purchases = Purchase::query()
             ->whereBetween('purchase_date', [$start, $end])

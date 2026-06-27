@@ -25,15 +25,23 @@ class ReceiptData
             'store_name' => $sale->store?->name ?? config('app.store_name'),
             'items'      => $items->map(function ($item) {
                 return [
-                    'name'  => $item->product?->name ?? 'Mahsulot',
-                    'size'  => $item->productSize?->size,
-                    'qty'   => (float) $item->quantity,
-                    'price' => (float) $item->price,
+                    'name'                   => $item->product?->name ?? 'Mahsulot',
+                    'size'                   => $item->productSize?->size,
+                    'qty'                    => (float) $item->quantity,
+                    'price'                  => (float) $item->price,
+                    'subtotal'               => (float) ($item->subtotal_amount ?: $item->quantity * $item->price),
+                    'product_discount_total' => (float) ($item->product_discount_total ?? 0),
+                    'total'                  => (float) $item->total,
                 ];
             })->toArray(),
             'totals' => [
-                'qty'    => (float) $items->sum('quantity'),
-                'amount' => (float) $sale->total_amount,
+                'qty'                    => (float) $items->sum('quantity'),
+                'amount'                 => (float) $sale->total_amount,
+                'subtotal'               => (float) ($sale->subtotal_amount ?: $items->sum('total')),
+                'product_discount_total' => (float) ($sale->product_discount_total ?? 0),
+                'order_discount_total'   => (float) ($sale->order_discount_total ?? 0),
+                'discount_total'         => (float) ($sale->discount_total ?? 0),
+                'applied_discounts'      => $sale->applied_discounts ?? [],
             ],
             'date' => $created instanceof \DateTimeInterface
                 ? $created->format('d.m.Y H:i:s')

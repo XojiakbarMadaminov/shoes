@@ -62,6 +62,14 @@
                 <div class="font-medium">{{ $paymentLabel ?? '—' }}</div>
             </div>
             <div>
+                <div class="text-gray-500">Subtotal</div>
+                <div class="font-medium">{{ number_format($sale->subtotal_amount ?: $sale->total_amount, 2) }}</div>
+            </div>
+            <div>
+                <div class="text-gray-500">Chegirma</div>
+                <div class="font-medium">{{ number_format($sale->discount_total ?? 0, 2) }}</div>
+            </div>
+            <div>
                 <div class="text-gray-500">Jami summa</div>
                 <div class="font-medium">{{ number_format($sale->total_amount, 2) }}</div>
             </div>
@@ -85,6 +93,7 @@
                             <th class="px-3 py-2 text-left">Sklad</th>
                             <th class="px-3 py-2 text-right">Miqdor</th>
                             <th class="px-3 py-2 text-right">Narx</th>
+                            <th class="px-3 py-2 text-right">Chegirma</th>
                             <th class="px-3 py-2 text-right">Jami</th>
                         </tr>
                     </thead>
@@ -97,11 +106,12 @@
                             <td class="px-3 py-2">{{ $item->stock->name ?? ('#'.$item->stock_id) }}</td>
                             <td class="px-3 py-2 text-right">{{ $item->quantity }}</td>
                             <td class="px-3 py-2 text-right">{{ number_format($item->price, 2) }}</td>
+                            <td class="px-3 py-2 text-right">{{ number_format($item->product_discount_total ?? 0, 2) }}</td>
                             <td class="px-3 py-2 text-right">{{ number_format($item->total, 2) }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-3 py-4 text-center text-gray-500">Tovarlar mavjud emas</td>
+                            <td colspan="6" class="px-3 py-4 text-center text-gray-500">Tovarlar mavjud emas</td>
                         </tr>
                     @endforelse
                     </tbody>

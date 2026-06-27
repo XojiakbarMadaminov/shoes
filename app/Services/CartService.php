@@ -77,7 +77,6 @@ class CartService
         }
     }
 
-
     public function remove(int $productId, int $cartId = 1): void
     {
         $carts = session($this->key, []);
@@ -102,24 +101,20 @@ class CartService
 
     public function totals(int $cartId = 1): array
     {
-        $items  = $this->all($cartId);
-        $qty    = 0;
-        $amount = 0;
+        $items           = $this->all($cartId);
+        $discountSummary = app(DiscountService::class)->calculate($items);
+        $qty             = collect($discountSummary['items'])->sum('quantity');
 
-        foreach ($items as $item) {
-            // Agar mahsulotda sizes mavjud bo'lsa, sizes yig'indisini ishlatish
-            if (!empty($item['sizes'])) {
-                $itemQty = array_sum($item['sizes']);
-            } else {
-                // Package yoki sizes mavjud bo'lmasa, oddiy qty dan foydalanish
-                $itemQty = (int) ($item['qty'] ?? 0);
-            }
-
-            $qty    += $itemQty;
-            $amount += $itemQty * (float) ($item['price'] ?? 0);
-        }
-
-        return ['qty' => $qty, 'amount' => $amount];
+        return [
+            'qty'                    => $qty,
+            'amount'                 => $discountSummary['total'],
+            'subtotal'               => $discountSummary['subtotal'],
+            'product_discount_total' => $discountSummary['product_discount_total'],
+            'order_discount_total'   => $discountSummary['order_discount_total'],
+            'discount_total'         => $discountSummary['discount_total'],
+            'applied_discounts'      => $discountSummary['applied_discounts'],
+            'items'                  => $discountSummary['items'],
+        ];
     }
 
     public function getAllCarts(): array

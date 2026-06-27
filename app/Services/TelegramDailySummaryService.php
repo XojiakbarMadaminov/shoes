@@ -95,14 +95,16 @@ class TelegramDailySummaryService
             ->where('payment_type', 'debt')
             ->sum('total_amount');
 
-        $totalProfit = SaleItem::withoutGlobalScopes()
+        $totalCost = SaleItem::withoutGlobalScopes()
             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
             ->join('products', 'products.id', '=', 'sale_items.product_id')
             ->whereBetween('sales.created_at', [$start, $end])
             ->where('sales.status', Sale::STATUS_COMPLETED)
             ->where('sales.store_id', $store->id)
-            ->selectRaw('COALESCE(SUM( (sale_items.price - products.initial_price) * sale_items.quantity ), 0) AS profit')
-            ->value('profit');
+            ->selectRaw('COALESCE(SUM(COALESCE(products.initial_price, 0) * sale_items.quantity), 0) AS cost')
+            ->value('cost');
+
+        $totalProfit = (float) $totalSales - (float) ($totalCost ?? 0);
 
         $totalExpenses = Expense::withoutGlobalScopes()
             ->where('store_id', $store->id)

@@ -748,6 +748,16 @@
                         <span>Mahsulotlar soni:</span>
                         <span class="font-medium text-gray-800 dark:text-gray-200">{{ $totals['qty'] }} dona</span>
                     </div>
+                    @if(($totals['discount_total'] ?? 0) > 0)
+                        <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                            <span>Subtotal:</span>
+                            <span class="font-medium text-gray-800 dark:text-gray-200">{{ number_format($totals['subtotal'] ?? 0, 0, '.', ' ') }} so'm</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-success-700 dark:text-success-400">
+                            <span>Chegirma:</span>
+                            <span class="font-medium">-{{ number_format($totals['discount_total'] ?? 0, 0, '.', ' ') }} so'm</span>
+                        </div>
+                    @endif
                     <div class="flex justify-between text-lg font-semibold text-gray-900 dark:text-white">
                         <span>Jami summa:</span>
                         <span>{{ number_format($totals['amount'], 0, '.', ' ') }} so'm</span>

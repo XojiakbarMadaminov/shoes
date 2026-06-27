@@ -90,12 +90,17 @@
         $itemName  = $size ? $itemName . '(' . $size . ')' : $itemName;
         $qty       = (float) ($item['qty'] ?? 0);
         $price     = (float) ($item['price'] ?? 0);
-        $lineTotal = $qty * $price;
+        $lineSubtotal = (float) ($item['subtotal'] ?? ($qty * $price));
+        $itemDiscount = (float) ($item['product_discount_total'] ?? 0);
+        $lineTotal = (float) ($item['total'] ?? ($lineSubtotal - $itemDiscount));
     @endphp
     <div class="item-row bold">
         <span class="item-name">
             {{ $itemName }}<br>
             <span style="font-size:11px;">{{ rtrim(rtrim(number_format($qty, 2, '.', ''), '0'), '.') }} x {{ number_format($price, 0, '.', ' ') }}</span>
+            @if($itemDiscount > 0)
+                <br><span style="font-size:11px;">Chegirma: -{{ number_format($itemDiscount, 0, '.', ' ') }} so'm</span>
+            @endif
         </span>
         <span class="item-total bold">{{ number_format($lineTotal, 0, '.', ' ') }} so'm</span>
     </div>
@@ -107,6 +112,16 @@
     <span>Jami mahsulotlar:</span>
     <span>{{ rtrim(rtrim(number_format((float) ($totals['qty'] ?? 0), 2, '.', ''), '0'), '.') }} dona</span>
 </div>
+@if(($totals['discount_total'] ?? 0) > 0)
+    <div class="item-row bold">
+        <span>Subtotal:</span>
+        <span>{{ number_format((float) ($totals['subtotal'] ?? 0), 0, '.', ' ') }} so'm</span>
+    </div>
+    <div class="item-row bold">
+        <span>Chegirma:</span>
+        <span>-{{ number_format((float) ($totals['discount_total'] ?? 0), 0, '.', ' ') }} so'm</span>
+    </div>
+@endif
 <div class="item-row bold" style="font-size:15px;">
     <span>JAMI SUMMA:</span>
     <span>{{ number_format((float) ($totals['amount'] ?? 0), 0, '.', ' ') }} so'm</span>

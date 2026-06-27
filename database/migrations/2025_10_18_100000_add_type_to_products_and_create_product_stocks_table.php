@@ -1,21 +1,25 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+
         // Add type column to products
         Schema::table('products', function (Blueprint $table) {
             $table->string('type')->default('size')->index();
         });
 
         // Ensure check constraint for type values (PostgreSQL)
-        DB::statement("ALTER TABLE products ADD CONSTRAINT products_type_check CHECK (type IN ('size','package'))");
+        if (!$isSqlite) {
+            DB::statement("ALTER TABLE products ADD CONSTRAINT products_type_check CHECK (type IN ('size','package'))");
+        }
 
         // Create unified product_stocks table
         Schema::create('product_stocks', function (Blueprint $table) {
@@ -31,21 +35,27 @@ return new class extends Migration
         });
 
         // Add check constraint: one of product_id or product_size_id must be non-null, but not both
-        DB::statement("ALTER TABLE product_stocks ADD CONSTRAINT product_stocks_product_or_size_chk CHECK ((product_id IS NOT NULL AND product_size_id IS NULL) OR (product_id IS NULL AND product_size_id IS NOT NULL))");
+        if (!$isSqlite) {
+            DB::statement('ALTER TABLE product_stocks ADD CONSTRAINT product_stocks_product_or_size_chk CHECK ((product_id IS NOT NULL AND product_size_id IS NULL) OR (product_id IS NULL AND product_size_id IS NOT NULL))');
+        }
 
         // Partial unique indexes for package- and size-based rows
-        DB::statement("CREATE UNIQUE INDEX product_stocks_unique_package ON product_stocks (product_id, stock_id) WHERE product_id IS NOT NULL");
-        DB::statement("CREATE UNIQUE INDEX product_stocks_unique_size ON product_stocks (product_size_id, stock_id) WHERE product_size_id IS NOT NULL");
+        DB::statement('CREATE UNIQUE INDEX product_stocks_unique_package ON product_stocks (product_id, stock_id) WHERE product_id IS NOT NULL');
+        DB::statement('CREATE UNIQUE INDEX product_stocks_unique_size ON product_stocks (product_size_id, stock_id) WHERE product_size_id IS NOT NULL');
 
         // Data migration: copy existing size stocks into product_stocks
-        DB::statement("INSERT INTO product_stocks (product_id, product_size_id, stock_id, quantity, created_at, updated_at)
-            SELECT NULL, pss.product_size_id, pss.stock_id, pss.quantity, NOW(), NOW()
-            FROM product_size_stocks pss
-            ON CONFLICT DO NOTHING");
+        if (!$isSqlite) {
+            DB::statement('INSERT INTO product_stocks (product_id, product_size_id, stock_id, quantity, created_at, updated_at)
+                SELECT NULL, pss.product_size_id, pss.stock_id, pss.quantity, NOW(), NOW()
+                FROM product_size_stocks pss
+                ON CONFLICT DO NOTHING');
+        }
     }
 
     public function down(): void
     {
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+
         // Drop partial unique indexes and table
         DB::statement('DROP INDEX IF EXISTS product_stocks_unique_package');
         DB::statement('DROP INDEX IF EXISTS product_stocks_unique_size');
@@ -53,10 +63,12 @@ return new class extends Migration
         Schema::dropIfExists('product_stocks');
 
         // Drop type column and constraint
-        DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_type_check');
+        if (!$isSqlite) {
+            DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_type_check');
+        }
+
         Schema::table('products', function (Blueprint $table) {
             $table->dropColumn('type');
         });
     }
 };
-

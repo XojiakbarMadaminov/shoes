@@ -5,6 +5,7 @@ namespace App\Services;
 use Throwable;
 use App\Models\Sale;
 use Telegram\Bot\Api;
+use App\Models\SaleItem;
 use App\Models\TelegramSetting;
 use Illuminate\Support\Facades\Log;
 
@@ -62,22 +63,7 @@ class TelegramSaleNotifier
         $hr          = str_repeat('-', 50);
 
         $itemLines = $sale->items
-            ->map(function ($item) {
-                $name       = $item->product?->name ?? 'Mahsulot';
-                $size       = $item->productSize?->size;
-                $quantity   = $item->quantity ?? 0;
-                $price      = (float) $item->price ?? 0;
-                $totalPrice = $quantity * $price;
-
-                if (filled($size)) {
-                    $name .= sprintf(' (%s)', $size);
-                }
-
-                $priceStr      = number_format($price, 0, '.', ' ');
-                $totalPriceStr = number_format($totalPrice, 0, '.', ' ');
-
-                return sprintf("%s\n%s x %s = %s", $name, $quantity, $priceStr, $totalPriceStr);
-            })
+            ->map(fn (SaleItem $item): string => $this->formatItemLine($item, $currency))
             ->filter()
             ->implode(PHP_EOL . PHP_EOL);
 
@@ -99,6 +85,8 @@ class TelegramSaleNotifier
             $hr,
         ];
 
+        $lines = array_merge($lines, $this->formatTotalsLines($sale, $currency));
+
         if ($sale->payment_type === 'partial' || (float) $sale->paid_amount > 0) {
             $paid    = number_format((float) $sale->paid_amount, 0, '.', ' ');
             $lines[] = "💵 To'langan: {$paid} {$currency}";
@@ -112,6 +100,73 @@ class TelegramSaleNotifier
         $lines[] = "⏰ Sana: {$date}";
 
         return implode(PHP_EOL, array_filter($lines));
+    }
+
+    private function formatItemLine(SaleItem $item, string $currency): string
+    {
+        $name     = $item->product?->name ?? 'Mahsulot';
+        $size     = $item->productSize?->size;
+        $quantity = (float) ($item->quantity ?? 0);
+        $price    = (float) ($item->price ?? 0);
+
+        if (filled($size)) {
+            $name .= sprintf(' (%s)', $size);
+        }
+
+        $lineSubtotal = (float) ($item->subtotal_amount ?: ($quantity * $price));
+        $lineDiscount = (float) ($item->product_discount_total ?? 0);
+        $lineTotal    = (float) ($item->total ?: ($lineSubtotal - $lineDiscount));
+
+        $lines = [
+            $name,
+            sprintf(
+                '%s x %s = %s %s',
+                $this->formatQuantity($quantity),
+                $this->formatMoney($price),
+                $this->formatMoney($lineTotal),
+                $currency
+            ),
+        ];
+
+        if ($lineDiscount > 0) {
+            $lines[] = 'Chegirma: -' . $this->formatMoney($lineDiscount) . " {$currency}";
+        }
+
+        return implode(PHP_EOL, $lines);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function formatTotalsLines(Sale $sale, string $currency): array
+    {
+        $quantityTotal = (float) $sale->items->sum('quantity');
+        $subtotal      = (float) ($sale->subtotal_amount ?: $sale->items->sum('total'));
+        $discountTotal = (float) ($sale->discount_total ?? 0);
+        $total         = (float) $sale->total_amount;
+
+        $lines = [
+            'Jami mahsulotlar: ' . $this->formatQuantity($quantityTotal) . ' dona',
+        ];
+
+        if ($discountTotal > 0) {
+            $lines[] = 'Subtotal: ' . $this->formatMoney($subtotal) . " {$currency}";
+            $lines[] = 'Chegirma: -' . $this->formatMoney($discountTotal) . " {$currency}";
+        }
+
+        $lines[] = 'JAMI SUMMA: ' . $this->formatMoney($total) . " {$currency}";
+
+        return $lines;
+    }
+
+    private function formatQuantity(float $quantity): string
+    {
+        return rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.');
+    }
+
+    private function formatMoney(float $value): string
+    {
+        return number_format($value, 0, '.', ' ');
     }
 
     private function paymentTypeLabel(?string $type): string
