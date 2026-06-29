@@ -906,55 +906,67 @@
         </div>
     </div>
 
-    {{-- ðŸ§'â€�ðŸ'¼ Klient tanlash Slide-over Panel --}}
+    {{-- Klient tanlash inline panel --}}
     @if($showClientPanel)
-        <div class="fixed inset-0 bg-black bg-opacity-30 z-50 flex justify-end" wire:click="$set('showClientPanel', false)">
+        <div
+            class="mt-4 rounded-lg border border-warning-200 bg-warning-50/40 p-3 shadow-sm dark:border-warning-900/40 dark:bg-warning-900/10"
+            x-data
+            x-init="$nextTick(() => $refs.clientSearch?.focus())"
+            wire:key="client-panel-{{ $activeCartId }}"
+        >
             <div
-                class="w-full sm:w-1/3 bg-white dark:bg-gray-900 shadow-2xl h-full overflow-y-auto"
-                wire:click.stop
-                x-data
-                x-init="$nextTick(() => $refs.clientSearch?.focus())"
+                class="w-full overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
             >
                 {{-- Header --}}
-                <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 z-10">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                            Klient tanlash
-                        </h2>
+                <div class="border-b border-gray-200 dark:border-gray-700 p-4">
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                            <p class="text-xs font-medium uppercase tracking-wide text-warning-700 dark:text-warning-400">
+                                Checkout
+                            </p>
+                            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                Klient tanlash
+                            </h2>
+                        </div>
                         <button
                             wire:click="$set('showClientPanel', false)"
                             class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            title="Panelni yopish"
                         >
                             <x-heroicon-o-x-mark class="w-6 h-6"/>
                         </button>
                     </div>
 
-                    {{-- Qidiruv --}}
-                    <x-filament::input.wrapper>
-                        <x-slot name="prefix">
-                            <x-heroicon-o-magnifying-glass class="w-5 h-5 text-gray-400"/>
-                        </x-slot>
-                        <x-filament::input
-                            x-ref="clientSearch"
-                            wire:model.live.debounce.300ms="searchClient"
-                            placeholder="Ism yoki telefon raqam..."
-                        />
-                    </x-filament::input.wrapper>
+                    <div class="grid gap-3 lg:grid-cols-3">
+                        {{-- Qidiruv --}}
+                        <div class="lg:col-span-2">
+                            <x-filament::input.wrapper>
+                                <x-slot name="prefix">
+                                    <x-heroicon-o-magnifying-glass class="w-5 h-5 text-gray-400"/>
+                                </x-slot>
+                                <x-filament::input
+                                    x-ref="clientSearch"
+                                    wire:model.live.debounce.300ms="searchClient"
+                                    placeholder="Ism yoki telefon raqam..."
+                                />
+                            </x-filament::input.wrapper>
+                        </div>
 
-                    {{-- Yangi klient qo'shish tugmasi --}}
-                    <x-filament::button
-                        wire:click="toggleCreateClientForm"
-                        size="sm"
-                        color="success"
-                        icon="heroicon-o-plus"
-                        class="w-full mt-3"
-                    >
-                        Yangi klient qo'shish
-                    </x-filament::button>
+                        {{-- Yangi klient qo'shish tugmasi --}}
+                        <x-filament::button
+                            wire:click="toggleCreateClientForm"
+                            size="sm"
+                            color="success"
+                            icon="heroicon-o-plus"
+                            class="w-full"
+                        >
+                            Yangi klient qo'shish
+                        </x-filament::button>
+                    </div>
                 </div>
 
                 {{-- Content --}}
-                <div class="p-4 space-y-4">
+                <div class="grid gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3">
                     {{-- Yangi klient yaratish formasi --}}
                     @if($showCreateClientForm)
                         <x-filament::card>
@@ -982,8 +994,10 @@
                                         Telefon raqam
                                     </label>
                                     <x-filament::input
-                                        wire:model="newClient.phone"
-                                        placeholder="+998 XX XXX XX XX"
+                                        type="tel"
+                                        inputmode="tel"
+                                        wire:model.live.debounce.300ms="newClient.phone"
+                                        placeholder="+998901234567"
                                     />
                                     @error('newClient.phone')
                                         <p class="mt-1 text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>
@@ -1055,7 +1069,7 @@
 
                     {{-- To'lov usullari --}}
                     @if($selectedClientId)
-                        <x-filament::card class="mt-6">
+                        <x-filament::card class="mt-0">
                             <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
                                 To'lov usulini tanlang
                             </h3>

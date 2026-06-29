@@ -30,6 +30,8 @@ class Pos extends Page
 {
     use HasNotifications, HasPageShield;
 
+    protected const CLIENT_PHONE_PREFIX = '+998';
+
     protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::BaseActions;
     protected static ?string $title                          = 'Sotuv';
     protected string $view                                   = 'filament.pages.pos';
@@ -123,7 +125,7 @@ class Pos extends Page
 
     public array $newClient = [
         'full_name' => '',
-        'phone'     => '',
+        'phone'     => self::CLIENT_PHONE_PREFIX,
     ];
 
     public function mount(): void
@@ -1281,30 +1283,46 @@ class Pos extends Page
 
         // Formani ochganda eski ma'lumotlarni tozalash
         if ($this->showCreateClientForm) {
-            $this->newClient = ['full_name' => '', 'phone' => ''];
+            $this->newClient = $this->getDefaultNewClientData();
         }
+    }
+
+    public function updatedNewClientPhone(mixed $value): void
+    {
+        $this->newClient['phone'] = $this->normalizeClientPhoneForInput($value);
     }
 
     /* === Yangi klient yaratish === */
     public function createClient(): void
     {
+        $phone = $this->normalizeClientPhoneForStorage($this->newClient['phone'] ?? null);
+
+        $this->newClient['phone'] = $phone;
+
         $this->validate([
             'newClient.full_name' => 'required|string|min:3',
-            'newClient.phone'     => 'nullable|string|unique:clients,phone',
+            'newClient.phone'     => [
+                'required',
+                'string',
+                'regex:/^\+998\d{9}$/',
+                Rule::unique('clients', 'phone'),
+            ],
         ], [
             'newClient.full_name.required' => 'To\'liq ismni kiriting',
             'newClient.full_name.min'      => 'Ism kamida 3 ta belgidan iborat bo\'lishi kerak',
+            'newClient.phone.required'     => 'Telefon raqamni kiriting.',
+            'newClient.phone.regex'        => '+998 dan keyin 9 ta raqam kiriting.',
             'newClient.phone.unique'       => 'Ushbu telefon raqami allaqachon mavjud.',
         ]);
 
         $client = Client::create([
             'full_name' => $this->newClient['full_name'],
-            'phone'     => $this->newClient['phone'] ?: null,
+            'phone'     => $phone,
         ]);
 
         $this->selectedClientId                 = $client->id;
         $this->cartClients[$this->activeCartId] = $client->id;
-        $this->newClient                        = ['full_name' => '', 'phone' => ''];
+        $this->newClient                        = $this->getDefaultNewClientData();
         $this->showCreateClientForm             = false;
         $this->loadClients();
         $this->persistCartMeta();
@@ -1314,6 +1332,35 @@ class Pos extends Page
             ->body("{$client->full_name} qo'shildi va tanlandi")
             ->success()
             ->send();
+    }
+
+    /**
+     * @return array{full_name: string, phone: string}
+     */
+    protected function getDefaultNewClientData(): array
+    {
+        return [
+            'full_name' => '',
+            'phone'     => self::CLIENT_PHONE_PREFIX,
+        ];
+    }
+
+    protected function normalizeClientPhoneForInput(mixed $value): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value) ?? '';
+
+        if (str_starts_with($digits, '998')) {
+            $digits = substr($digits, 3);
+        }
+
+        $digits = substr($digits, 0, 9);
+
+        return self::CLIENT_PHONE_PREFIX . $digits;
+    }
+
+    protected function normalizeClientPhoneForStorage(mixed $value): string
+    {
+        return $this->normalizeClientPhoneForInput($value);
     }
 
     /* === To'lov turini tanlash === */
