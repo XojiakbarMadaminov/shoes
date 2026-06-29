@@ -24,6 +24,7 @@ class DiscountForm
                         TextInput::make('name')
                             ->label('Nomi')
                             ->required()
+                            ->readOnly()
                             ->maxLength(255)
                             ->columnSpanFull(),
 
