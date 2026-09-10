@@ -19,6 +19,7 @@ use Illuminate\Validation\Rule;
 use App\Models\DebtorTransaction;
 use App\Services\DiscountService;
 use App\Services\ExchangeService;
+use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use App\Services\CustomerDiscountService;
@@ -47,6 +48,19 @@ class Pos extends Page
     public function getHeading(): string
     {
         return '';
+    }
+
+    #[Computed]
+    public function canSellWithoutClient(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        return !$user->currentStore?->always_with_client
+            || $user->hasAnyRole(['super_admin', 'admin']);
     }
 
     public string $search     = '';
@@ -469,6 +483,16 @@ class Pos extends Page
         if (($totals['customer_discount_amount'] ?? 0) > 0 && !$this->selectedClientId) {
             Notification::make()
                 ->title('Mijoz chegirmasi uchun klient talab qilinadi')
+                ->warning()
+                ->send();
+
+            return false;
+        }
+
+        if (!$this->selectedClientId && !$this->canSellWithoutClient) {
+            Notification::make()
+                ->title('Klient tanlanmagan')
+                ->body('Ushbu do‘konda sotuvni yakunlash uchun klient tanlash majburiy.')
                 ->warning()
                 ->send();
 
@@ -1050,6 +1074,11 @@ class Pos extends Page
         $this->saleWithoutClient            = (bool) ($this->cartSaleWithoutClient[$this->activeCartId] ?? true);
         $this->saleWithoutClientPaymentType = (string) ($this->cartSaleWithoutClientPaymentType[$this->activeCartId] ?? 'cash');
 
+        if (!$this->canSellWithoutClient) {
+            $this->saleWithoutClient                          = false;
+            $this->cartSaleWithoutClient[$this->activeCartId] = false;
+        }
+
         if ($this->saleWithoutClient && !$this->selectedClientId) {
             if (!in_array($this->paymentType, ['cash', 'card'], true)) {
                 $this->paymentType = in_array($this->saleWithoutClientPaymentType, ['cash', 'card'], true)
@@ -1243,7 +1272,9 @@ class Pos extends Page
 
     public function updatedSaleWithoutClient($value): void
     {
-        $this->cartSaleWithoutClient[$this->activeCartId] = (bool) $value;
+        $this->saleWithoutClient = $this->canSellWithoutClient && (bool) $value;
+
+        $this->cartSaleWithoutClient[$this->activeCartId] = $this->saleWithoutClient;
 
         if ($this->saleWithoutClient && !$this->selectedClientId) {
             $type = in_array($this->saleWithoutClientPaymentType, ['cash', 'card'], true)

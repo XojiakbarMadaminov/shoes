@@ -28,6 +28,10 @@ class StoreForm
                             ->dehydrateStateUsing(fn ($state) => '+998' . preg_replace('/\D/', '', $state))
                             ->formatStateUsing(fn ($state) => $state ? ltrim(preg_replace('/^\+998/', '', $state), '0') : ''),
                         Toggle::make('send_sms')->label('SMS yuborishga ruhsat')->default(true),
+                        Toggle::make('always_with_client')
+                            ->label('Har doim klient bilan sotish')
+                            ->helperText('Yoqilganda admin va super adminlardan tashqari foydalanuvchilar klientsiz sotuv qila olmaydi.')
+                            ->default(false),
                     ]),
 
             ]);

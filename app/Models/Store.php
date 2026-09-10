@@ -13,6 +13,14 @@ class Store extends Model
     protected $table   = 'stores';
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'always_with_client' => 'boolean',
+            'send_sms'           => 'boolean',
+        ];
+    }
+
     public function stocks()
     {
         return $this->belongsToMany(Stock::class, 'store_stock');
