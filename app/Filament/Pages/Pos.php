@@ -897,29 +897,7 @@ class Pos extends Page
                 }
 
                 if ($remainingAmount > 0 && $paymentType !== 'preorder') {
-                    $debtor = Debtor::firstOrCreate(
-                        [
-                            'store_id'  => $storeId,
-                            'client_id' => $clientId,
-                        ],
-                        [
-                            'amount'   => 0,
-                            'currency' => 'uzs',
-                            'date'     => now(),
-                        ]
-                    );
-
-                    $addedAmount = (int) round($remainingAmount);
-                    $debtor->increment('amount', $addedAmount);
-
-                    DebtorTransaction::create([
-                        'debtor_id' => $debtor->id,
-                        'amount'    => $addedAmount,
-                        'type'      => 'debt',
-                        'date'      => now(),
-                        'sale_id'   => $sale->id,
-                        'note'      => filled($this->paymentNote) ? $this->paymentNote : "Sotuv #{$sale->id}",
-                    ]);
+                    $this->recordSaleDebt($sale, $storeId, $clientId, $remainingAmount);
                 }
 
                 return [$sale, $remainingAmount];
@@ -983,6 +961,44 @@ class Pos extends Page
             ->send();
 
         return true;
+    }
+
+    protected function recordSaleDebt(Sale $sale, int $storeId, int $clientId, float $remainingAmount): void
+    {
+        Client::query()
+            ->whereKey($clientId)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        $debtor = Debtor::query()
+            ->where('store_id', $storeId)
+            ->where('client_id', $clientId)
+            ->oldest('id')
+            ->lockForUpdate()
+            ->first();
+
+        if (!$debtor) {
+            $debtor = Debtor::create([
+                'store_id'  => $storeId,
+                'client_id' => $clientId,
+                'amount'    => 0,
+                'currency'  => 'uzs',
+                'date'      => now(),
+            ]);
+        }
+
+        $addedAmount = (int) round($remainingAmount);
+
+        $debtor->increment('amount', $addedAmount);
+
+        DebtorTransaction::create([
+            'debtor_id' => $debtor->id,
+            'amount'    => $addedAmount,
+            'type'      => 'debt',
+            'date'      => now(),
+            'sale_id'   => $sale->id,
+            'note'      => filled($this->paymentNote) ? $this->paymentNote : "Sotuv #{$sale->id}",
+        ]);
     }
 
     /* ---------- Chek funksiyalari ---------- */

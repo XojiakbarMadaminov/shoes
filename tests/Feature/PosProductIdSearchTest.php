@@ -6,11 +6,13 @@ use App\Models\User;
 use App\Models\Stock;
 use App\Models\Store;
 use App\Models\Client;
+use App\Models\Debtor;
 use Livewire\Livewire;
 use App\Models\Product;
 use App\Filament\Pages\Pos;
 use App\Models\ProductStock;
 use Filament\Facades\Filament;
+use App\Models\DebtorTransaction;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -183,4 +185,35 @@ it('clears a customer discount when another customer is selected', function () {
         ->assertSet('customerDiscountValue', null)
         ->assertSet('totals.customer_discount_amount', 0.0)
         ->assertSet('totals.amount', 100000.0);
+});
+
+it('adds a debt sale to the existing debtor without creating a duplicate', function () {
+    [$product, $user] = createVisiblePosProduct($this, [
+        'name'  => 'Qarzga sotiladigan tovar',
+        'price' => 125000,
+    ]);
+    $client = Client::factory()->create();
+    $debtor = Debtor::create([
+        'store_id'  => $user->current_store_id,
+        'client_id' => $client->id,
+        'amount'    => 50000,
+        'currency'  => 'uzs',
+        'date'      => now(),
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(Pos::class)
+        ->call('addByProductId', (string) $product->id)
+        ->call('selectClient', $client->id)
+        ->call('selectPaymentType', 'debt')
+        ->call('checkout');
+
+    $sale = Sale::query()->latest('id')->firstOrFail();
+
+    expect(Debtor::query()
+        ->where('store_id', $user->current_store_id)
+        ->where('client_id', $client->id)
+        ->count())->toBe(1)
+        ->and($debtor->refresh()->amount)->toBe(175000)
+        ->and(DebtorTransaction::query()->where('sale_id', $sale->id)->value('debtor_id'))->toBe($debtor->id);
 });
