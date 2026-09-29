@@ -32,6 +32,10 @@ class DiscountInfolist
                             ->label('Tovarlar')
                             ->listWithLineBreaks()
                             ->bulleted(),
+                        TextEntry::make('excludedProducts.name')
+                            ->label('Chegirma qo‘llanmaydigan tovarlar')
+                            ->listWithLineBreaks()
+                            ->bulleted(),
                         TextEntry::make('categories.name')
                             ->label('Kategoriyalar')
                             ->listWithLineBreaks()

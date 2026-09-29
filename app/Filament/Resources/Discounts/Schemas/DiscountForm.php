@@ -43,6 +43,10 @@ class DiscountForm
                                     $set('products', []);
                                 }
 
+                                if ($type !== DiscountType::GlobalPercent->value) {
+                                    $set('excludedProducts', []);
+                                }
+
                                 if ($type !== DiscountType::CategoryPercent->value) {
                                     $set('categories', []);
                                 }
@@ -84,6 +88,15 @@ class DiscountForm
                             ->searchable()
                             ->preload()
                             ->visible(fn (Get $get): bool => self::typeValue($get('type')) === DiscountType::SelectedProductsPercent->value),
+
+                        Select::make('excludedProducts')
+                            ->label('Chegirma qo‘llanmaydigan tovarlar')
+                            ->helperText('Tanlangan tovarlarga “Barcha tovarlarga chegirma” amal qilmaydi.')
+                            ->relationship('excludedProducts', 'name')
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->visible(fn (Get $get): bool => self::typeValue($get('type')) === DiscountType::GlobalPercent->value),
 
                         Select::make('categories')
                             ->label('Tanlangan kategoriyalar')

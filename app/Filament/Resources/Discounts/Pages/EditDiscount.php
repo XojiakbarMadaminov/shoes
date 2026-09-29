@@ -33,6 +33,10 @@ class EditDiscount extends EditRecord
             $this->record->products()->detach();
         }
 
+        if ($this->record->type !== DiscountType::GlobalPercent) {
+            $this->record->excludedProducts()->detach();
+        }
+
         if ($this->record->type !== DiscountType::CategoryPercent) {
             $this->record->categories()->detach();
         }

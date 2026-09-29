@@ -37,6 +37,11 @@ class Discount extends Model
         return $this->belongsToMany(Product::class);
     }
 
+    public function excludedProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'discount_excluded_product');
+    }
+
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class);

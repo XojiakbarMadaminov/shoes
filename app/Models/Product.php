@@ -71,6 +71,11 @@ class Product extends Model implements HasMedia
         return $this->belongsToMany(Discount::class);
     }
 
+    public function excludedFromDiscounts(): BelongsToMany
+    {
+        return $this->belongsToMany(Discount::class, 'discount_excluded_product');
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);

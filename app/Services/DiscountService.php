@@ -33,7 +33,7 @@ class DiscountService
         $normalizedItems = $this->attachCategoryIds($normalizedItems);
 
         $activeDiscounts = Discount::query()
-            ->with(['products:id', 'categories:id'])
+            ->with(['products:id', 'excludedProducts:id', 'categories:id'])
             ->activeNow()
             ->get();
 
@@ -97,7 +97,7 @@ class DiscountService
         }
 
         $activeProductDiscounts = Discount::query()
-            ->with(['products:id', 'categories:id'])
+            ->with(['products:id', 'excludedProducts:id', 'categories:id'])
             ->activeNow()
             ->get()
             ->filter(fn (Discount $discount): bool => $discount->type?->isProductScope() ?? false)
@@ -291,7 +291,10 @@ class DiscountService
         }
 
         return $this->selectBestDiscount(
-            $discounts->filter(fn (Discount $discount): bool => $discount->type === DiscountType::GlobalPercent)
+            $discounts->filter(
+                fn (Discount $discount): bool => $discount->type === DiscountType::GlobalPercent
+                    && ($productId === null || !$discount->excludedProducts->contains('id', $productId))
+            )
         );
     }
 
