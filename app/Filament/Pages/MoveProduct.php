@@ -2,21 +2,26 @@
 
 namespace App\Filament\Pages;
 
+use Throwable;
 use App\Models\Stock;
+use App\Models\Store;
 use App\Models\Product;
 use Filament\Pages\Page;
-use App\Models\ProductStock;
 use Filament\Schemas\Schema;
+use App\Models\StockTransfer;
 use App\Enums\NavigationGroup;
-use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
+use App\Services\StockTransferService;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Validation\ValidationException;
 use Filament\Forms\Concerns\InteractsWithForms;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
@@ -24,36 +29,97 @@ class MoveProduct extends Page implements HasForms
 {
     use HasPageShield, InteractsWithForms;
 
-    protected static string|null|\UnitEnum $navigationGroup  = NavigationGroup::BaseActions;
-    protected static ?string $navigationLabel                = 'Tovarlarni ko‘chirish';
+    protected static string|null|\UnitEnum $navigationGroup = NavigationGroup::BaseActions;
+
+    protected static ?string $navigationLabel = 'Tovarlarni ko‘chirish';
+
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-arrow-path';
-    protected static ?string $title                          = 'Tovarlarni ko‘chirish';
-    protected static ?int $navigationSort                    = 4;
+
+    protected static ?string $title = 'Filiallararo tovar ko‘chirish';
+
+    protected static ?int $navigationSort = 4;
 
     protected string $view = 'filament.pages.move-product';
 
     public ?array $data = [];
 
+    public function mount(): void
+    {
+        $this->form->fill([
+            'movement_mode' => StockTransfer::MODE_SELECTED,
+            'from_store_id' => auth()->user()?->current_store_id,
+        ]);
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make()
-                    ->columns()
+                Section::make('Ko‘chirish turi')
                     ->schema([
+                        ToggleButtons::make('movement_mode')
+                            ->label('Qanday ko‘chirilsin?')
+                            ->options([
+                                StockTransfer::MODE_SELECTED => 'Tanlab ko‘chirish',
+                                StockTransfer::MODE_ALL      => 'Barcha tovarlarni ko‘chirish',
+                            ])
+                            ->icons([
+                                StockTransfer::MODE_SELECTED => 'heroicon-o-list-bullet',
+                                StockTransfer::MODE_ALL      => 'heroicon-o-archive-box-arrow-down',
+                            ])
+                            ->default(StockTransfer::MODE_SELECTED)
+                            ->inline()
+                            ->live()
+                            ->required(),
+                    ])
+                    ->columnSpanFull(),
+
+                Section::make('Filial va omborlar')
+                    ->columns(2)
+                    ->schema([
+                        Select::make('from_store_id')
+                            ->label('Qaysi filialdan')
+                            ->options(fn (): array => $this->storeOptions())
+                            ->default(auth()->user()?->current_store_id)
+                            ->searchable()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set): void {
+                                $set('from_stock_id', null);
+                                $set('products', []);
+                            })
+                            ->required(),
+
+                        Select::make('to_store_id')
+                            ->label('Qaysi filialga')
+                            ->options(fn (Get $get): array => collect($this->storeOptions())
+                                ->except((int) $get('from_store_id'))
+                                ->all())
+                            ->searchable()
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('to_stock_id', null))
+                            ->different('from_store_id')
+                            ->required(),
+
                         Select::make('from_stock_id')
-                            ->label('Qayerdan')
-                            ->options(Stock::scopes('active')->pluck('name', 'id'))
+                            ->label('Qaysi ombordan')
+                            ->options(fn (Get $get): array => $this->stockOptions((int) $get('from_store_id')))
+                            ->searchable()
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('products', []))
                             ->required(),
 
                         Select::make('to_stock_id')
-                            ->label('Qayerga')
-                            ->options(Stock::scopes('active')->pluck('name', 'id'))
+                            ->label('Qaysi omborga')
+                            ->options(fn (Get $get): array => $this->stockOptions((int) $get('to_store_id')))
+                            ->searchable()
+                            ->different('from_stock_id')
                             ->required(),
-                    ])->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
 
-                Section::make()
-                    ->columns()
+                Section::make('Ko‘chiriladigan mahsulotlar')
+                    ->description('Mahsulotlar barcode bo‘yicha ajratiladi. Nomi bir xil, barcode’i boshqa mahsulotlar alohida hisoblanadi.')
+                    ->visible(fn (Get $get): bool => $get('movement_mode') === StockTransfer::MODE_SELECTED)
                     ->schema([
                         Repeater::make('products')
                             ->label('Mahsulotlar')
@@ -61,16 +127,39 @@ class MoveProduct extends Page implements HasForms
                                 Select::make('product_id')
                                     ->label('Mahsulot')
                                     ->searchable()
-                                    ->reactive()
-                                    ->getSearchResultsUsing(function (string $search) {
-                                        return Product::query()
-                                            ->where('name', 'ilike', "%{$search}%")
-                                            ->orWhere('barcode', 'ilike', "%{$search}%")
+                                    ->live()
+                                    ->getSearchResultsUsing(function (string $search, Get $get): array {
+                                        $stockId = (int) $get('../../from_stock_id');
+                                        $storeId = (int) $get('../../from_store_id');
+
+                                        if (!$stockId || !$storeId) {
+                                            return [];
+                                        }
+
+                                        return Product::withoutGlobalScope('current_store')
+                                            ->where('store_id', $storeId)
+                                            ->where(function ($query) use ($stockId): void {
+                                                $query->whereHas('productStocks', fn ($stockQuery) => $stockQuery
+                                                    ->where('stock_id', $stockId)
+                                                    ->where('quantity', '>', 0))
+                                                    ->orWhereHas('sizes.productStocks', fn ($stockQuery) => $stockQuery
+                                                        ->where('stock_id', $stockId)
+                                                        ->where('quantity', '>', 0));
+                                            })
+                                            ->where(function ($query) use ($search): void {
+                                                $query->where('name', 'ilike', "%{$search}%")
+                                                    ->orWhere('barcode', 'ilike', "%{$search}%");
+                                            })
                                             ->limit(50)
-                                            ->pluck('name', 'id');
+                                            ->get()
+                                            ->mapWithKeys(fn (Product $product): array => [
+                                                $product->id => $product->display_label,
+                                            ])
+                                            ->all();
                                     })
-                                    ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->name)
-                                    ->afterStateUpdated(function ($set, ?string $state) {
+                                    ->getOptionLabelUsing(fn ($value): ?string => Product::withoutGlobalScope('current_store')
+                                        ->find($value)?->display_label)
+                                    ->afterStateUpdated(function (Set $set, ?string $state): void {
                                         if (!$state) {
                                             $set('sizes', []);
                                             $set('type', null);
@@ -79,15 +168,17 @@ class MoveProduct extends Page implements HasForms
                                             return;
                                         }
 
-                                        $product = Product::with('sizes')->find($state);
-                                        $set('type', $product?->type ?? 'size');
-                                        $sizes = $product?->sizes?->map(fn ($size) => [
-                                            'size_id'   => $size->id,
-                                            'size_name' => $size->size,
-                                            'quantity'  => 0,
-                                        ])->toArray() ?? [];
-
-                                        $set('sizes', $sizes);
+                                        $product = Product::withoutGlobalScope('current_store')
+                                            ->with('sizes')
+                                            ->find($state);
+                                        $set('type', $product?->type ?? Product::TYPE_SIZE);
+                                        $set('sizes', $product?->sizes
+                                            ->map(fn ($size): array => [
+                                                'size_id'   => $size->id,
+                                                'size_name' => $size->size,
+                                                'quantity'  => 0,
+                                            ])
+                                            ->all() ?? []);
                                     })
                                     ->required()
                                     ->autofocus(),
@@ -97,21 +188,21 @@ class MoveProduct extends Page implements HasForms
                                 TextInput::make('package_quantity')
                                     ->label('Miqdor (paket)')
                                     ->numeric()
+                                    ->minValue(0)
                                     ->default(0)
-                                    ->visible(fn (Get $get) => ($get('type') ?? 'size') === 'package'),
+                                    ->visible(fn (Get $get): bool => $get('type') === Product::TYPE_PACKAGE),
 
                                 Repeater::make('sizes')
-                                    ->label('Variantlar')
+                                    ->label(fn (Get $get): string => $get('type') === Product::TYPE_COLOR ? 'Ranglar' : 'Razmerlar')
                                     ->schema([
                                         Hidden::make('size_id'),
                                         Hidden::make('size_name'),
                                         TextInput::make('quantity')
                                             ->columnSpanFull()
-                                            ->label(fn ($get) => (($get('size_name') ?? 'Variant')))
+                                            ->label(fn (Get $get): string => $get('size_name') ?? 'Variant')
                                             ->numeric()
                                             ->minValue(0)
-                                            ->default(0)
-                                            ->required(false),
+                                            ->default(0),
                                     ])
                                     ->grid(3)
                                     ->columns(3)
@@ -119,173 +210,42 @@ class MoveProduct extends Page implements HasForms
                                     ->addable(false)
                                     ->deletable(false)
                                     ->reorderable(false)
-                                    ->visible(fn (Get $get) => in_array(($get('type') ?? 'size'), ['size', 'color'], true)),
+                                    ->visible(fn (Get $get): bool => in_array($get('type'), [Product::TYPE_SIZE, Product::TYPE_COLOR], true)),
                             ])
                             ->grid()
                             ->minItems(1)
                             ->addActionLabel('Mahsulot qo‘shish')
                             ->columnSpanFull(),
-                    ])->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
+
+                Section::make('Diqqat')
+                    ->description('Manba ombordagi barcha musbat qoldiq bir operatsiyada qabul qiluvchi filialga o‘tkaziladi.')
+                    ->visible(fn (Get $get): bool => $get('movement_mode') === StockTransfer::MODE_ALL)
+                    ->columnSpanFull(),
             ])
             ->columns()
             ->statePath('data');
     }
 
-    public function submit(): void
+    public function submit(StockTransferService $service): void
     {
-        $data = $this->form->getState();
-
-        $productsData = collect($data['products'] ?? []);
-
-        if ($productsData->isEmpty()) {
-            Notification::make()
-                ->title('Mahsulot tanlanmagan')
-                ->warning()
-                ->send();
-
-            return;
-        }
-
-        $fromStockId = $data['from_stock_id'];
-        $toStockId   = $data['to_stock_id'];
-
-        $productNames = Product::whereIn('id', $productsData->pluck('product_id')->filter())
-            ->pluck('name', 'id');
-
-        $hasMovement = false;
-
-        foreach ($productsData as $item) {
-            $productId   = $item['product_id'] ?? null;
-            $productName = $productNames[$productId] ?? 'Noma’lum mahsulot';
-
-            foreach ($item['sizes'] ?? [] as $sizeItem) {
-                $quantity = (int) ($sizeItem['quantity'] ?? 0);
-
-                if ($quantity <= 0) {
-                    continue;
-                }
-
-                $hasMovement = true;
-
-                $sizeId   = $sizeItem['size_id'] ?? null;
-                $sizeName = $sizeItem['size_name'] ?? 'Razmer';
-
-                if (!$sizeId) {
-                    continue;
-                }
-
-                $available = ProductStock::where('product_size_id', $sizeId)
-                    ->where('stock_id', $fromStockId)
-                    ->value('quantity') ?? 0;
-
-                if ($quantity > $available) {
-                    Notification::make()
-                        ->title('Xatolik')
-                        ->body("{$productName} ({$sizeName}) uchun maksimal {$available} dona ko‘chirishingiz mumkin.")
-                        ->danger()
-                        ->send();
-
-                    return;
-                }
-            }
-        }
-
-        // Consider package-based items for movement flag
-        foreach ($productsData as $item) {
-            $type = $item['type'] ?? (Product::find($item['product_id'] ?? null)?->type ?? 'size');
-            if ($type === 'package' && (int) ($item['package_quantity'] ?? 0) > 0) {
-                $hasMovement = true;
-                break;
-            }
-        }
-
-        if (!$hasMovement) {
-            Notification::make()
-                ->title('Miqdor kiritilmadi')
-                ->body('Har bir razmer uchun ko‘chiriladigan miqdorni kiriting.')
-                ->warning()
-                ->send();
-
-            return;
-        }
-
         try {
-            DB::transaction(function () use ($productsData, $fromStockId, $toStockId) {
-                foreach ($productsData as $item) {
-                    $type = $item['type'] ?? (Product::find($item['product_id'] ?? null)?->type ?? 'size');
-                    if ($type === 'package') {
-                        $quantity = (int) ($item['package_quantity'] ?? 0);
-                        if ($quantity > 0) {
-                            $from = ProductStock::firstOrCreate(
-                                [
-                                    'product_id'      => $item['product_id'],
-                                    'product_size_id' => null,
-                                    'stock_id'        => $fromStockId,
-                                ],
-                                ['quantity' => 0]
-                            );
-                            if ($from->quantity < $quantity) {
-                                throw new \RuntimeException('Yetarli miqdor mavjud emas.');
-                            }
-                            $from->decrement('quantity', $quantity);
+            $transfer = $service->transfer($this->form->getState());
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->title('Ko‘chirish amalga oshmadi')
+                ->body(collect($exception->errors())->flatten()->first() ?? $exception->getMessage())
+                ->danger()
+                ->send();
 
-                            $to = ProductStock::firstOrCreate(
-                                [
-                                    'product_id'      => $item['product_id'],
-                                    'product_size_id' => null,
-                                    'stock_id'        => $toStockId,
-                                ],
-                                ['quantity' => 0]
-                            );
-                            $to->increment('quantity', $quantity);
-                        }
-                        continue;
-                    }
-                    foreach ($item['sizes'] ?? [] as $sizeItem) {
-                        $quantity = (int) ($sizeItem['quantity'] ?? 0);
-
-                        if ($quantity <= 0) {
-                            continue;
-                        }
-
-                        $sizeId = $sizeItem['size_id'] ?? null;
-
-                        if (!$sizeId) {
-                            continue;
-                        }
-
-                        $fromStock = ProductStock::firstOrCreate(
-                            [
-                                'product_size_id' => $sizeId,
-                                'stock_id'        => $fromStockId,
-                            ],
-                            ['quantity' => 0]
-                        );
-
-                        if ($fromStock->quantity < $quantity) {
-                            throw new \RuntimeException('Yetarli miqdor mavjud emas.');
-                        }
-
-                        $fromStock->decrement('quantity', $quantity);
-
-                        $toStock = ProductStock::firstOrCreate(
-                            [
-                                'product_size_id' => $sizeId,
-                                'stock_id'        => $toStockId,
-                            ],
-                            ['quantity' => 0]
-                        );
-
-                        $toStock->increment('quantity', $quantity);
-                    }
-                }
-            });
-        } catch (\Throwable $exception) {
+            return;
+        } catch (Throwable $exception) {
             report($exception);
 
             Notification::make()
                 ->title('Ko‘chirish amalga oshmadi')
-                ->body($exception->getMessage())
+                ->body('Kutilmagan xatolik yuz berdi. Qoldiqlar o‘zgartirilmadi.')
                 ->danger()
                 ->send();
 
@@ -293,11 +253,35 @@ class MoveProduct extends Page implements HasForms
         }
 
         Notification::make()
-            ->title('Muvaffaqiyatli')
-            ->body('Mahsulotlar razmerlari bo‘yicha ko‘chirildi.')
+            ->title('Muvaffaqiyatli ko‘chirildi')
+            ->body("{$transfer->items->count()} ta pozitsiya, jami {$transfer->total_quantity} dona ko‘chirildi.")
             ->success()
             ->send();
 
-        $this->form->fill();
+        $this->form->fill([
+            'movement_mode' => StockTransfer::MODE_SELECTED,
+            'from_store_id' => auth()->user()?->current_store_id,
+        ]);
+    }
+
+    /** @return array<int, string> */
+    private function storeOptions(): array
+    {
+        return Store::query()->orderBy('name')->pluck('name', 'id')->all();
+    }
+
+    /** @return array<int, string> */
+    private function stockOptions(int $storeId): array
+    {
+        if (!$storeId) {
+            return [];
+        }
+
+        return Stock::withoutGlobalScope('current_store')
+            ->active()
+            ->whereHas('stores', fn ($query) => $query->whereKey($storeId))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
     }
 }
